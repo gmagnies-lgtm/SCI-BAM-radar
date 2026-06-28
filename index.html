@@ -247,6 +247,13 @@
   .pricechg.up{background:rgba(239,68,68,.14);color:var(--bad)}
   .sh-mmcf{font-size:12px;color:var(--mut);margin:8px 0 2px;line-height:1.5}
   .sh-mmcf b.pos{color:var(--good)} .sh-mmcf b.neg{color:var(--bad)}
+  /* code de synchro */
+  .syncrow{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .syncrow input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:10px;font-size:14px;box-sizing:border-box;margin-top:6px}
+  .syncrow input:focus{outline:none;border-color:var(--acc)}
+  .syncstatus{font-size:11.5px;color:var(--mut);margin-top:7px;line-height:1.4}
+  .syncstatus.ok{color:var(--good)}
 </style>
 </head>
 <body class="locked">
@@ -311,6 +318,11 @@
       <label class="paptoggle"><input type="checkbox" id="papOnly"><span>🤝 Particuliers uniquement (sans agence)</span></label>
       <button class="runbtn" id="runBtn">🔄 Rafraîchir les annonces</button>
       <div class="srcnote" id="srcnote"></div>
+      <div class="syncrow">
+        <label class="srclbl" for="syncCode">🔗 Code de synchro (entre appareils)</label>
+        <input id="syncCode" type="password" placeholder="Coller ton code de synchro" autocomplete="off" autocapitalize="none">
+        <div class="syncstatus" id="syncStatus"></div>
+      </div>
     </div>
   </details>
 
@@ -461,14 +473,14 @@ let STATUS={}; try{ STATUS=JSON.parse(localStorage.getItem(STKEY)||'{}'); }catch
 function keyOf(b){ return b.url || ('id'+b.id); }
 function getStatus(b){ return STATUS[keyOf(b)]||null; }
 function setStatus(b,s){ const k=keyOf(b); if(STATUS[k]===s) delete STATUS[k]; else STATUS[k]=s;
-  try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} render(); }
+  try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} pushRemote(); render(); }
 function byId(id){ return LISTINGS.find(x=>x.id===id); }
 // ----- notes persistées, collées à la fiche -----
 const NTKEY='scibam_notes_v1';
 let NOTES={}; try{ NOTES=JSON.parse(localStorage.getItem(NTKEY)||'{}'); }catch(e){ NOTES={}; }
 function getNote(b){ return NOTES[keyOf(b)]||''; }
 function setNote(b,t){ const k=keyOf(b); if(t&&t.trim()) NOTES[k]=t; else delete NOTES[k];
-  try{ localStorage.setItem(NTKEY,JSON.stringify(NOTES)); }catch(e){} }
+  try{ localStorage.setItem(NTKEY,JSON.stringify(NOTES)); }catch(e){} pushRemote(); }
 function sourceOf(url){ if(!url) return 'Annonce';
   if(/seloger/.test(url)) return 'SeLoger'; if(/leboncoin/.test(url)) return 'leboncoin';
   if(/paruvendu/.test(url)) return 'ParuVendu'; if(/bienici/.test(url)) return "Bien'ici";
@@ -527,6 +539,35 @@ function priceChange(b){ const h=PRICEHIST[keyOf(b)]||[]; if(h.length<2) return 
   return { delta:last.p-prev.p, since:prev.t, from:prev.p, to:last.p }; }
 function dmy(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}); }
 
+// ----- synchro multi-appareils (Cloudflare Worker + KV) — classements, notes, historique prix -----
+const SYNC={ url:'' };   // URL du Worker (non secrète, à renseigner). Le code de synchro N'EST PAS ici :
+                         // il est saisi par l'utilisateur et stocké en local (jamais dans le dépôt public).
+const SYNCTOKKEY='scibam_synctoken_v1';
+function syncToken(){ try{ return localStorage.getItem(SYNCTOKKEY)||''; }catch(e){ return ''; } }
+function setSyncToken(t){ t=(t||'').trim(); try{ t?localStorage.setItem(SYNCTOKKEY,t):localStorage.removeItem(SYNCTOKKEY); }catch(e){}
+  if(typeof renderSyncStatus==='function') renderSyncStatus(); pullRemote(); }
+function syncOn(){ return !!(SYNC.url && syncToken()); }
+function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST }; }
+function applyRemote(r){
+  if(!r||typeof r!=='object') return false; let ch=false;
+  if(r.status&&typeof r.status==='object'){ STATUS={...STATUS,...r.status}; try{localStorage.setItem(STKEY,JSON.stringify(STATUS));}catch(e){} ch=true; }
+  if(r.notes&&typeof r.notes==='object'){ NOTES={...NOTES,...r.notes}; try{localStorage.setItem(NTKEY,JSON.stringify(NOTES));}catch(e){} ch=true; }
+  if(r.pricehist&&typeof r.pricehist==='object'){ for(const k in r.pricehist){ const a=PRICEHIST[k]||[],b=r.pricehist[k]||[]; if(b.length>a.length) PRICEHIST[k]=b; } savePriceHist(); ch=true; }
+  return ch;
+}
+let _pushT=null;
+function pushRemote(){ if(!syncOn()) return; clearTimeout(_pushT);
+  _pushT=setTimeout(()=>{ fetch(SYNC.url+'/data',{method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:syncToken(), ...snapshot()})}).catch(()=>{}); }, 1200);
+}
+async function pullRemote(){ if(!syncOn()) return;
+  try{ const r=await fetch(SYNC.url+'/data?token='+encodeURIComponent(syncToken()),{cache:'no-store'});
+       if(!r.ok) return; const d=await r.json();
+       if(applyRemote(d)) render();
+       pushRemote();   // renvoyer l'état fusionné pour converger entre appareils
+  }catch(e){}
+}
+
 let state={ filt:'nonclasse' };
 const TABS=[['nonclasse','Non classé'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
 
@@ -540,6 +581,12 @@ function renderSources(){
       <input type="checkbox" ${SRC[s.key]?'checked':''} onchange="toggleSource('${s.key}',this.checked)">
       <span>${s.label}</span>${s.def?'<span class="def">défaut</span>':''}</label>`).join('');
   $('papOnly').checked=PAPONLY;
+}
+function renderSyncStatus(){
+  const e=$('syncStatus'); if(!e) return;
+  if(!SYNC.url){ e.className='syncstatus'; e.innerHTML='Synchro pas encore configurée (relais en cours de mise en place).'; return; }
+  if(!syncToken()){ e.className='syncstatus'; e.innerHTML='Colle ton code de synchro pour activer le partage entre téléphone et ordinateur.'; return; }
+  e.className='syncstatus ok'; e.innerHTML='✅ Synchro active sur cet appareil.';
 }
 
 function photoHTML(b){
@@ -766,11 +813,14 @@ $('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeDetail()
 document.querySelectorAll('#paramsBox input').forEach(inp=>inp.addEventListener('input',render));
 $('papOnly').addEventListener('change',e=>setPapOnly(e.target.checked));
 $('runBtn').addEventListener('click',refreshNow);
+$('syncCode').addEventListener('change',e=>setSyncToken(e.target.value));
 
 $('sub').textContent="Lyon 7e · achat locatif · "+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long'});
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
 updatePriceHist();
 renderSources();
+if($('syncCode')) $('syncCode').value=syncToken();
+renderSyncStatus();
 render();
 
 // ----- écran de connexion (déterrent côté client : le dépôt étant public, le code reste lisible) -----
@@ -785,7 +835,7 @@ async function pbkdf2Hex(pw,saltHex,iter){
   const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},key,256);
   return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-function unlock(){ document.body.classList.remove('locked'); }
+function unlock(){ document.body.classList.remove('locked'); pullRemote(); }
 function logout(){ try{ localStorage.removeItem(AUTHKEY); }catch(e){} location.reload(); }
 if(localStorage.getItem(AUTHKEY)==='1') unlock();
 $('gateForm').addEventListener('submit',async e=>{
