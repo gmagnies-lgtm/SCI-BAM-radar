@@ -340,6 +340,19 @@
   .sw-done{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
     justify-content:center;text-align:center;gap:8px;padding:24px;color:var(--mut)}
   .sw-done .big{font-size:46px} .sw-done b{color:var(--txt);font-size:17px}
+  /* compteur sur le bouton "traitement rapide" */
+  .swcount{display:inline-block;min-width:22px;margin-left:7px;padding:1px 8px;border-radius:999px;
+    background:#0f172a;color:var(--acc);font-weight:800;font-size:13px;vertical-align:middle}
+  /* bouton "retour à mes annonces" dans le swipe */
+  .sw-back{width:100%;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:12px;
+    background:var(--bg2);color:var(--txt);font-weight:700;font-size:14px}
+  /* ===== annonces disparues lors d'une mise à jour ===== */
+  .card.gone-arch{opacity:.5;filter:grayscale(.92)}
+  .card.gone-other{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08)}
+  .gonetag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.3px;
+    margin-bottom:8px;padding:3px 9px;border-radius:6px}
+  .gonetag.g{background:rgba(148,163,184,.16);color:var(--mut);border:1px solid var(--line)}
+  .gonetag.r{background:rgba(239,68,68,.16);color:var(--bad);border:1px solid rgba(239,68,68,.4)}
 </style>
 </head>
 <body class="locked">
@@ -443,6 +456,7 @@
     <button class="sw-act sw-arch" onclick="swipeAction('right')">🗑 Archiver</button>
   </div>
   <div class="sw-hint">← glisse à gauche pour <b style="color:var(--good)">conserver</b> · glisse à droite pour <b style="color:var(--bad)">archiver</b> →</div>
+  <button class="sw-back" onclick="closeSwipe()">← Retour à mes annonces</button>
 </div>
 
 <div class="modal" id="modal" aria-hidden="true">
@@ -584,7 +598,7 @@ function setStatus(b,s){ const k=keyOf(b); if(STATUS[k]===s) delete STATUS[k]; e
 // statut explicite (pas de bascule) — utilisé par le mode swipe et l'annulation
 function setStatusRaw(b,s){ const k=keyOf(b); if(!s) delete STATUS[k]; else STATUS[k]=s;
   try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} pushRemote(); render(); }
-function byId(id){ return LISTINGS.find(x=>x.id===id); }
+function byId(id){ return LISTINGS.find(x=>x.id===id) || GONE.find(x=>x.id===id); }
 // ----- notes persistées, collées à la fiche -----
 const NTKEY='scibam_notes_v1';
 let NOTES={}; try{ NOTES=JSON.parse(localStorage.getItem(NTKEY)||'{}'); }catch(e){ NOTES={}; }
@@ -665,6 +679,31 @@ function computeNews(){
 }
 function isNewListing(b){ return NEWSET.has(keyOf(b)); }
 function isModified(b){ const pc=priceChange(b); return !!(pc&&pc.delta); }
+
+// ----- biens connus & disparus lors d'une mise à jour -----
+const KNOWNKEY='scibam_known_v1';
+let KNOWN={}; try{ KNOWN=JSON.parse(localStorage.getItem(KNOWNKEY)||'{}'); }catch(e){ KNOWN={}; }
+let GONE=[];
+function refreshKnown(){
+  const cur=new Set(LISTINGS.map(keyOf));
+  LISTINGS.forEach(b=>{ KNOWN[keyOf(b)]={...b}; });                 // mémorise l'état courant
+  GONE = Object.keys(KNOWN).filter(k=>!cur.has(k))                  // connus mais plus en ligne
+                .map(k=>({ ...KNOWN[k], _gone:true }));
+  try{ localStorage.setItem(KNOWNKEY,JSON.stringify(KNOWN)); }catch(e){}
+}
+function allListings(){ return LISTINGS.concat(GONE); }
+
+// ----- notification web : nouvelles annonces à traiter -----
+function requestNotifPerm(){ try{ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){} }
+function maybeNotify(){
+  try{
+    if(!('Notification' in window) || Notification.permission!=='granted') return;
+    const n=NEWSET.size; if(!n) return;
+    new Notification('SCI BAM · Radar Immo', {
+      body:`${n} nouvelle${n>1?'s':''} annonce${n>1?'s':''} à traiter en mode swipe`,
+      icon:'assets/icon-192.png', tag:'scibam-new' });
+  }catch(e){}
+}
 function modifiedList(){ return LISTINGS.filter(isModified); }
 let _upbarHidden=false;
 function dismissUpbar(){ _upbarHidden=true; const e=$('upbar'); if(e) e.classList.remove('show'); }
@@ -718,7 +757,7 @@ async function pullRemote(){ if(!syncOn()) return;
 let state={ filt:'nonclasse' };
 const TABS=[['nonclasse','Non classé'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
 
-function statusCounts(){ const s=LISTINGS.map(getStatus);
+function statusCounts(){ const s=allListings().map(getStatus);
   return { nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
            conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length }; }
 function renderTabs(){ const c=statusCounts();
@@ -750,7 +789,9 @@ function card(b,a){
   const qualStars=a.parts.qual/15*5, liqStars=a.parts.liq/15*5;
   const sousEval=a.prixMarche-b.prix, gainM2=b.m?sousEval/b.m:0;   // >0 = sous le marché DVF = gain au m²
   const pc=priceChange(b);
-  return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''}" onclick="openDetail(${b.id})">
+  const goneCls = b._gone ? (st==='archive'?'gone-arch':'gone-other') : '';
+  return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''} ${goneCls}" onclick="openDetail(${b.id})">
+    ${b._gone?`<div class="gonetag ${st==='archive'?'g':'r'}">${st==='archive'?'🗄 Annonce archivée — retirée du marché':'⚠️ Annonce retirée du marché'}</div>`:''}
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
     ${(pc&&pc.delta)?`<div class="pricechg ${pc.delta<0?'down':'up'}">${pc.delta<0?'📉':'📈'} ${pc.delta<0?'−':'+'}${eur(Math.abs(pc.delta))} depuis le ${dmy(pc.since)} (${eur(pc.from)} → ${eur(pc.to)})</div>`:''}
@@ -817,11 +858,11 @@ function render(){
   const P=params();
   $('ah_apport').textContent=eur(P.plafond);
   $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String($('p_taux').value).replace('.',',')} %`;
-  let rows=LISTINGS.map(b=>({b,a:analyse(b,P)}));
+  let rows=allListings().map(b=>({b,a:analyse(b,P)}));
   rows=rows.filter(({b})=>{ const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
-  rows.sort((x,y)=>y.a.score-x.a.score);
+  rows.sort((x,y)=> (x.b._gone?1:0)-(y.b._gone?1:0) || y.a.score-x.a.score);
   const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive').sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
   const nNew=NEWSET.size, nMod=modifiedList().length, pill=$('newpill');
@@ -970,7 +1011,7 @@ function buildDeck(){ const P=params();
 function updateSwipeLaunch(){
   const btn=$('swipeLaunch'); if(!btn) return;
   const n=buildDeck().length; btn.disabled=n===0;
-  btn.textContent = n ? `🔥 Mode swipe — ${n} bien${n>1?'s':''} à trier` : '🎉 Tout est trié';
+  btn.innerHTML = n ? `⚡ Traitement rapide des annonces <span class="swcount">${n}</span>` : '🎉 Tout est trié';
 }
 function swPhotoOpen(b){ return b.img
   ? `<div class="sw-photo" style="background-image:url('${b.img}')">`
@@ -1019,6 +1060,7 @@ function renderSwipe(){
   attachDrag(stack.querySelector('.sw-card.top'));
 }
 function openSwipe(){
+  requestNotifPerm();
   DECK=buildDeck(); swIdx=0; swHist=[];
   $('swipe').classList.add('show'); $('swipe').setAttribute('aria-hidden','false');
   renderSwipe();
@@ -1088,11 +1130,13 @@ $('syncCode').addEventListener('change',e=>setSyncToken(e.target.value));
 $('sub').textContent="Lyon 7e · achat locatif · "+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long'});
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
 updatePriceHist();
+refreshKnown();
 computeNews();
 renderSources();
 if($('syncCode')) $('syncCode').value=syncToken();
 renderSyncStatus();
 render();
+maybeNotify();
 
 // ----- écran de connexion (déterrent côté client : le dépôt étant public, le code reste lisible) -----
 const AUTHKEY='scibam_auth_v1';
@@ -1106,7 +1150,7 @@ async function pbkdf2Hex(pw,saltHex,iter){
   const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},key,256);
   return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-function unlock(){ document.body.classList.remove('locked'); pullRemote(); }
+function unlock(){ document.body.classList.remove('locked'); requestNotifPerm(); pullRemote(); maybeNotify(); }
 function logout(){ try{ localStorage.removeItem(AUTHKEY); }catch(e){} location.reload(); }
 if(localStorage.getItem(AUTHKEY)==='1') unlock();
 $('gateForm').addEventListener('submit',async e=>{
