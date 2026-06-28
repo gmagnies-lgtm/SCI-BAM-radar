@@ -540,7 +540,7 @@ function priceChange(b){ const h=PRICEHIST[keyOf(b)]||[]; if(h.length<2) return 
 function dmy(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}); }
 
 // ----- synchro multi-appareils (Cloudflare Worker + KV) — classements, notes, historique prix -----
-const SYNC={ url:'' };   // URL du Worker (non secrète, à renseigner). Le code de synchro N'EST PAS ici :
+const SYNC={ url:'https://sci-bam-sync.gmagnies.workers.dev' };   // URL du Worker (non secrète). Le code de synchro N'EST PAS ici :
                          // il est saisi par l'utilisateur et stocké en local (jamais dans le dépôt public).
 const SYNCTOKKEY='scibam_synctoken_v1';
 function syncToken(){ try{ return localStorage.getItem(SYNCTOKKEY)||''; }catch(e){ return ''; } }

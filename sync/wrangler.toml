@@ -1,0 +1,10 @@
+name = "sci-bam-sync"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+ALLOW_ORIGIN = "https://gmagnies-lgtm.github.io"
+
+[[kv_namespaces]]
+binding = "SCIBAM"
+id = "68e641510b4c4cb09f051b1c65824fa5"
