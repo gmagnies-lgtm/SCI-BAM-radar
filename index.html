@@ -195,6 +195,33 @@
   textarea.note{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
     border-radius:9px;padding:9px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box}
   textarea.note:focus{outline:none;border-color:var(--acc)}
+  /* sources & filtres */
+  .srcwrap{padding:4px 0 16px}
+  .srclbl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;margin:6px 0 8px}
+  .srcgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .srcchk{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);
+    border-radius:9px;padding:9px 10px;font-size:13.5px;cursor:pointer;user-select:none}
+  .srcchk.on{border-color:var(--acc);background:rgba(245,158,11,.10)}
+  .srcchk input{appearance:none;-webkit-appearance:none;width:18px;height:18px;flex:none;border:1.5px solid var(--line);
+    border-radius:5px;background:var(--bg2);position:relative;cursor:pointer}
+  .srcchk input:checked{background:var(--acc);border-color:var(--acc)}
+  .srcchk input:checked::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;color:#0f172a;font-size:13px;font-weight:900}
+  .srcchk .def{margin-left:auto;font-size:9px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px}
+  .paptoggle{display:flex;align-items:center;gap:10px;background:rgba(34,197,94,.10);
+    border:1px solid rgba(34,197,94,.30);border-radius:10px;padding:11px 12px;font-size:14px;
+    font-weight:600;cursor:pointer;user-select:none;margin-bottom:12px}
+  .paptoggle input{appearance:none;-webkit-appearance:none;width:42px;height:24px;flex:none;border-radius:999px;
+    background:var(--line);position:relative;cursor:pointer;transition:background .15s}
+  .paptoggle input:checked{background:var(--good)}
+  .paptoggle input::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+    background:#fff;transition:left .15s}
+  .paptoggle input:checked::after{left:20px}
+  .runbtn{width:100%;background:var(--acc2);color:#06283d;border:none;border-radius:11px;
+    padding:13px;font-size:15px;font-weight:800;cursor:pointer}
+  .runbtn:active{opacity:.85}
+  .srcnote{font-size:11.5px;color:var(--mut);margin-top:10px;line-height:1.5}
+  .badge.src{background:rgba(56,189,248,.10);border-color:rgba(56,189,248,.30);color:var(--acc2);font-weight:700}
 </style>
 </head>
 <body>
@@ -236,13 +263,24 @@
     </div>
   </details>
 
+  <details class="params" id="srcBox">
+    <summary>Sources & filtres</summary>
+    <div class="srcwrap">
+      <div class="srclbl">Sites suivis</div>
+      <div class="srcgrid" id="srcgrid"></div>
+      <label class="paptoggle"><input type="checkbox" id="papOnly"><span>🤝 Particuliers uniquement (sans agence)</span></label>
+      <button class="runbtn" id="runBtn">🔄 Rafraîchir les annonces</button>
+      <div class="srcnote" id="srcnote"></div>
+    </div>
+  </details>
+
   <div class="mktbar" id="mktbar"></div>
   <div class="count" id="count"></div>
   <div id="list"></div>
 
   <div class="foot">
     Touchez une carte pour la simulation cash-flow complète (modèle SCI BAM).<br>
-    Moteur selon le cahier des charges · loyer 17 €/m² (marché observé 16,8). Annonces : SeLoger Lyon 7e.<br>
+    Moteur selon le cahier des charges · loyer 17 €/m² (marché observé 16,8). Annonces : leboncoin · ParuVendu · SeLoger (Lyon 7e/3e), sites configurables.<br>
     Prix de marché : DVF / Notaires via MeilleursAgents (1ᵉʳ juin 2026). Vos statuts sont mémorisés sur cet appareil.
   </div>
 </div>
@@ -396,6 +434,41 @@ function sourceOf(url){ if(!url) return 'Annonce';
   if(/logic-immo/.test(url)) return 'Logic-Immo'; return 'Annonce'; }
 function isStLouis(b){ return b.stLouis===true || /saint[- ]?louis|st[- ]?louis/i.test((b.q||'')+' '+(b.adresse||'')); }
 
+// ---------- SOURCES (sites de scraping) & FILTRES ----------
+// def:true = site scrappé par défaut (cahier des charges). La veille lit ces drapeaux.
+const SOURCES=[
+  {key:'leboncoin', label:'leboncoin',      def:true,  match:/leboncoin/i},
+  {key:'paruvendu', label:'ParuVendu',      def:true,  match:/paruvendu/i},
+  {key:'seloger',   label:'SeLoger',        def:true,  match:/seloger/i},
+  {key:'orpi',      label:'Orpi',           def:false, match:/orpi/i},
+  {key:'foncia',    label:'Foncia',         def:false, match:/foncia/i},
+  {key:'logicimmo', label:'Logic-Immo',     def:false, match:/logic-?immo/i},
+  {key:'bienici',   label:"Bien'ici",       def:false, match:/bienici/i},
+  {key:'agence',    label:'Agences locales',def:false, match:null}   // repli : tout autre site d'agence
+];
+function siteKeyOf(url){ if(!url) return 'agence';
+  for(const s of SOURCES){ if(s.match && s.match.test(url)) return s.key; } return 'agence'; }
+function sourceLabel(url){ const k=siteKeyOf(url); return (SOURCES.find(s=>s.key===k)||{}).label||'Annonce'; }
+
+// préférences persistées sur l'appareil
+const SRCKEY='scibam_sources_v1';
+let SRC; try{ SRC=JSON.parse(localStorage.getItem(SRCKEY)); }catch(e){ SRC=null; }
+if(!SRC||typeof SRC!=='object'){ SRC={}; SOURCES.forEach(s=>SRC[s.key]=s.def); }
+SOURCES.forEach(s=>{ if(!(s.key in SRC)) SRC[s.key]=s.def; });   // complète si nouveau site
+function saveSources(){ try{ localStorage.setItem(SRCKEY,JSON.stringify(SRC)); }catch(e){} }
+function toggleSource(k,v){ SRC[k]=v; saveSources(); renderSources(); render(); }
+
+const PAPKEY='scibam_paponly_v1';
+let PAPONLY = localStorage.getItem(PAPKEY)==='1';
+function setPapOnly(v){ PAPONLY=!!v; try{ localStorage.setItem(PAPKEY, PAPONLY?'1':'0'); }catch(e){} render(); }
+
+// rafraîchir : purge le cache du service worker et recharge la dernière version publiée par la veille
+function refreshNow(){
+  const done=()=>location.reload();
+  if('caches' in window){ caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).then(done).catch(done); }
+  else done();
+}
+
 let state={ filt:'tous' };
 const TABS=[['tous','Tous'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
 
@@ -404,6 +477,12 @@ function statusCounts(){ const s=LISTINGS.map(getStatus);
            conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length }; }
 function renderTabs(){ const c=statusCounts();
   $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
+function renderSources(){
+  $('srcgrid').innerHTML=SOURCES.map(s=>`<label class="srcchk ${SRC[s.key]?'on':''}">
+      <input type="checkbox" ${SRC[s.key]?'checked':''} onchange="toggleSource('${s.key}',this.checked)">
+      <span>${s.label}</span>${s.def?'<span class="def">défaut</span>':''}</label>`).join('');
+  $('papOnly').checked=PAPONLY;
+}
 
 function photoHTML(b){
   if(b.img) return `<div class="photo" style="background-image:url('${b.img}')"></div>`;
@@ -412,8 +491,8 @@ function photoHTML(b){
 }
 
 function card(b,a){
-  const st=getStatus(b), cf=Math.round(a.cashflow), src=sourceOf(b.url), note=getNote(b);
-  const annexBadges=[b.gar&&'Garage',b.cave&&'Cave',b.terr&&'Terrasse',b.jardin&&'Jardin',b.balc&&'Balcon',b.asc&&'Ascenseur',b.meuble&&'Meublé']
+  const st=getStatus(b), cf=Math.round(a.cashflow), src=sourceLabel(b.url), note=getNote(b);
+  const annexBadges=`<span class="badge src">${src}</span>`+[b.gar&&'Garage',b.cave&&'Cave',b.terr&&'Terrasse',b.jardin&&'Jardin',b.balc&&'Balcon',b.asc&&'Ascenseur',b.meuble&&'Meublé']
     .filter(Boolean).map(x=>`<span class="badge">${x}</span>`).join('');
   const delta = a.ecartMarche<0 ? `+${pct0(Math.abs(a.ecartMarche))}` : `−${pct0(a.ecartMarche)}`;
   const qualStars=a.parts.qual/15*5, liqStars=a.parts.liq/15*5;
@@ -484,13 +563,22 @@ function render(){
   $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String($('p_taux').value).replace('.',',')} %`;
   let rows=LISTINGS.map(b=>({b,a:analyse(b,P)}));
   rows=rows.filter(({b})=>{ const s=getStatus(b); return state.filt==='tous' ? s!=='archive' : s===state.filt; });
+  rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
+  if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
   rows.sort((x,y)=>y.a.score-x.a.score);
   const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive').sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
   $('newpill').textContent=LISTINGS.filter(b=>b.new).length+" nouv.";
   $('count').textContent=rows.length+" bien"+(rows.length>1?'s':'')+" affiché"+(rows.length>1?'s':'');
   $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
-    || `<div class="foot">Aucun bien dans « ${TABS.find(t=>t[0]===state.filt)[1]} ».</div>`;
+    || `<div class="foot">Aucun bien ne correspond aux filtres actifs.</div>`;
+  if($('srcnote')){
+    const scrap=SOURCES.filter(s=>s.def).map(s=>s.label).join(', ');
+    const shown=SOURCES.filter(s=>SRC[s.key]).map(s=>s.label).join(', ')||'aucune';
+    $('srcnote').innerHTML=`La veille quotidienne scrappe par défaut : <b>${scrap}</b>. `+
+      `Affichées ici : ${shown}${PAPONLY?' · <b>particuliers seulement</b>':''}. `+
+      `« Rafraîchir » recharge la dernière mise à jour publiée.`;
+  }
 }
 
 // ----- projection pluriannuelle (modèle SCI BAM, 25 ans) -----
@@ -602,10 +690,14 @@ function closeDetail(){ $('modal').classList.remove('show'); $('modal').setAttri
 // events
 $('tabs').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(btn&&btn.dataset.filt){ state.filt=btn.dataset.filt; render(); }});
 $('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeDetail(); });
-document.querySelectorAll('.params input').forEach(inp=>inp.addEventListener('input',render));
+// seuls les champs numériques du modèle déclenchent un recalcul ; les filtres ont leurs propres handlers
+document.querySelectorAll('#paramsBox input').forEach(inp=>inp.addEventListener('input',render));
+$('papOnly').addEventListener('change',e=>setPapOnly(e.target.checked));
+$('runBtn').addEventListener('click',refreshNow);
 
 $('sub').textContent="Lyon 7e · achat locatif · "+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long'});
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
+renderSources();
 render();
 
 // ----- PWA : service worker (offline + MAJ auto de la veille) -----
