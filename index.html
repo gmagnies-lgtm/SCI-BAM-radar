@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SCI BAM Radar">
+<meta name="theme-color" content="#0f172a">
+<title>SCI BAM · Radar Immo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+<style>
+  :root{
+    --bg:#0f172a; --bg2:#1e293b; --card:#1e293b; --line:#334155;
+    --txt:#e2e8f0; --mut:#94a3b8; --acc:#f59e0b; --acc2:#38bdf8;
+    --good:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px;line-height:1.45;padding-bottom:40px}
+  header{position:sticky;top:0;z-index:20;background:rgba(15,23,42,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 16px}
+  .h-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  h1{font-size:18px;margin:0;letter-spacing:.3px}
+  h1 span{color:var(--acc)}
+  .sub{color:var(--mut);font-size:12px;margin-top:2px}
+  .pill{display:inline-block;background:var(--acc);color:#0f172a;font-weight:700;
+    font-size:12px;padding:3px 9px;border-radius:999px}
+  .wrap{max-width:760px;margin:0 auto;padding:0 12px}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px}
+  .bar button{flex:1;min-width:90px;background:var(--bg2);color:var(--txt);
+    border:1px solid var(--line);border-radius:10px;padding:9px 8px;font-size:13px;font-weight:600}
+  .bar button.on{background:var(--acc);color:#0f172a;border-color:var(--acc)}
+  details.params{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    margin:10px 0;padding:0 14px}
+  details.params summary{cursor:pointer;padding:13px 0;font-weight:700;list-style:none;
+    display:flex;justify-content:space-between;align-items:center}
+  details.params summary::-webkit-details-marker{display:none}
+  details.params summary::after{content:"⚙︎";color:var(--acc)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 0 16px}
+  .fld{display:flex;flex-direction:column;gap:3px}
+  .fld label{font-size:11px;color:var(--mut)}
+  .fld input{background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:8px;font-size:14px;width:100%}
+  .count{color:var(--mut);font-size:12px;margin:10px 2px 4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:13px;margin-bottom:11px;position:relative;overflow:hidden}
+  .card.new::before{content:"NOUVEAU";position:absolute;top:10px;right:-30px;
+    background:var(--acc2);color:#06283d;font-size:10px;font-weight:800;
+    padding:3px 34px;transform:rotate(38deg)}
+  .c-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .c-price{font-size:20px;font-weight:800}
+  .c-q{font-size:12.5px;color:var(--mut)}
+  .badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:6px;
+    background:var(--bg);border:1px solid var(--line);color:var(--mut);margin:2px 4px 0 0}
+  .score{min-width:52px;text-align:center;border-radius:10px;padding:6px 4px;font-weight:800}
+  .score small{display:block;font-size:9px;font-weight:600;opacity:.8}
+  .s-hi{background:rgba(34,197,94,.16);color:var(--good);border:1px solid rgba(34,197,94,.4)}
+  .s-mid{background:rgba(245,158,11,.14);color:var(--warn);border:1px solid rgba(245,158,11,.4)}
+  .s-lo{background:rgba(239,68,68,.14);color:var(--bad);border:1px solid rgba(239,68,68,.4)}
+  .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:11px}
+  .m{background:var(--bg);border-radius:9px;padding:7px 8px}
+  .m .k{font-size:10px;color:var(--mut)}
+  .m .v{font-size:14px;font-weight:700;margin-top:1px}
+  .v.pos{color:var(--good)} .v.neg{color:var(--bad)}
+  .reco{margin-top:11px;font-size:13px;padding:8px 10px;border-radius:9px;
+    background:var(--bg);border:1px dashed var(--line)}
+  .reco b{color:var(--acc)}
+  .dvf{margin-top:10px;font-size:12.5px;padding:8px 10px;border-radius:9px;
+    background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25)}
+  .dvf b{color:var(--acc2)}
+  .mktbar{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:11px 13px;margin:8px 0;font-size:12.5px;color:var(--mut);line-height:1.6}
+  .mktbar b{color:var(--txt)}
+  .verdict{font-weight:800;font-size:13px;padding:2px 8px;border-radius:6px}
+  .v-go{background:rgba(34,197,94,.16);color:var(--good)}
+  .v-watch{background:rgba(245,158,11,.14);color:var(--warn)}
+  .v-pass{background:rgba(239,68,68,.14);color:var(--bad)}
+  .foot{color:var(--mut);font-size:11px;text-align:center;margin-top:18px;line-height:1.6}
+  a{color:var(--acc2)}
+  a.seelink{display:block;margin-top:10px;text-align:center;text-decoration:none;
+    background:var(--acc2);color:#06283d;font-weight:700;font-size:13.5px;
+    padding:10px;border-radius:10px}
+  /* onglets de statut */
+  .tabs{display:flex;gap:6px;margin:12px 0 4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{flex:1;min-width:82px;white-space:nowrap;background:var(--bg2);color:var(--txt);
+    border:1px solid var(--line);border-radius:10px;padding:9px 6px;font-size:12.5px;font-weight:600}
+  .tab.on{background:var(--acc);color:#0f172a;border-color:var(--acc)}
+  .tab span{display:inline-block;margin-left:5px;background:rgba(0,0,0,.18);border-radius:999px;padding:0 6px;font-size:11px}
+  /* apport hero */
+  .apporthero{background:linear-gradient(135deg,rgba(245,158,11,.16),rgba(56,189,248,.10));
+    border:1px solid var(--line);border-radius:12px;padding:14px;margin:6px 0 14px;text-align:center}
+  .ah-k{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+  .ah-v{font-size:30px;font-weight:800;color:var(--acc);margin:2px 0}
+  .ah-sub{font-size:12px;color:var(--txt)}
+  .ah-mini{font-size:12px;color:var(--mut);margin-top:7px;border-top:1px solid var(--line);padding-top:7px}
+  .ah-mini b{color:var(--txt)}
+  /* photo + corps */
+  .c-main{display:flex;gap:11px;align-items:flex-start}
+  .photo{width:82px;min-width:82px;height:82px;border-radius:10px;background-size:cover;
+    background-position:center;border:1px solid var(--line)}
+  .photo.ph{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#334155,#1e293b)}
+  .photo.ph span{font-size:22px;font-weight:800;color:var(--mut)}
+  .c-body{flex:1;min-width:0}
+  /* étoiles emplacement */
+  .c-stars{margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .stars .st{color:#475569;font-size:14px}
+  .stars .st.on{color:var(--acc)}
+  .stars .st.half{background:linear-gradient(90deg,var(--acc) 50%,#475569 50%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .stars b{font-size:11px;color:var(--mut);margin-left:3px}
+  .emp-lbl{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+  /* répartition du score */
+  .segs{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+  .seg{display:flex;align-items:center;gap:8px;font-size:11px}
+  .seg-lbl{width:56px;color:var(--mut)}
+  .seg-bar{flex:1;height:6px;background:var(--bg);border-radius:4px;overflow:hidden}
+  .seg-bar i{display:block;height:100%}
+  .seg-v{width:42px;text-align:right;color:var(--txt)}
+  .seg-v.neg{color:var(--bad)}
+  /* prix vs marché : couleurs */
+  .mkpct{display:block;margin-top:3px;font-weight:600}
+  .mk-yellow{background:rgba(234,179,8,.10);border-color:rgba(234,179,8,.35)}
+  .mk-yellow .mkpct{color:#eab308}
+  .mk-orange{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.45)}
+  .mk-orange .mkpct{color:#fb923c}
+  .mk-red{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.35)}
+  .mk-red .mkpct{color:var(--bad)}
+  /* statut */
+  .statusrow{display:flex;gap:6px;margin-top:11px}
+  .stbtn{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--mut);
+    border-radius:9px;padding:9px 4px;font-size:12px;font-weight:600}
+  .b-contacter.on{background:var(--acc2);color:#06283d;border-color:var(--acc2)}
+  .b-conserver.on{background:var(--good);color:#04240f;border-color:var(--good)}
+  .b-archive.on{background:#64748b;color:#0b1220;border-color:#64748b}
+  .card.st-contacter{border-left:3px solid var(--acc2)}
+  .card.st-conserver{border-left:3px solid var(--good)}
+  .card.st-archive{opacity:.55}
+  /* bandeaux */
+  .stlouis{background:rgba(245,158,11,.18);color:var(--acc);font-weight:700;font-size:12px;
+    padding:6px 10px;border-radius:8px;margin-bottom:9px;text-align:center}
+  .pap{background:rgba(34,197,94,.16);color:var(--good);font-weight:700;font-size:12px;
+    padding:6px 10px;border-radius:8px;margin-bottom:9px;text-align:center}
+  /* modale */
+  .modal{position:fixed;inset:0;background:rgba(2,6,23,.72);display:none;z-index:50;
+    align-items:flex-end;justify-content:center}
+  .modal.show{display:flex}
+  .sheet{background:var(--bg2);border:1px solid var(--line);border-radius:18px 18px 0 0;
+    width:100%;max-width:760px;max-height:90vh;overflow-y:auto;padding:18px 16px 34px}
+  .sh-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .sh-price{font-size:24px;font-weight:800}
+  .sh-q{font-size:12px;color:var(--mut);margin-top:2px}
+  .sh-x{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:50%;
+    width:34px;height:34px;font-size:15px;flex:none}
+  .sh-verdict{display:inline-block;margin:12px 0;font-weight:800;font-size:13px;padding:5px 12px;border-radius:8px}
+  .sh-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .sh-cell{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .sh-k{font-size:11px;color:var(--mut)}
+  .sh-v{font-size:16px;font-weight:700;margin:2px 0}
+  .sh-s{font-size:10.5px;color:var(--mut)}
+  .sh-note{font-size:11.5px;color:var(--mut);margin:14px 0;line-height:1.5}
+  .sh-chart-h{font-size:12px;color:var(--mut);margin:14px 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .lg{font-size:10.5px} .lg-cf{color:var(--good)} .lg-eq{color:var(--acc2)}
+  .sh-chart{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 4px}
+  .sh-sub{font-size:10.5px;color:var(--mut);margin:6px 2px 0;line-height:1.5}
+  .sh-evo-h{font-size:13px;font-weight:700;margin:16px 0 7px}
+  table.sh-evo{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.sh-evo th{color:var(--mut);font-size:11px;font-weight:600;text-align:right;padding:5px 8px}
+  table.sh-evo th:first-child{text-align:left}
+  table.sh-evo td{padding:7px 8px;text-align:right;border-top:1px solid var(--line)}
+  table.sh-evo td:first-child{text-align:left;color:var(--mut)}
+  table.sh-evo tbody tr td{font-weight:600}
+  /* indicateurs compacts */
+  .badges-row{margin-top:9px}
+  .vpill{font-size:10.5px;padding:3px 8px;border-radius:7px;white-space:nowrap;align-self:flex-start}
+  .inds{margin-top:11px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+  .ind{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 9px}
+  .ind-k{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px}
+  .ind-v{font-size:15px;font-weight:700;margin-top:2px;line-height:1.1}
+  .ind-v.pos{color:var(--good)} .ind-v.neg{color:var(--bad)}
+  .ind-s{font-size:10px;color:var(--mut);margin-top:2px}
+  .ind .delta{font-size:12px;font-weight:700}
+  .ind.mk-yellow .delta{color:#eab308}
+  .ind.mk-orange .delta{color:#fb923c}
+  .ind.mk-orange{border-color:rgba(249,115,22,.5)}
+  .ind.mk-red .delta{color:var(--bad)}
+  .ind.mk-red{border-color:rgba(239,68,68,.4)}
+  .ind .stars .st{font-size:13px}
+  /* note collée à la fiche */
+  .noterow{margin-top:9px}
+  textarea.note{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:9px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box}
+  textarea.note:focus{outline:none;border-color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="h-top">
+      <div>
+        <h1>SCI <span>BAM</span> · Radar Immo</h1>
+        <div class="sub" id="sub">Lyon 7e · achat locatif · mise à jour —</div>
+      </div>
+      <span class="pill" id="newpill">0 nouv.</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+
+  <details class="params" id="paramsBox">
+    <summary>Apport & paramètres</summary>
+    <div class="apporthero">
+      <div class="ah-k">Apport mobilisable — plafond épargne</div>
+      <div class="ah-v" id="ah_apport">170 000 €</div>
+      <div class="ah-sub" id="ah_sub"></div>
+      <div class="ah-mini" id="ah_mini"></div>
+    </div>
+    <div class="grid">
+      <div class="fld"><label>Apport (% du prix)</label><input id="p_apportpct" type="number" step="1" value="40"></div>
+      <div class="fld"><label>Plafond épargne (€)</label><input id="p_plafond" type="number" value="170000"></div>
+      <div class="fld"><label>Taux crédit + assur. (%)</label><input id="p_taux" type="number" step="0.1" value="3.3"></div>
+      <div class="fld"><label>Durée (ans)</label><input id="p_duree" type="number" value="20"></div>
+      <div class="fld"><label>Frais notaire ancien (%)</label><input id="p_notaire" type="number" step="0.1" value="7.5"></div>
+      <div class="fld"><label>Loyer (€/m²)</label><input id="p_loyer" type="number" step="0.5" value="17"></div>
+      <div class="fld"><label>Vacance (%)</label><input id="p_vac" type="number" step="0.5" value="2"></div>
+      <div class="fld"><label>Charges non récup. (€/mois)</label><input id="p_charges" type="number" value="395"></div>
+      <div class="fld"><label>Valeur garage (€)</label><input id="p_gar" type="number" value="25000"></div>
+      <div class="fld"><label>Valeur cave (€)</label><input id="p_cave" type="number" value="5000"></div>
+      <div class="fld"><label>Valeur terrasse (€)</label><input id="p_terr" type="number" value="15000"></div>
+    </div>
+  </details>
+
+  <div class="mktbar" id="mktbar"></div>
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+
+  <div class="foot">
+    Touchez une carte pour la simulation cash-flow complète (modèle SCI BAM).<br>
+    Moteur selon le cahier des charges · loyer 17 €/m² (marché observé 16,8). Annonces : SeLoger Lyon 7e.<br>
+    Prix de marché : DVF / Notaires via MeilleursAgents (1ᵉʳ juin 2026). Vos statuts sont mémorisés sur cet appareil.
+  </div>
+</div>
+
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+// ---------- DONNÉES (annonces réelles extraites — Lyon 7e) ----------
+// new:true = apparue lors du dernier rafraîchissement (alimenté par la veille quotidienne)
+const LISTINGS = [
+ {id:1, prix:325000, m:99, p:5, ch:4, et:"0/8", q:"Saint-Louis", stLouis:true, annee:1970, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false,
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/jean-mace/273461581.htm",
+   img:"https://mms.seloger.com/8/a/5/0/8a50f965-ee88-44a4-9e96-4ea4c522eb0c.jpg?ci_seal=1a385dfbcbbcf27c650e00453f44fc184b5a7964"},
+ {id:2, prix:369000, m:97, p:4, ch:2, et:"3/5", q:"Saint-Louis", stLouis:true, annee:1907, gar:0,cave:1,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/jean-mace/256065433.htm",
+   img:"https://mms.seloger.com/b/9/7/7/b97716cd-0416-4d8a-96cf-17c288c91d59.jpg?ci_seal=11965d16be740160fa8ff41a96f8b056e9ad19ef"},
+ {id:3, prix:399000, m:85, p:4, ch:3, et:"5/7", q:"Saint-Louis", stLouis:true, annee:1990, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false,
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/la-guillotiere-sud/273188609.htm",
+   img:"https://mms.seloger.com/b/c/2/9/bc29790c-f15d-4425-84d7-91da170d6552.jpg?ci_seal=79a53976020698f708314e7fc3d5e67a02b9993a"},
+ {id:4, prix:395000, m:102, p:4, ch:3, et:"2/5", q:"Guillotière", stLouis:false, annee:1900, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/la-guillotiere-sud/269711983.htm",
+   img:"https://mms.seloger.com/7/c/c/4/7cc4990d-ead9-4ed4-927f-bbc495a7f9f9.jpg?ci_seal=a857243d47a0c2907ed321ff0e08178a09965f44"},
+ {id:5, prix:485000, m:93, p:3, ch:2, et:"2/6", q:"Saint-Louis", stLouis:true, annee:1971, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:false, pap:false,
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/la-guillotiere-sud/264998463.htm",
+   img:"https://mms.seloger.com/4/6/7/7/4677211f-f5d7-44b9-9cd5-8cf5fe77ceba.jpg?ci_seal=2dd88ca4ed1c67d6cb8190c6cd974f6ed1bb3c9a"}
+];
+
+// quartiers : note d'emplacement (0-1) — Jean Macé prime, Guillotière correct, Gerland en devenir
+const QSCORE = {"Saint-Louis":0.86, "Jean Macé":0.9, "Guillotière":0.76, "Guillotière Sud":0.78, "Gerland":0.72};
+
+// ---------- RÉFÉRENCES DE MARCHÉ (DVF / Notaires) ----------
+// Source : MeilleursAgents (données publiques Notaires/DVF + INSEE), 1er juin 2026, Lyon 7e.
+// Prix m² appartement par secteur + loyer observé. Sert de "prix de marché" pour la décote réelle.
+const MARKET = {
+  date:"1er juin 2026", source:"DVF / Notaires (via MeilleursAgents)",
+  pm2Moyen:4640, pm2Min:3265, pm2Max:5819, loyerObserve:16.8,
+  evol1an:-0.6, evol5ans:-10.5,
+  parQuartier:{ "Saint-Louis":4796, "Jean Macé":4750, "Guillotière":4550, "Guillotière Sud":4800, "Gerland":4350 }
+};
+function marchePm2(q){ return MARKET.parQuartier[q] || MARKET.pm2Moyen; }
+
+const $ = id => document.getElementById(id);
+const eur = n => Math.round(n).toLocaleString('fr-FR')+" €";
+const pct = n => (n*100).toFixed(1).replace('.',',')+" %";
+const pct0 = n => Math.round(n*100)+" %";
+function starHTML(s, showNum=true){ // s sur 5
+  const full=Math.floor(s), half=(s-full)>=0.25 && (s-full)<0.75, full2=(s-full)>=0.75?full+1:full;
+  let out='';
+  for(let k=0;k<5;k++){
+    if(k<full2) out+='<span class="st on">★</span>';
+    else if(k===full && half) out+='<span class="st half">★</span>';
+    else out+='<span class="st">★</span>';
+  }
+  return `<span class="stars">${out}${showNum?`<b>${s.toFixed(1).replace('.',',')}/5</b>`:''}</span>`;
+}
+
+function params(){
+  return {
+    apportpct:+$('p_apportpct').value/100, plafond:+$('p_plafond').value,
+    taux:+$('p_taux').value/100, duree:+$('p_duree').value,
+    notaire:+$('p_notaire').value/100, loyer:+$('p_loyer').value, vac:+$('p_vac').value/100,
+    charges:+$('p_charges').value, vgar:+$('p_gar').value, vcave:+$('p_cave').value, vterr:+$('p_terr').value
+  };
+}
+// apport = % du prix, plafonné par l'épargne disponible
+function apportPour(prix, P){ return Math.min(P.apportpct*prix, P.plafond); }
+// mensualité d'un capital E sur n mois au taux mensuel i
+function mensualite(E, i, n){ if(E<=0) return 0; return E*i/(1-Math.pow(1+i,-n)); }
+// capital empruntable pour une mensualité M
+function capitalMax(M, i, n){ return M*(1-Math.pow(1+i,-n))/i; }
+
+function analyse(b, P){
+  const n = P.duree*12, i = P.taux/12;
+  const annexes = b.gar*P.vgar + b.cave*P.vcave + b.terr*P.vterr;
+  const valAppart = b.prix - annexes;
+  const pm2reel = valAppart / b.m;
+  const fraisNot = b.prix * P.notaire;
+  const coutTotal = b.prix + fraisNot;
+  const apport = apportPour(b.prix, P);
+  const emprunt = Math.max(0, coutTotal - apport);
+  const mens = mensualite(emprunt, i, n);
+  const loyerMois = P.loyer * b.m;
+  const loyerNet = loyerMois * (1-P.vac);
+  const cashflow = loyerNet - mens - P.charges;
+  const rentBrute = (loyerMois*12) / coutTotal;
+  const rentNette = ((loyerNet*12) - P.charges*12) / coutTotal;
+  // prix conseillé : loyer mensuel net couvre la mensualité, avec la même règle d'apport
+  const empruntMax = capitalMax(loyerNet, i, n);
+  // cas non plafonné : apport = pct*prix  => prix*(1+notaire) - pct*prix = empruntMax
+  let prixConseille = empruntMax / (1 + P.notaire - P.apportpct);
+  // si l'apport requis dépasse le plafond d'épargne, on bascule en apport fixe = plafond
+  if(P.apportpct*prixConseille > P.plafond){
+    prixConseille = (empruntMax + P.plafond) / (1 + P.notaire);
+  }
+  const prixPlafond = prixConseille * 1.04; // marge négo
+  // écart au prix cible rendement : >0 = bien affiché SOUS le prix soutenable par les loyers
+  const ecart = (prixConseille - b.prix)/prixConseille;
+  // PRIX DE MARCHÉ (DVF) : €/m² du secteur × surface appart + annexes
+  const mPm2 = marchePm2(b.q);
+  const prixMarche = mPm2*b.m + annexes;
+  const ecartMarche = (prixMarche - b.prix)/prixMarche;             // >0 = sous le marché
+
+  // ===== EMPLACEMENT : note sur 5 étoiles, affichée à part (hors score chiffré) =====
+  const stars = (QSCORE[b.q] ?? 0.7) * 5;
+
+  // ===== COMPOSANTES DU SCORE /100 =====
+  // PRIX vs MARCHÉ (25) : optimal "dans le marché à ~10% sous". Au-dessus = surcoté.
+  //   au-delà de 25% sous le marché => suspect (trop bas) => note NÉGATIVE.
+  const e = ecartMarche;
+  let sPrix;
+  if(e < 0)          sPrix = clamp(0.6 + e*4, 0, 0.6);    // au-dessus du marché (surcoté)
+  else if(e <= 0.10) sPrix = 0.6 + e*4;                   // 0→10% sous : 0.6 → 1.0
+  else if(e <= 0.25) sPrix = 1.0 - (e-0.10)*(1/0.15);     // 10→25% sous : 1.0 → 0
+  else               sPrix = -(e-0.25)*4;                 // >25% sous : négatif (suspect)
+  const sDec  = clamp(0.5 + ecart*2, 0, 1);               // Décote vs prix cible rendement (20)
+  const sRent = clamp((rentBrute-0.03)/0.035, 0, 1);      // Rentabilité (25)
+  const sQual = clamp(0.4 + 0.2*b.asc + 0.15*(b.balc||b.terr) + 0.15*b.gar + 0.1*(b.ch>=2), 0, 1); // Qualité (15)
+  const sLiq  = clamp(0.5 + (b.m>=80&&b.m<=110?0.3:0) + (b.ch>=2?0.1:0) + (b.ch>=3?0.1:0), 0, 1);   // Liquidité (15)
+  const parts = { prix:25*sPrix, rent:25*sRent, dec:20*sDec, qual:15*sQual, liq:15*sLiq };
+  const score = Math.round(parts.prix + parts.rent + parts.dec + parts.qual + parts.liq);
+  // couleur prix vs marché : rouge au-dessus, jaune sous le marché, orange si trop bas (>25%)
+  const mkClass = e<0 ? "mk-red" : (e<=0.25 ? "mk-yellow" : "mk-orange");
+  let verdict="PASSER", vClass="v-pass";
+  if(score>=70 && e>=-0.03 && e<=0.25){ verdict="ACHETER"; vClass="v-go"; }
+  else if(score>=55){ verdict="À SURVEILLER"; vClass="v-watch"; }
+  return {annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,
+          cashflow,rentBrute,rentNette,prixConseille,prixPlafond,ecart,
+          mPm2,prixMarche,ecartMarche,stars,parts,mkClass,score,verdict,vClass};
+}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+
+// ----- statuts persistés sur l'appareil -----
+const STKEY='scibam_status_v1';
+let STATUS={}; try{ STATUS=JSON.parse(localStorage.getItem(STKEY)||'{}'); }catch(e){ STATUS={}; }
+function keyOf(b){ return b.url || ('id'+b.id); }
+function getStatus(b){ return STATUS[keyOf(b)]||null; }
+function setStatus(b,s){ const k=keyOf(b); if(STATUS[k]===s) delete STATUS[k]; else STATUS[k]=s;
+  try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} render(); }
+function byId(id){ return LISTINGS.find(x=>x.id===id); }
+// ----- notes persistées, collées à la fiche -----
+const NTKEY='scibam_notes_v1';
+let NOTES={}; try{ NOTES=JSON.parse(localStorage.getItem(NTKEY)||'{}'); }catch(e){ NOTES={}; }
+function getNote(b){ return NOTES[keyOf(b)]||''; }
+function setNote(b,t){ const k=keyOf(b); if(t&&t.trim()) NOTES[k]=t; else delete NOTES[k];
+  try{ localStorage.setItem(NTKEY,JSON.stringify(NOTES)); }catch(e){} }
+function sourceOf(url){ if(!url) return 'Annonce';
+  if(/seloger/.test(url)) return 'SeLoger'; if(/leboncoin/.test(url)) return 'leboncoin';
+  if(/paruvendu/.test(url)) return 'ParuVendu'; if(/bienici/.test(url)) return "Bien'ici";
+  if(/logic-immo/.test(url)) return 'Logic-Immo'; return 'Annonce'; }
+function isStLouis(b){ return b.stLouis===true || /saint[- ]?louis|st[- ]?louis/i.test((b.q||'')+' '+(b.adresse||'')); }
+
+let state={ filt:'tous' };
+const TABS=[['tous','Tous'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
+
+function statusCounts(){ const s=LISTINGS.map(getStatus);
+  return { tous:s.filter(x=>x!=='archive').length, contacter:s.filter(x=>x==='contacter').length,
+           conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length }; }
+function renderTabs(){ const c=statusCounts();
+  $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
+
+function photoHTML(b){
+  if(b.img) return `<div class="photo" style="background-image:url('${b.img}')"></div>`;
+  const ini=(b.q||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  return `<div class="photo ph"><span>${ini}</span></div>`;
+}
+
+function card(b,a){
+  const st=getStatus(b), cf=Math.round(a.cashflow), src=sourceOf(b.url), note=getNote(b);
+  const annexBadges=[b.gar&&'Garage',b.cave&&'Cave',b.terr&&'Terrasse',b.jardin&&'Jardin',b.balc&&'Balcon',b.asc&&'Ascenseur',b.meuble&&'Meublé']
+    .filter(Boolean).map(x=>`<span class="badge">${x}</span>`).join('');
+  const delta = a.ecartMarche<0 ? `+${pct0(Math.abs(a.ecartMarche))}` : `−${pct0(a.ecartMarche)}`;
+  const qualStars=a.parts.qual/15*5, liqStars=a.parts.liq/15*5;
+  const ecartEur=a.prixConseille-b.prix;          // >0 = marge sous le prix cible ; <0 = à négocier
+  return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''}" onclick="openDetail(${b.id})">
+    ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
+    ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
+    <div class="c-main">
+      ${photoHTML(b)}
+      <div class="c-body">
+        <div class="c-top">
+          <div>
+            <div class="c-price">${eur(b.prix)}</div>
+            <div class="c-q">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''}</div>
+            <div class="c-stars">${starHTML(a.stars)}<span class="emp-lbl">emplacement</span></div>
+          </div>
+          <span class="verdict ${a.vClass} vpill">${a.verdict}</span>
+        </div>
+      </div>
+    </div>
+    <div class="badges-row">${annexBadges}</div>
+    <div class="inds">
+      <div class="ind ${a.mkClass}">
+        <div class="ind-k">€/m²</div>
+        <div class="ind-v">${Math.round(a.pm2reel).toLocaleString('fr-FR')} <span class="delta">${delta}</span></div>
+        <div class="ind-s">marché ${Math.round(a.mPm2).toLocaleString('fr-FR')} €</div>
+      </div>
+      <div class="ind">
+        <div class="ind-k">Rentabilité</div>
+        <div class="ind-v">${pct(a.rentBrute)}</div>
+        <div class="ind-s">net ${pct(a.rentNette)}</div>
+      </div>
+      <div class="ind">
+        <div class="ind-k">Décote</div>
+        <div class="ind-v ${ecartEur>=0?'pos':'neg'}">${ecartEur>=0?'+':'−'}${eur(Math.abs(ecartEur))}</div>
+        <div class="ind-s">cible ${eur(a.prixConseille)}</div>
+      </div>
+      <div class="ind">
+        <div class="ind-k">Cash-flow</div>
+        <div class="ind-v ${cf>=0?'pos':'neg'}">${cf>=0?'+':''}${cf.toLocaleString('fr-FR')} €/m</div>
+        <div class="ind-s">apport ${eur(a.apport)}</div>
+      </div>
+      <div class="ind">
+        <div class="ind-k">Qualité</div>
+        <div class="ind-v">${starHTML(qualStars,false)}</div>
+      </div>
+      <div class="ind">
+        <div class="ind-k">Liquidité</div>
+        <div class="ind-v">${starHTML(liqStars,false)}</div>
+      </div>
+    </div>
+    <div class="statusrow" onclick="event.stopPropagation()">
+      <button class="stbtn b-contacter ${st==='contacter'?'on':''}" onclick="setStatus(byId(${b.id}),'contacter')">📞 Contacter</button>
+      <button class="stbtn b-conserver ${st==='conserver'?'on':''}" onclick="setStatus(byId(${b.id}),'conserver')">⭐ Conserver</button>
+      <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${b.id}),'archive')">🗑 Archiver</button>
+    </div>
+    ${(st||note)?`<div class="noterow" onclick="event.stopPropagation()">
+      <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${b.id}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
+    </div>`:''}
+    ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Voir sur ${src} — photos ↗</a>`:''}
+  </div>`;
+}
+
+function render(){
+  renderTabs();
+  const P=params();
+  $('ah_apport').textContent=eur(P.plafond);
+  $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String($('p_taux').value).replace('.',',')} %`;
+  let rows=LISTINGS.map(b=>({b,a:analyse(b,P)}));
+  rows=rows.filter(({b})=>{ const s=getStatus(b); return state.filt==='tous' ? s!=='archive' : s===state.filt; });
+  rows.sort((x,y)=>y.a.score-x.a.score);
+  const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive').sort((x,y)=>y.a.score-x.a.score)[0];
+  $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
+  $('newpill').textContent=LISTINGS.filter(b=>b.new).length+" nouv.";
+  $('count').textContent=rows.length+" bien"+(rows.length>1?'s':'')+" affiché"+(rows.length>1?'s':'');
+  $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
+    || `<div class="foot">Aucun bien dans « ${TABS.find(t=>t[0]===state.filt)[1]} ».</div>`;
+}
+
+// ----- projection pluriannuelle (modèle SCI BAM, 25 ans) -----
+const GROWTH={ loyer:0.025, charges:0.02, valeur:0.01 };  // hypothèses du tableur
+function projete(b,P){
+  const a=analyse(b,P);
+  const N=25, L=P.duree, i=P.taux/12;
+  let bal=a.emprunt, cumv=0;
+  const years=[],cf=[],cum=[],rb=[],mrn=[],equity=[],crd=[],valeur=[];
+  for(let t=1;t<=N;t++){
+    let pay=0;
+    if(t<=L){ for(let mo=0;mo<12;mo++){ const int=bal*i, pr=Math.min(a.mens-int,bal); bal-=pr; pay+=a.mens; } }
+    const loyerBrutAn=P.loyer*b.m*12*Math.pow(1+GROWTH.loyer,t-1);
+    const loyerNetAn=loyerBrutAn*(1-P.vac);
+    const chargesAn=P.charges*12*Math.pow(1+GROWTH.charges,t-1);
+    const noi=loyerNetAn-chargesAn;
+    const cashflow=noi-pay; cumv+=cashflow;
+    const valBien=b.prix*Math.pow(1+GROWTH.valeur,t);
+    years.push(t); cf.push(cashflow); cum.push(cumv);
+    rb.push(loyerBrutAn/a.coutTotal); mrn.push(noi>0?a.coutTotal/noi:99);
+    crd.push(bal); valeur.push(valBien); equity.push(valBien-bal);
+  }
+  const flows=[-a.apport]; for(let t=1;t<=N;t++) flows.push(cf[t-1]+(t===N?equity[N-1]:0));
+  const tri=irr(flows);
+  const d=0.04; let van=-a.apport; for(let t=1;t<=N;t++) van+=(cf[t-1]+(t===N?equity[N-1]:0))/Math.pow(1+d,t);
+  const enrich=equity[N-1]+cum[N-1]-a.apport;
+  const dscr=(P.loyer*b.m*12*(1-P.vac))/(a.mens*12);
+  const ltv=a.emprunt/b.prix;
+  let cfPos=cf.findIndex(x=>x>=0); cfPos=cfPos<0?null:cfPos+1;
+  return {a,N,years,cf,cum,rb,mrn,equity,crd,valeur,tri,van,enrich,dscr,ltv,cfPos};
+}
+function irr(flows){
+  const npv=r=>flows.reduce((s,f,t)=>s+f/Math.pow(1+r,t),0);
+  let lo=-0.9,hi=1.0,nl=npv(lo),nh=npv(hi); if(nl*nh>0) return null;
+  for(let k=0;k<200;k++){ const mid=(lo+hi)/2,nm=npv(mid); if(Math.abs(nm)<1) return mid; if(nl*nm<0){hi=mid;}else{lo=mid;nl=nm;} }
+  return (lo+hi)/2;
+}
+// graphique SVG autonome : barres = cash-flow annuel, ligne = patrimoine net (valeur nette SCI)
+function chartSVG(p){
+  const W=680,H=210,padL=8,padR=8,padT=16,padB=24,iw=W-padL-padR,ih=H-padT-padB,n=p.N;
+  const xs=t=>padL+iw*(t-1)/(n-1);
+  const cfLo=Math.min(0,...p.cf),cfHi=Math.max(0,...p.cf);
+  const yCF=v=>padT+ih*(1-(v-cfLo)/((cfHi-cfLo)||1));
+  const eqLo=Math.min(...p.equity),eqHi=Math.max(...p.equity);
+  const yEQ=v=>padT+ih*(1-(v-eqLo)/((eqHi-eqLo)||1));
+  const zero=yCF(0), bw=Math.max(4,iw/n*0.62);
+  const bars=p.cf.map((v,k)=>{const x=xs(k+1)-bw/2,y=v>=0?yCF(v):zero,h=Math.abs(yCF(v)-zero);
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,h).toFixed(1)}" rx="1.5" fill="${v>=0?'#22c55e':'#ef4444'}" opacity=".85"/>`;}).join('');
+  const eqPath='M'+p.equity.map((v,k)=>`${xs(k+1).toFixed(1)} ${yEQ(v).toFixed(1)}`).join(' L');
+  const xlab=[1,5,10,15,20,25].map(t=>`<text x="${xs(t).toFixed(1)}" y="${H-7}" fill="#94a3b8" font-size="10" text-anchor="middle">An ${t}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">
+    <line x1="${padL}" y1="${zero.toFixed(1)}" x2="${W-padR}" y2="${zero.toFixed(1)}" stroke="#475569" stroke-width="1" stroke-dasharray="3 3"/>
+    ${bars}
+    <path d="${eqPath}" fill="none" stroke="#38bdf8" stroke-width="2"/>
+    ${xlab}
+  </svg>`;
+}
+
+// ----- modale : simulation cash-flow (modèle SCI BAM) -----
+function openDetail(id){
+  const b=byId(id), P=params(), a=analyse(b,P), p=projete(b,P);
+  const yIdx=t=>t-1;
+  const triTxt=p.tri==null?'n/d':pct(p.tri);
+  // tableau d'évolution années 2 / 15 / 25
+  const evo=[
+    ['Cash-flow /mois', t=>`${p.cf[yIdx(t)]/12>=0?'+':''}${Math.round(p.cf[yIdx(t)]/12)} €`],
+    ['Rendement brut',  t=>pct(p.rb[yIdx(t)])],
+    ['Multiple rev. net (MRN)', t=>p.mrn[yIdx(t)].toFixed(1)],
+    ['Valeur nette SCI', t=>eur(p.equity[yIdx(t)])],
+    ['Capital restant dû', t=>eur(p.crd[yIdx(t)])]
+  ];
+  const evoHTML=evo.map(([lbl,f])=>`<tr><td>${lbl}</td><td>${f(2)}</td><td>${f(15)}</td><td>${f(25)}</td></tr>`).join('');
+  // indicateurs clés de l'opération
+  const ind=[
+    ['TRI (fonds propres)',triTxt,'rendement interne 25 ans'],
+    ['VAN @4 %',eur(p.van),'valeur actuelle nette'],
+    ['Enrichissement net 25 ans',eur(p.enrich),'patrimoine créé − apport'],
+    ['Apport mobilisé',eur(a.apport),`${Math.round(a.apport/b.prix*100)} % du prix`],
+    ['Rendement / apport',pct((a.cashflow*12)/a.apport),'cash-on-cash an 1'],
+    ['DSCR',p.dscr.toFixed(2),p.dscr>=1?'loyer couvre la dette':'loyer < mensualité'],
+    ['LTV initial',pct(p.ltv),'emprunt / valeur'],
+    ['Cash-flow positif',p.cfPos?`dès l'an ${p.cfPos}`:'non sur 25 ans','bascule auto-financement'],
+    ['Année construction',b.annee||'—',b.annee?(b.annee>=2005?'après 2005 ✓':'avant 2005'):'']
+  ];
+  $('sheet').innerHTML=`
+    <div class="sh-head">
+      <div><div class="sh-price">${eur(b.prix)}</div>
+      <div class="sh-q">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m² · ${starHTML(a.stars)}</div></div>
+      <button class="sh-x" onclick="closeDetail()">✕</button>
+    </div>
+    <span class="sh-verdict ${a.vClass}">${a.verdict}</span>
+    <div class="sh-chart-h">Cash-flow annuel <span class="lg lg-cf">■ cash-flow</span> <span class="lg lg-eq">▬ valeur nette SCI</span></div>
+    <div class="sh-chart">${chartSVG(p)}</div>
+    <div class="sh-sub">Projection 25 ans · loyers +${(GROWTH.loyer*100)} %/an · charges +${(GROWTH.charges*100)} %/an · bien +${(GROWTH.valeur*100)} %/an · crédit ${P.duree} ans (cash-flow positif quand le crédit s'arrête).</div>
+    <div class="sh-evo-h">Évolution des indicateurs</div>
+    <table class="sh-evo"><thead><tr><th></th><th>An 2</th><th>An 15</th><th>An 25</th></tr></thead><tbody>${evoHTML}</tbody></table>
+    <div class="sh-evo-h">Indicateurs clés de l'opération</div>
+    <div class="sh-grid">
+      ${ind.map(([k,v,s])=>`<div class="sh-cell"><div class="sh-k">${k}</div><div class="sh-v">${v}</div><div class="sh-s">${s}</div></div>`).join('')}
+    </div>
+    <div class="sh-note">Modèle d'après ton tableur SCI BAM. TRI/VAN sur fonds propres avec revente théorique à la valeur nette en année 25 (hors fiscalité IS et frais de cession). Indicatif.</div>
+    <div class="ind-k" style="margin-bottom:5px">Ma note</div>
+    <textarea class="note" rows="3" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${b.id}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+    ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener">Voir l'annonce sur ${sourceOf(b.url)} ↗</a>`:''}`;
+  $('modal').classList.add('show'); $('modal').setAttribute('aria-hidden','false');
+}
+function closeDetail(){ $('modal').classList.remove('show'); $('modal').setAttribute('aria-hidden','true'); }
+
+// events
+$('tabs').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(btn&&btn.dataset.filt){ state.filt=btn.dataset.filt; render(); }});
+$('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeDetail(); });
+document.querySelectorAll('.params input').forEach(inp=>inp.addEventListener('input',render));
+
+$('sub').textContent="Lyon 7e · achat locatif · "+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long'});
+$('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
+render();
+
+// ----- PWA : service worker (offline + MAJ auto de la veille) -----
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // vérifie une nouvelle version à chaque ouverture
+      reg.update();
+      setInterval(() => reg.update(), 60 * 60 * 1000);
+    }).catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
