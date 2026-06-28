@@ -20,8 +20,8 @@
   <!-- radar sweep -->
   <path d="M256 270 L256 120 A150 150 0 0 1 386 195 Z" fill="#38bdf8" fill-opacity="0.14"/>
   <line x1="256" y1="270" x2="386" y2="195" stroke="#38bdf8" stroke-opacity="0.5" stroke-width="5"/>
-  <!-- house / location marker (the "target") -->
-  <g transform="translate(256 256)">
+  <!-- house / location marker (the "target") — enlarged for better visibility on phone shortcut -->
+  <g transform="translate(256 248) scale(1.6)">
     <path d="M0 -78 L70 -18 L70 70 L-70 70 L-70 -18 Z" fill="url(#amber)"/>
     <path d="M0 -92 L86 -18 L70 -2 L0 -64 L-70 -2 L-86 -18 Z" fill="#fde68a"/>
     <rect x="-22" y="6" width="44" height="64" rx="4" fill="#0f172a"/>
