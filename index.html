@@ -240,6 +240,13 @@
     padding:13px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px}
   .gate .err{color:var(--bad);font-size:12.5px;min-height:16px;margin:8px 0 0}
   .logout{color:var(--mut);font-size:11px;text-decoration:underline;cursor:pointer}
+  /* adresse, changement de prix, min/max cash-flow */
+  .c-addr{font-size:12px;color:var(--mut);margin-top:3px}
+  .pricechg{font-weight:700;font-size:12px;padding:6px 10px;border-radius:8px;margin-bottom:9px;text-align:center}
+  .pricechg.down{background:rgba(34,197,94,.16);color:var(--good)}
+  .pricechg.up{background:rgba(239,68,68,.14);color:var(--bad)}
+  .sh-mmcf{font-size:12px;color:var(--mut);margin:8px 0 2px;line-height:1.5}
+  .sh-mmcf b.pos{color:var(--good)} .sh-mmcf b.neg{color:var(--bad)}
 </style>
 </head>
 <body class="locked">
@@ -503,11 +510,28 @@ function refreshNow(){
   else done();
 }
 
-let state={ filt:'tous' };
-const TABS=[['tous','Tous'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
+// ----- historique des prix (par bien, sur l'appareil ; sera synchronisé) -----
+const PHKEY='scibam_pricehist_v1';
+let PRICEHIST={}; try{ PRICEHIST=JSON.parse(localStorage.getItem(PHKEY)||'{}'); }catch(e){ PRICEHIST={}; }
+function savePriceHist(){ try{ localStorage.setItem(PHKEY,JSON.stringify(PRICEHIST)); }catch(e){} }
+function updatePriceHist(){
+  const now=Date.now();
+  LISTINGS.forEach(b=>{ const k=keyOf(b); const h=PRICEHIST[k]||[];
+    if(!h.length || h[h.length-1].p!==b.prix) h.push({t:now,p:b.prix});
+    PRICEHIST[k]=h; });
+  savePriceHist();
+}
+// dernier changement de prix d'un bien : {delta, since, from, to} ou null
+function priceChange(b){ const h=PRICEHIST[keyOf(b)]||[]; if(h.length<2) return null;
+  const last=h[h.length-1], prev=h[h.length-2];
+  return { delta:last.p-prev.p, since:prev.t, from:prev.p, to:last.p }; }
+function dmy(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}); }
+
+let state={ filt:'nonclasse' };
+const TABS=[['nonclasse','Non classé'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
 
 function statusCounts(){ const s=LISTINGS.map(getStatus);
-  return { tous:s.filter(x=>x!=='archive').length, contacter:s.filter(x=>x==='contacter').length,
+  return { nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
            conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length }; }
 function renderTabs(){ const c=statusCounts();
   $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
@@ -530,10 +554,12 @@ function card(b,a){
     .filter(Boolean).map(x=>`<span class="badge">${x}</span>`).join('');
   const delta = a.ecartMarche<0 ? `+${pct0(Math.abs(a.ecartMarche))}` : `−${pct0(a.ecartMarche)}`;
   const qualStars=a.parts.qual/15*5, liqStars=a.parts.liq/15*5;
-  const ecartEur=a.prixConseille-b.prix;          // >0 = marge sous le prix cible ; <0 = à négocier
+  const sousEval=a.prixMarche-b.prix, gainM2=b.m?sousEval/b.m:0;   // >0 = sous le marché DVF = gain au m²
+  const pc=priceChange(b);
   return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''}" onclick="openDetail(${b.id})">
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
+    ${(pc&&pc.delta)?`<div class="pricechg ${pc.delta<0?'down':'up'}">${pc.delta<0?'📉':'📈'} ${pc.delta<0?'−':'+'}${eur(Math.abs(pc.delta))} depuis le ${dmy(pc.since)} (${eur(pc.from)} → ${eur(pc.to)})</div>`:''}
     <div class="c-main">
       ${photoHTML(b)}
       <div class="c-body">
@@ -541,6 +567,7 @@ function card(b,a){
           <div>
             <div class="c-price">${eur(b.prix)}</div>
             <div class="c-q">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''}</div>
+            ${b.adresse?`<div class="c-addr">📍 ${b.adresse}</div>`:''}
             <div class="c-stars">${starHTML(a.stars)}<span class="emp-lbl">emplacement</span></div>
           </div>
           <span class="verdict ${a.vClass} vpill">${a.verdict}</span>
@@ -560,9 +587,9 @@ function card(b,a){
         <div class="ind-s">net ${pct(a.rentNette)}</div>
       </div>
       <div class="ind">
-        <div class="ind-k">Décote</div>
-        <div class="ind-v ${ecartEur>=0?'pos':'neg'}">${ecartEur>=0?'+':'−'}${eur(Math.abs(ecartEur))}</div>
-        <div class="ind-s">cible ${eur(a.prixConseille)}</div>
+        <div class="ind-k">Sous-évaluation</div>
+        <div class="ind-v ${sousEval>=0?'pos':'neg'}">${sousEval>=0?'+':'−'}${eur(Math.abs(sousEval))}</div>
+        <div class="ind-s">${sousEval>=0?'gain ':''}${sousEval>=0?'+':'−'}${Math.abs(Math.round(gainM2)).toLocaleString('fr-FR')} €/m² vs marché</div>
       </div>
       <div class="ind">
         <div class="ind-k">Cash-flow</div>
@@ -596,7 +623,7 @@ function render(){
   $('ah_apport').textContent=eur(P.plafond);
   $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String($('p_taux').value).replace('.',',')} %`;
   let rows=LISTINGS.map(b=>({b,a:analyse(b,P)}));
-  rows=rows.filter(({b})=>{ const s=getStatus(b); return state.filt==='tous' ? s!=='archive' : s===state.filt; });
+  rows=rows.filter(({b})=>{ const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
   rows.sort((x,y)=>y.a.score-x.a.score);
@@ -605,7 +632,7 @@ function render(){
   $('newpill').textContent=LISTINGS.filter(b=>b.new).length+" nouv.";
   $('count').textContent=rows.length+" bien"+(rows.length>1?'s':'')+" affiché"+(rows.length>1?'s':'');
   $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
-    || `<div class="foot">Aucun bien ne correspond aux filtres actifs.</div>`;
+    || `<div class="foot">${state.filt==='nonclasse'?'🎉 Sas vide — tous les biens sont triés.':'Aucun bien dans cette catégorie.'}</div>`;
   if($('srcnote')){
     const scrap=SOURCES.filter(s=>s.def).map(s=>s.label).join(', ');
     const shown=SOURCES.filter(s=>SRC[s.key]).map(s=>s.label).join(', ')||'aucune';
@@ -642,7 +669,14 @@ function projete(b,P){
   const dscr=(P.loyer*b.m*12*(1-P.vac))/(a.mens*12);
   const ltv=a.emprunt/b.prix;
   let cfPos=cf.findIndex(x=>x>=0); cfPos=cfPos<0?null:cfPos+1;
-  return {a,N,years,cf,cum,rb,mrn,equity,crd,valeur,tri,van,enrich,dscr,ltv,cfPos};
+  // points extrêmes du cash-flow annuel
+  let cfMin=Infinity,cfMax=-Infinity,cfMinY=1,cfMaxY=1;
+  cf.forEach((v,k)=>{ if(v<cfMin){cfMin=v;cfMinY=k+1;} if(v>cfMax){cfMax=v;cfMaxY=k+1;} });
+  // valeur nette du bien (valeur de marché − capital restant dû) : entrée vs sortie
+  const netEntree=b.prix-a.emprunt, netSortie=equity[N-1];
+  const totalInt=a.mens*P.duree*12-a.emprunt;   // intérêts payés sur toute la durée du crédit
+  return {a,N,years,cf,cum,rb,mrn,equity,crd,valeur,tri,van,enrich,dscr,ltv,cfPos,
+          cfMin,cfMinY,cfMax,cfMaxY,netEntree,netSortie,totalInt};
 }
 function irr(flows){
   const npv=r=>flows.reduce((s,f,t)=>s+f/Math.pow(1+r,t),0);
@@ -650,7 +684,7 @@ function irr(flows){
   for(let k=0;k<200;k++){ const mid=(lo+hi)/2,nm=npv(mid); if(Math.abs(nm)<1) return mid; if(nl*nm<0){hi=mid;}else{lo=mid;nl=nm;} }
   return (lo+hi)/2;
 }
-// graphique SVG autonome : barres = cash-flow annuel, ligne = patrimoine net (valeur nette SCI)
+// graphique SVG autonome : barres = cash-flow annuel, ligne = valeur nette du bien (marché − capital restant dû)
 function chartSVG(p){
   const W=680,H=210,padL=8,padR=8,padT=16,padB=24,iw=W-padL-padR,ih=H-padT-padB,n=p.N;
   const xs=t=>padL+iw*(t-1)/(n-1);
@@ -681,19 +715,22 @@ function openDetail(id){
     ['Cash-flow /mois', t=>`${p.cf[yIdx(t)]/12>=0?'+':''}${Math.round(p.cf[yIdx(t)]/12)} €`],
     ['Rendement brut',  t=>pct(p.rb[yIdx(t)])],
     ['Multiple rev. net (MRN)', t=>p.mrn[yIdx(t)].toFixed(1)],
-    ['Valeur nette SCI', t=>eur(p.equity[yIdx(t)])],
+    ['Valeur nette du bien', t=>eur(p.equity[yIdx(t)])],
     ['Capital restant dû', t=>eur(p.crd[yIdx(t)])]
   ];
   const evoHTML=evo.map(([lbl,f])=>`<tr><td>${lbl}</td><td>${f(2)}</td><td>${f(15)}</td><td>${f(25)}</td></tr>`).join('');
   // indicateurs clés de l'opération
   const ind=[
+    ['Montant de l\'emprunt',eur(a.emprunt),`sur ${P.duree} ans · LTV ${pct(p.ltv)}`],
+    ['Mensualité',eur(a.mens)+'/mois',`intérêts totaux ${eur(p.totalInt)}`],
+    ['Valeur nette du bien — entrée',eur(p.netEntree),'valeur − emprunt'],
+    ['Valeur nette du bien — sortie',eur(p.netSortie),'an 25 · crédit soldé'],
+    ['Apport (compte courant)',eur(a.apport),`${Math.round(a.apport/b.prix*100)} % du prix · récupérable`],
     ['TRI (fonds propres)',triTxt,'rendement interne 25 ans'],
     ['VAN @4 %',eur(p.van),'valeur actuelle nette'],
     ['Enrichissement net 25 ans',eur(p.enrich),'patrimoine créé − apport'],
-    ['Apport mobilisé',eur(a.apport),`${Math.round(a.apport/b.prix*100)} % du prix`],
     ['Rendement / apport',pct((a.cashflow*12)/a.apport),'cash-on-cash an 1'],
     ['DSCR',p.dscr.toFixed(2),p.dscr>=1?'loyer couvre la dette':'loyer < mensualité'],
-    ['LTV initial',pct(p.ltv),'emprunt / valeur'],
     ['Cash-flow positif',p.cfPos?`dès l'an ${p.cfPos}`:'non sur 25 ans','bascule auto-financement'],
     ['Année construction',b.annee||'—',b.annee?(b.annee>=2005?'après 2005 ✓':'avant 2005'):'']
   ];
@@ -704,8 +741,9 @@ function openDetail(id){
       <button class="sh-x" onclick="closeDetail()">✕</button>
     </div>
     <span class="sh-verdict ${a.vClass}">${a.verdict}</span>
-    <div class="sh-chart-h">Cash-flow annuel <span class="lg lg-cf">■ cash-flow</span> <span class="lg lg-eq">▬ valeur nette SCI</span></div>
+    <div class="sh-chart-h">Cash-flow annuel <span class="lg lg-cf">■ cash-flow</span> <span class="lg lg-eq">▬ valeur nette du bien</span></div>
     <div class="sh-chart">${chartSVG(p)}</div>
+    <div class="sh-mmcf">Cash-flow le plus bas : <b class="${p.cfMin>=0?'pos':'neg'}">${p.cfMin>=0?'+':''}${eur(p.cfMin)}/an</b> (≈ ${p.cfMin>=0?'+':''}${Math.round(p.cfMin/12).toLocaleString('fr-FR')} €/mois · an ${p.cfMinY}) — le plus haut : <b class="pos">+${eur(p.cfMax)}/an</b> (≈ +${Math.round(p.cfMax/12).toLocaleString('fr-FR')} €/mois · an ${p.cfMaxY})</div>
     <div class="sh-sub">Projection 25 ans · loyers +${(GROWTH.loyer*100)} %/an · charges +${(GROWTH.charges*100)} %/an · bien +${(GROWTH.valeur*100)} %/an · crédit ${P.duree} ans (cash-flow positif quand le crédit s'arrête).</div>
     <div class="sh-evo-h">Évolution des indicateurs</div>
     <table class="sh-evo"><thead><tr><th></th><th>An 2</th><th>An 15</th><th>An 25</th></tr></thead><tbody>${evoHTML}</tbody></table>
@@ -713,7 +751,7 @@ function openDetail(id){
     <div class="sh-grid">
       ${ind.map(([k,v,s])=>`<div class="sh-cell"><div class="sh-k">${k}</div><div class="sh-v">${v}</div><div class="sh-s">${s}</div></div>`).join('')}
     </div>
-    <div class="sh-note">Modèle d'après ton tableur SCI BAM. TRI/VAN sur fonds propres avec revente théorique à la valeur nette en année 25 (hors fiscalité IS et frais de cession). Indicatif.</div>
+    <div class="sh-note">Apport traité en <b>compte courant d'associé</b> (récupérable, pas de « valeur nette SCI »). TRI/VAN sur fonds propres, revente théorique à la <b>valeur nette du bien</b> (valeur de marché − capital restant dû) en année 25 — hors fiscalité IS et frais de cession. Indicatif.</div>
     <div class="ind-k" style="margin-bottom:5px">Ma note</div>
     <textarea class="note" rows="3" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${b.id}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener">Voir l'annonce sur ${sourceOf(b.url)} ↗</a>`:''}`;
@@ -731,6 +769,7 @@ $('runBtn').addEventListener('click',refreshNow);
 
 $('sub').textContent="Lyon 7e · achat locatif · "+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long'});
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
+updatePriceHist();
 renderSources();
 render();
 
