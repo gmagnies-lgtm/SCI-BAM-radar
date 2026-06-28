@@ -222,9 +222,42 @@
   .runbtn:active{opacity:.85}
   .srcnote{font-size:11.5px;color:var(--mut);margin-top:10px;line-height:1.5}
   .badge.src{background:rgba(56,189,248,.10);border-color:rgba(56,189,248,.30);color:var(--acc2);font-weight:700}
+  /* écran de connexion (déterrent côté client) */
+  body.locked{overflow:hidden}
+  body.locked header,body.locked .wrap,body.locked .modal{display:none!important}
+  .gate{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 28%,#1e293b,#0f172a);padding:24px}
+  body.locked .gate{display:flex}
+  .gate-box{width:100%;max-width:340px;text-align:center}
+  .gate-logo{width:84px;height:84px;border-radius:20px;margin:0 auto 16px;display:block;border:1px solid var(--line)}
+  .gate h2{margin:0 0 4px;font-size:20px;letter-spacing:.3px}
+  .gate h2 span{color:var(--acc)}
+  .gate .lead{color:var(--mut);font-size:12.5px;margin:0 0 20px}
+  .gate input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:12px;font-size:16px;margin-bottom:10px;box-sizing:border-box}
+  .gate input:focus{outline:none;border-color:var(--acc)}
+  .gate button{width:100%;background:var(--acc);color:#0f172a;border:none;border-radius:10px;
+    padding:13px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px}
+  .gate .err{color:var(--bad);font-size:12.5px;min-height:16px;margin:8px 0 0}
+  .logout{color:var(--mut);font-size:11px;text-decoration:underline;cursor:pointer}
 </style>
 </head>
-<body>
+<body class="locked">
+
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <img class="gate-logo" src="assets/icon-192.png" alt="SCI BAM">
+    <h2>SCI <span>BAM</span> · Radar</h2>
+    <div class="lead">Accès privé — identifiez-vous</div>
+    <form id="gateForm" autocomplete="off">
+      <input id="g_user" type="text" placeholder="Identifiant" autocapitalize="none" autocorrect="off" autocomplete="username">
+      <input id="g_pass" type="password" placeholder="Mot de passe" autocomplete="current-password" inputmode="numeric">
+      <button type="submit">Se connecter</button>
+      <div class="err" id="g_err"></div>
+    </form>
+  </div>
+</div>
+
 <header>
   <div class="wrap">
     <div class="h-top">
@@ -281,7 +314,8 @@
   <div class="foot">
     Touchez une carte pour la simulation cash-flow complète (modèle SCI BAM).<br>
     Moteur selon le cahier des charges · loyer 17 €/m² (marché observé 16,8). Annonces : leboncoin · ParuVendu · SeLoger (Lyon 7e/3e), sites configurables.<br>
-    Prix de marché : DVF / Notaires via MeilleursAgents (1ᵉʳ juin 2026). Vos statuts sont mémorisés sur cet appareil.
+    Prix de marché : DVF / Notaires via MeilleursAgents (1ᵉʳ juin 2026). Vos statuts sont mémorisés sur cet appareil.<br>
+    <span class="logout" onclick="logout()">Se déconnecter</span>
   </div>
 </div>
 
@@ -699,6 +733,30 @@ $('sub').textContent="Lyon 7e · achat locatif · "+new Date().toLocaleDateStrin
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
 renderSources();
 render();
+
+// ----- écran de connexion (déterrent côté client : le dépôt étant public, le code reste lisible) -----
+const AUTHKEY='scibam_auth_v1';
+const GATE={ user:'gmagnies', iter:310000,
+  salt:'b665a63d94431c4542433fab70d46752',
+  hash:'b52a804f6d2e2fff07d327c8bb5d58c0f424a665842867183580c66c18a8dd88' };
+async function pbkdf2Hex(pw,saltHex,iter){
+  const enc=new TextEncoder();
+  const salt=Uint8Array.from(saltHex.match(/../g).map(h=>parseInt(h,16)));
+  const key=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},key,256);
+  return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function unlock(){ document.body.classList.remove('locked'); }
+function logout(){ try{ localStorage.removeItem(AUTHKEY); }catch(e){} location.reload(); }
+if(localStorage.getItem(AUTHKEY)==='1') unlock();
+$('gateForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const u=$('g_user').value.trim().toLowerCase(), p=$('g_pass').value, err=$('g_err');
+  err.textContent='…';
+  let ok=false; try{ ok = u===GATE.user && (await pbkdf2Hex(p,GATE.salt,GATE.iter))===GATE.hash; }catch(_){ }
+  if(ok){ try{ localStorage.setItem(AUTHKEY,'1'); }catch(_){ } $('g_pass').value=''; err.textContent=''; unlock(); }
+  else { err.textContent='Identifiant ou mot de passe incorrect.'; $('g_pass').value=''; }
+});
 
 // ----- PWA : service worker (offline + MAJ auto de la veille) -----
 if ('serviceWorker' in navigator) {
