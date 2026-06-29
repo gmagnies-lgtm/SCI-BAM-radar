@@ -327,6 +327,9 @@
     display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
   .sw-price{font-size:30px;font-weight:800;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.6)}
   .sw-meta{font-size:13px;color:#cbd5e1;margin-top:5px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+  .sw-feats{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-width:78%}
+  .sw-feats span{font-size:11.5px;font-weight:600;color:#e2e8f0;background:rgba(15,23,42,.6);
+    border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:3px 9px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
   .sw-score{width:70px;height:70px;min-width:70px;border-radius:50%;display:grid;place-items:center;
     position:relative;background:conic-gradient(var(--ring) calc(var(--p)*1%),rgba(148,163,184,.22) 0)}
   .sw-score::before{content:"";position:absolute;inset:6px;border-radius:50%;background:#0f172a}
@@ -1137,6 +1140,10 @@ function updateSwipeLaunch(){
 function swPhotoOpen(b){ return b.img
   ? `<div class="sw-photo" style="background-image:url('${b.img}')">`
   : `<div class="sw-photo ph"><span>${(b.q||'?').slice(0,1).toUpperCase()}</span>`; }
+function featChips(b){
+  const F=[[b.gar,'🚗','Garage'],[b.cave,'📦','Cave'],[b.balc,'🪟','Balcon'],[b.terr,'🪴','Terrasse'],[b.jardin,'🌳','Jardin'],[b.asc,'🛗','Ascenseur'],[b.meuble,'🛋️','Meublé']];
+  return F.filter(f=>f[0]).map(f=>`<span>${f[1]} ${f[2]}</span>`).join('');
+}
 function swCardHTML(item, cls){
   const {b,a}=item, reco=recommendation(a), loyer=Math.round(a.loyerMois);
   return `<div class="sw-card ${cls}" data-id="${b.id}">
@@ -1151,6 +1158,7 @@ function swCardHTML(item, cls){
         <div>
           <div class="sw-price">${eur(b.prix)}</div>
           <div class="sw-meta">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}</div>
+          ${featChips(b)?`<div class="sw-feats">${featChips(b)}</div>`:''}
         </div>
         <div class="sw-score" style="--p:${Math.max(0,a.score)};--ring:${ringColor(a)}"><b>${a.score}</b><small>/100</small></div>
       </div>
@@ -1222,13 +1230,20 @@ function attachDrag(card){
     if(!decided && (Math.abs(dx)>8||Math.abs(dy)>8)){ decided=true; horiz=Math.abs(dx)>Math.abs(dy); }
     if(!horiz) return;
     card.style.transform=`translateX(${dx}px) rotate(${dx*0.05}deg)`;
-    if(keep) keep.style.opacity=Math.max(0,Math.min(1,-dx/TH));   // gauche => conserver
-    if(arch) arch.style.opacity=Math.max(0,Math.min(1, dx/TH));   // droite => archiver
+    const prog=Math.max(-1,Math.min(1, dx/(TH*0.55)));            // plein effet dès ~55 % du seuil = réaction plus tôt
+    if(keep) keep.style.opacity=Math.max(0,-prog);
+    if(arch) arch.style.opacity=Math.max(0, prog);
+    if(prog<0){ const i=-prog; card.style.borderColor='var(--good)';                     // gauche => conserver = vert
+      card.style.boxShadow=`0 0 0 ${(i*4).toFixed(1)}px rgba(34,197,94,${(i*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`; }
+    else if(prog>0){ const i=prog; card.style.borderColor='var(--bad)';                  // droite => archiver = rouge
+      card.style.boxShadow=`0 0 0 ${(i*4).toFixed(1)}px rgba(239,68,68,${(i*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`; }
+    else { card.style.borderColor=''; card.style.boxShadow=''; }
   });
   const end=()=>{
     if(!dragging) return; dragging=false;
     if(horiz && Math.abs(dx)>TH){ swipeAction(dx<0?'left':'right'); return; }
-    card.style.transition='transform .25s ease'; card.style.transform='';
+    card.style.transition='transform .25s ease, box-shadow .25s ease'; card.style.transform='';
+    card.style.borderColor=''; card.style.boxShadow='';
     if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0;
   };
   card.addEventListener('pointerup',end);
