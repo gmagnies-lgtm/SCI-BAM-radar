@@ -101,10 +101,14 @@
   .ah-mini b{color:var(--txt)}
   /* photo + corps */
   .c-main{display:flex;gap:11px;align-items:flex-start}
-  .photo{width:82px;min-width:82px;height:82px;border-radius:10px;background-size:cover;
-    background-position:center;border:1px solid var(--line)}
-  .photo.ph{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#334155,#1e293b)}
-  .photo.ph span{font-size:22px;font-weight:800;color:var(--mut)}
+  /* photo en grand bandeau plein-cadre (déborde sur les bords de la carte) */
+  .c-photo{height:clamp(170px,26vw,240px);margin:-13px -13px 11px;background-size:cover;
+    background-position:center;position:relative}
+  .c-photo::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(to top,rgba(11,18,32,.6),rgba(11,18,32,0) 42%)}
+  .c-photo.ph{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#334155,#1e293b)}
+  .c-photo.ph::after{display:none}
+  .c-photo.ph span{font-size:46px;font-weight:800;color:var(--mut)}
   .c-body{flex:1;min-width:0}
   /* étoiles emplacement */
   .c-stars{margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -450,11 +454,11 @@
   </details>
   </div>
 
-  <div class="mktbar" id="mktbar"></div>
   <div class="count" id="count"></div>
   <div class="sortbar" id="sortbar"></div>
   <div id="list"></div>
 
+  <div class="mktbar" id="mktbar"></div>
   <div class="foot">
     Touchez une carte pour la simulation cash-flow complète (modèle SCI BAM).<br>
     Moteur selon le cahier des charges · loyer 17 €/m² (marché observé 16,8). Annonces : leboncoin · ParuVendu · SeLoger (Lyon 7e/3e), sites configurables.<br>
@@ -857,7 +861,9 @@ async function pullRemote(){ if(!syncOn()) return;
 }
 
 let state={ filt:'nonclasse', sort:'score' };
-const TABS=[['nonclasse','Non classé'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
+const TABS=[['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés'],['nonclasse','À trier']];
+// onglet d'entrée : 1er onglet non vide (jamais « À trier » sauf si tout le reste est vide)
+function defaultTab(){ const c=statusCounts(); for(const k of ['contacter','conserver','archive']) if(c[k]>0) return k; return 'contacter'; }
 // Classement de visibilité (point 7) — applicable dans tous les onglets, y compris Archivés
 const SORTOPTS=[['score','🏆 Meilleure note'],['gain','💰 Gain à l\'achat'],['cashflow','💵 Cash-flow'],['date','📅 Date de pub']];
 const SORTERS={
@@ -889,9 +895,9 @@ function renderSyncStatus(){
 }
 
 function photoHTML(b){
-  if(b.img) return `<div class="photo" style="background-image:url('${b.img}')"></div>`;
+  if(b.img) return `<div class="c-photo" style="background-image:url('${b.img}')"></div>`;
   const ini=(b.q||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  return `<div class="photo ph"><span>${ini}</span></div>`;
+  return `<div class="c-photo ph"><span>${ini}</span></div>`;
 }
 
 function card(b,a){
@@ -904,13 +910,13 @@ function card(b,a){
   const pc=priceChange(b);
   const goneCls = b._gone ? (st==='archive'?'gone-arch':'gone-other') : '';
   return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''} ${goneCls}" onclick="openDetail(${b.id})">
+    ${photoHTML(b)}
     ${b._gone?`<div class="gonetag ${st==='archive'?'g':'r'}">${st==='archive'?'🗄 Annonce archivée — retirée du marché':'⚠️ Annonce retirée du marché'}</div>`:''}
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
     ${(pc&&pc.delta)?`<div class="pricechg ${pc.delta<0?'down':'up'}">${pc.delta<0?'📉':'📈'} ${pc.delta<0?'−':'+'}${eur(Math.abs(pc.delta))} depuis le ${dmy(pc.since)} (${eur(pc.from)} → ${eur(pc.to)})</div>`:''}
     ${(pc&&pc.delta)?`<div class="modtag">✏️ Annonce en modification</div>`:''}
     <div class="c-main">
-      ${photoHTML(b)}
       <div class="c-body">
         <div class="c-top">
           <div>
@@ -1256,6 +1262,7 @@ computeNews();
 renderSources();
 if($('syncCode')) $('syncCode').value=syncToken();
 renderSyncStatus();
+state.filt=defaultTab();   // entrer sur le 1er onglet non vide, jamais « À trier »
 render();
 maybeNotify();
 
