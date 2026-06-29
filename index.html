@@ -286,9 +286,23 @@
     padding:8px 12px;font-size:13px;white-space:nowrap}
   .upbar .up-x{background:transparent;border:0;color:var(--mut);font-size:16px;padding:2px 4px}
   /* ===== bouton lancement swipe ===== */
-  .swipelaunch{display:block;width:100%;margin:8px 0 2px;padding:13px;border:0;border-radius:12px;
-    background:linear-gradient(135deg,var(--acc),#fb923c);color:#0f172a;font-weight:800;font-size:15px}
-  .swipelaunch:disabled{opacity:.45;background:var(--bg2);color:var(--mut)}
+  /* barre « à trier » discrète (tableau de bord standby) */
+  .swipelaunch{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    margin:10px 0 2px;padding:9px 12px;border:1px solid rgba(245,158,11,.5);border-radius:10px;
+    background:rgba(245,158,11,.12);color:var(--acc);font-weight:700;font-size:13px;cursor:pointer}
+  .swipelaunch:disabled{opacity:.5;background:var(--bg2);color:var(--mut);border-color:var(--line);cursor:default}
+  /* tableau de bord « En un coup d'œil » */
+  .glance{margin:14px 0 2px}
+  .glance-h{font-size:11px;letter-spacing:.5px;color:var(--mut);text-transform:uppercase;margin:0 0 8px}
+  .glance-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .gtile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+    cursor:pointer;text-align:left;min-width:0}
+  .gtile:active{transform:scale(.98)}
+  .gtile .gt-k{font-size:11px;color:var(--mut);font-weight:700}
+  .gtile .gt-v{font-size:16px;font-weight:800;margin-top:3px}
+  .gtile .gt-s{font-size:11.5px;color:var(--mut);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gtile.go{border-color:rgba(34,197,94,.45)} .gtile.go .gt-v{color:var(--good)}
+  .gtile.warnm{border-color:rgba(245,158,11,.45)} .gtile.warnm .gt-v{color:var(--warn)}
   /* ===== tag "annonce en modification" (cartes liste) ===== */
   .modtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;margin:8px 0 0;
     padding:3px 8px;border-radius:6px;background:rgba(245,158,11,.16);color:var(--warn);
@@ -413,8 +427,9 @@
     <button class="up-go" onclick="openSwipe()">Trier →</button>
     <button class="up-x" onclick="dismissUpbar()" title="Masquer">✕</button>
   </div>
-  <div class="tabs" id="tabs"></div>
   <button class="swipelaunch" id="swipeLaunch" onclick="openSwipe()">🔥 Mode swipe</button>
+  <div class="glance" id="glance"></div>
+  <div class="tabs" id="tabs"></div>
 
   <div class="settings-panel" id="settingsPanel" hidden>
   <details class="params" id="paramsBox">
@@ -816,6 +831,29 @@ function maybeNotify(){
 function modifiedList(){ return LISTINGS.filter(isModified); }
 let _upbarHidden=false;
 function dismissUpbar(){ _upbarHidden=true; const e=$('upbar'); if(e) e.classList.remove('show'); }
+function renderGlance(){
+  const g=$('glance'); if(!g) return;
+  const P=params();
+  const pool=LISTINGS.filter(b=>getStatus(b)!=='archive')
+    .filter(b=> SRC[siteKeyOf(b.url)]!==false)
+    .filter(b=> !PAPONLY || b.pap===true)
+    .map(b=>({b,a:analyse(b,P)}));
+  if(!pool.length){ g.innerHTML=''; return; }
+  const by=(f)=>[...pool].sort(f)[0];
+  const top =by((x,y)=>y.a.score-x.a.score);
+  const gain=by((x,y)=>(y.a.prixMarche-y.b.prix)-(x.a.prixMarche-x.b.prix));
+  const cash=by((x,y)=>y.a.cashflow-x.a.cashflow);
+  const dated=pool.filter(r=>r.b.pub);
+  const old =dated.length?[...dated].sort((x,y)=>pubTs(x.b)-pubTs(y.b))[0]:null;
+  const tile=(cls,icon,k,r,sub)=>`<div class="gtile ${cls}" onclick="openDetail(${r.b.id})">
+    <div class="gt-k">${icon} ${k}</div><div class="gt-v">${eur(r.b.prix)}</div><div class="gt-s">${sub}</div></div>`;
+  g.innerHTML=`<div class="glance-h">En un coup d'œil</div><div class="glance-grid">`
+    +tile('go','🏆','Top note',top,`${top.a.score}/100 · ${top.b.q}`)
+    +tile('','💰','Meilleur gain',gain,`+${eur(Math.max(0,Math.round(gain.a.prixMarche-gain.b.prix)))} · ${gain.b.q}`)
+    +tile('','💵','Cash-flow',cash,`${cash.a.cashflow>=0?'+':''}${Math.round(cash.a.cashflow).toLocaleString('fr-FR')} €/m · ${cash.b.q}`)
+    +(old?tile('warnm','⏳','En ligne le + long',old,`${ageDays(old.b)} j · ${old.b.q}`):'')
+    +`</div>`;
+}
 function renderUpbar(){
   const e=$('upbar'); if(!e) return;
   const nNew=NEWSET.size, nMod=modifiedList().length;
@@ -993,7 +1031,7 @@ function render(){
   if(nNew||nMod){ pill.classList.remove('calm');
     pill.textContent=`${nNew?`🆕 ${nNew}`:''}${nNew&&nMod?' · ':''}${nMod?`✏️ ${nMod}`:''}`; }
   else { pill.classList.add('calm'); pill.textContent='à jour'; }
-  renderUpbar(); updateSwipeLaunch();
+  renderUpbar(); updateSwipeLaunch(); renderGlance();
   $('count').textContent=rows.length+" bien"+(rows.length>1?'s':'')+" affiché"+(rows.length>1?'s':'');
   $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
     || `<div class="foot">${state.filt==='nonclasse'?'🎉 Sas vide — tous les biens sont triés.':'Aucun bien dans cette catégorie.'}</div>`;
@@ -1135,7 +1173,7 @@ function buildDeck(){ const P=params();
 function updateSwipeLaunch(){
   const btn=$('swipeLaunch'); if(!btn) return;
   const n=buildDeck().length; btn.disabled=n===0;
-  btn.innerHTML = n ? `⚡ Traitement rapide des annonces <span class="swcount">${n}</span>` : '🎉 Tout est trié';
+  btn.innerHTML = n ? `🔥 <b>${n}</b> à trier · Trier →` : '🎉 Tout est trié';
 }
 function swPhotoOpen(b){ return b.img
   ? `<div class="sw-photo" style="background-image:url('${b.img}')">`
