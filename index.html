@@ -256,6 +256,20 @@
   .syncstatus.ok{color:var(--good)}
   /* ===== pastille nouveautés (cliquable) ===== */
   .pill{cursor:pointer;border:0}
+  /* roue crantée réglages (point 4) */
+  .gear{background:var(--bg2);border:1px solid var(--line);color:var(--txt);width:38px;height:38px;
+    border-radius:10px;font-size:18px;cursor:pointer;flex:none;line-height:1}
+  .gear.on{background:var(--acc);color:#0f172a;border-color:var(--acc)}
+  .settings-panel[hidden]{display:none}
+  /* barre de tri / classement (point 7) */
+  .sortbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:2px 0 12px}
+  .sortbar .sb-lbl{font-size:11.5px;color:var(--mut);margin-right:2px}
+  .sortbtn{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:999px;
+    padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .sortbtn.on{background:var(--acc);color:#0f172a;border-color:var(--acc)}
+  /* date de publication (point 5) */
+  .c-pub{font-size:11px;color:var(--mut);margin-top:3px}
+  .c-pub.mid{color:var(--warn)} .c-pub.old{color:var(--bad);font-weight:600}
   .pill.calm{background:var(--bg2);color:var(--mut)}
   /* ===== bannière "nouveautés du jour" ===== */
   .upbar{display:none;align-items:center;gap:10px;margin:12px 0 2px;padding:11px 13px;
@@ -361,7 +375,7 @@
   <div class="gate-box">
     <img class="gate-logo" src="assets/icon-192.png" alt="SCI BAM">
     <h2>SCI <span>BAM</span> · Radar</h2>
-    <div class="lead">Accès privé — identifiez-vous</div>
+    <div class="lead">Accès privé — compte de <b>Guillaume</b> (admin)</div>
     <form id="gateForm" autocomplete="off">
       <input id="g_user" type="text" placeholder="Identifiant" autocapitalize="none" autocorrect="off" autocomplete="username">
       <input id="g_pass" type="password" placeholder="Mot de passe" autocomplete="current-password" inputmode="numeric">
@@ -378,7 +392,10 @@
         <h1>SCI <span>BAM</span> · Radar Immo</h1>
         <div class="sub" id="sub">Lyon 7e · achat locatif · mise à jour —</div>
       </div>
-      <span class="pill" id="newpill" onclick="openSwipe()" title="Trier les nouveaux biens">0 nouv.</span>
+      <div style="display:flex;align-items:center;gap:8px;flex:none">
+        <span class="pill" id="newpill" onclick="openSwipe()" title="Trier les nouveaux biens">0 nouv.</span>
+        <button class="gear" id="gearBtn" title="Réglages (apport, paramètres, sources, filtres)">⚙️</button>
+      </div>
     </div>
   </div>
 </header>
@@ -392,6 +409,7 @@
   <div class="tabs" id="tabs"></div>
   <button class="swipelaunch" id="swipeLaunch" onclick="openSwipe()">🔥 Mode swipe</button>
 
+  <div class="settings-panel" id="settingsPanel" hidden>
   <details class="params" id="paramsBox">
     <summary>Apport & paramètres</summary>
     <div class="apporthero">
@@ -430,9 +448,11 @@
       </div>
     </div>
   </details>
+  </div>
 
   <div class="mktbar" id="mktbar"></div>
   <div class="count" id="count"></div>
+  <div class="sortbar" id="sortbar"></div>
   <div id="list"></div>
 
   <div class="foot">
@@ -466,35 +486,37 @@
 <script>
 // ---------- DONNÉES (annonces réelles extraites — Lyon 7e) ----------
 // new:true = apparue lors du dernier rafraîchissement (alimenté par la veille quotidienne)
+// Date du dernier push de données (mise à jour par la veille à chaque publication). Format AAAA-MM-JJ.
+const DATA_UPDATED = "2026-06-29";
 const LISTINGS = [
- {id:3224642507, prix:499000, m:104, p:4, ch:3, et:"5/5", q:"Lyon 7e", stLouis:false, annee:1880, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false,
+ {id:3224642507, prix:499000, m:104, p:4, ch:3, et:"5/5", q:"Lyon 7e", stLouis:false, annee:1880, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-06-29",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3224642507",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/3d/96/eb/3d96eb0b151537eb85afc3013ad9f33fa9187a39.jpg?rule=ad-large"},
- {id:3198547891, prix:545000, m:107, p:4, ch:3, et:"3/8", q:"Saxe-Gambetta", stLouis:false, annee:1969, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false,
+ {id:3198547891, prix:545000, m:107, p:4, ch:3, et:"3/8", q:"Saxe-Gambetta", stLouis:false, annee:1969, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-05-15",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3198547891",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/b0/85/30/b0853015e08472520b0043394445d2a874ce2944.jpg?rule=ad-large"},
  {id:3209849902, prix:307000, m:82, p:3, ch:2, et:"1/4", q:"Guillotière", stLouis:false, annee:1948, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3209849902",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/e4/81/21/e48121685eeca9a0f875861479b3da67e5a7d23b.jpg?rule=ad-large"},
- {id:3188284298, prix:268000, m:86, p:4, ch:3, et:"1/8", q:"Saxe-Gambetta", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+ {id:3188284298, prix:268000, m:86, p:4, ch:3, et:"1/8", q:"Saxe-Gambetta", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-06-23",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3188284298",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/a5/67/6d/a5676d49600945d373ff7d54fd1371ac728f36b6.jpg?rule=ad-large"},
- {id:3179685037, prix:380000, m:85, p:3, ch:2, et:"2", q:"Lyon 7e", stLouis:false, annee:2004, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false,
+ {id:3179685037, prix:380000, m:85, p:3, ch:2, et:"2", q:"Lyon 7e", stLouis:false, annee:2004, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-06-09",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3179685037",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/f0/0e/f7/f00ef74cade1f4130f80a463c21d29e87be48520.jpg?rule=ad-large"},
- {id:3135298688, prix:565000, m:90, p:4, ch:3, et:"7/7", q:"Berges du Rhône", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false,
+ {id:3135298688, prix:565000, m:90, p:4, ch:3, et:"7/7", q:"Berges du Rhône", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-05-19",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3135298688",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/4e/2a/fc/4e2afcec53b9fca4aa4a5e857bb05844468a7fcd.jpg?rule=ad-large"},
- {id:3219463638, prix:310000, m:89, p:3, ch:2, et:"2", q:"Lyon 7e", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+ {id:3219463638, prix:310000, m:89, p:3, ch:2, et:"2", q:"Lyon 7e", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-06-19",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3219463638",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/e3/d2/65/e3d265ee97e4dd8ab37897927bb9837f435b5b59.jpg?rule=ad-large"},
- {id:3173408558, prix:395000, m:90, p:4, ch:2, et:"6/6", q:"Jean Macé", stLouis:false, annee:1955, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false,
+ {id:3173408558, prix:395000, m:90, p:4, ch:2, et:"6/6", q:"Jean Macé", stLouis:false, annee:1955, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-05-30",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3173408558",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/9b/5e/01/9b5e0102a2c8b78dbca4be3caa7d289d1005232f.jpg?rule=ad-large"},
- {id:3114201220, prix:379000, m:100, p:4, ch:2, et:"3/6", q:"Guillotière", stLouis:false, annee:1850, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+ {id:3114201220, prix:379000, m:100, p:4, ch:2, et:"3/6", q:"Guillotière", stLouis:false, annee:1850, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-06-03",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3114201220",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/ed/c7/43/edc74319f8c06e8eda9fc3fa7e310f6a3e5e0985.jpg?rule=ad-large"},
- {id:3191338526, prix:330000, m:84, p:3, ch:2, et:"1/3", q:"Parc Blandan", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+ {id:3191338526, prix:330000, m:84, p:3, ch:2, et:"1/3", q:"Parc Blandan", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-06-29",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3191338526",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/9f/d5/04/9fd504fd6332042676f8d140e08ecb6ddff4bd8a.jpg?rule=ad-large"},
  {id:269282813, prix:315000, m:100, p:4, ch:3, et:"3/7", q:"Jean Macé", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
@@ -509,37 +531,37 @@ const LISTINGS = [
  {id:273478421, prix:567000, m:104, p:5, ch:4, et:"", q:"Girondins", stLouis:false, gar:0,cave:0,terr:1,jardin:0,asc:0,balc:0,meuble:0, new:false, pap:false,
    url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/gerland/273478421.htm",
    img:"https://mms.seloger.com/c/6/4/e/c64ecd4d-a473-4f73-a6bb-0b7ebf0a938f.jpg?ci_seal=902e2d4f5ac64db504680bae73b3471b7a6d7055"},
- {id:1289952416, prix:310000, m:100, p:5, ch:4, et:"", q:"Debourg", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
+ {id:1289952416, prix:310000, m:100, p:5, ch:4, et:"", q:"Debourg", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false, pub:"2026-06-29",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1289952416A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/img.netty.immo/02/c5/L3Byb2R1Y3Rjdy9jb21wYW55NTQxNDVmeW4vMi9WQTI5OTI4LzE3NzYxNzQ2MjYyX1ZBMjk5MjhfNl9vcmlnaW5hbC5qcGc_MjAyNjA2MjkwNzEzMTk_rct"},
- {id:1291037236, prix:440000, m:82, p:4, ch:3, et:"", q:"Jean-Jaurès / Girondins", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false,
+ {id:1291037236, prix:440000, m:82, p:4, ch:3, et:"", q:"Jean-Jaurès / Girondins", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false, pub:"2026-06-29",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1291037236A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/noveo-immo-lyon.staticlbi.com/d1/e1/L3dhL2ltYWdlcy9iaWVucy8xLzZkZWM1YWExNDI0ZTYzODBhZTJlNjY2ZDhiZjY3MmJhL3Bob3RvXzIyMDk4NGIzOWZhZjI2MTE3ZDUxNThhZDE1NDYzNmM0LnBuZz8yMDI2MDYyOTAxMjMxMg_rct"},
- {id:1287737133, prix:499000, m:82, p:4, ch:3, et:"", q:"Jean-Jaurès / Girondins", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false,
+ {id:1287737133, prix:499000, m:82, p:4, ch:3, et:"", q:"Jean-Jaurès / Girondins", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false, pub:"2026-06-29",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1287737133A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/noveo-immo-lyon.staticlbi.com/6c/3d/L3dhL2ltYWdlcy9iaWVucy8xLzkwNzhiYmQ4OTBhOTBmMWFhM2M1ZThkOTcyMzk0ZWI2LzhkNjU1MGM2MzM2MjEzZDBkMWQ0OTFiNmQ1N2I5NjY0LmpwZz8yMDI2MDYyOTAxMjMxMg_rct"},
- {id:1291813643, prix:519000, m:95, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, annee:2026, gar:1,cave:0,terr:0,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false,
+ {id:1291813643, prix:519000, m:95, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, annee:2026, gar:1,cave:0,terr:0,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false, pub:"2026-06-29",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1291813643A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/noveo-immo-lyon.staticlbi.com/ad/f0/L3dhL2ltYWdlcy9iaWVucy8xLzdmNzZjNGFmMTExMGFkMTcyOWViMjIyZjQ1NmQ0YTkyL3Bob3RvXzg2YjQ3OTNjY2I4YzE2NGFmNmJlZGEzNWIwM2UxZjA5LmpwZz8yMDI2MDYyOTAxMjMxMg_rct"},
- {id:1292621550, prix:520000, m:91, p:4, ch:3, et:"", q:"Lyon 7e", stLouis:false, gar:0,cave:0,terr:1,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false,
+ {id:1292621550, prix:520000, m:91, p:4, ch:3, et:"", q:"Lyon 7e", stLouis:false, gar:0,cave:0,terr:1,jardin:0,asc:0,balc:1,meuble:0, new:false, pap:false, pub:"2026-06-29",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1292621550A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/photos.ubiflow.net/d6/b8/Lzc0NDMzMi81MzgwMTk0MTEvcGhvdG9zLzEuanBnPzIwMjYwNjI5MDIxODE1_rct"},
- {id:1292373091, prix:497000, m:81, p:4, ch:3, et:"", q:"Lyon 7e", stLouis:false, annee:2026, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:false, pap:false,
+ {id:1292373091, prix:497000, m:81, p:4, ch:3, et:"", q:"Lyon 7e", stLouis:false, annee:2026, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:false, pap:false, pub:"2026-06-28",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1292373091A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/media.immo-facile.com/97/e0/L29mZmljZTgvYXNpbnZlc3RpbW1vL2NhdGFsb2cvaW1hZ2VzL3ByX3AvNi8wLzgvMy83LzYvNC8yLzYwODM3NjQyYS5qcGc_REFURU1BSj0yMS8wNi8yMDI2LTEzOjM5OjE2JjIwMjYwNjI4MTAwMjAx_rct"},
- {id:1292409300, prix:587000, m:105, p:5, ch:4, et:"", q:"Lyon 7e", stLouis:false, annee:2026, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:false, pap:false,
+ {id:1292409300, prix:587000, m:105, p:5, ch:4, et:"", q:"Lyon 7e", stLouis:false, annee:2026, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:false, pap:false, pub:"2026-06-28",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1292409300A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/media.immo-facile.com/ee/d7/L29mZmljZTgvYXNpbnZlc3RpbW1vL2NhdGFsb2cvaW1hZ2VzL3ByX3AvNi8wLzgvMy85LzMvOS80LzYwODM5Mzk0YS5qcGc_REFURU1BSj0yMi8wNi8yMDI2LTEzOjM1OjU1JjIwMjYwNjI4MTAwMjA5_rct"},
- {id:1292409303, prix:605000, m:105, p:5, ch:4, et:"", q:"Lyon 7e", stLouis:false, annee:2026, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
+ {id:1292409303, prix:605000, m:105, p:5, ch:4, et:"", q:"Lyon 7e", stLouis:false, annee:2026, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false, pub:"2026-06-28",
    url:"https://www.paruvendu.fr/immobilier/vente/appartement/1292409303A1KIVHAP000",
    img:"https://img.paruvendu.fr/media_ext/_https_/media.immo-facile.com/99/a8/L29mZmljZTgvYXNpbnZlc3RpbW1vL2NhdGFsb2cvaW1hZ2VzL3ByX3AvNi8wLzgvMy85LzQvMS8zLzYwODM5NDEzYS5qcGc_REFURU1BSj0yMi8wNi8yMDI2LTEzOjQ0OjU3JjIwMjYwNjI4MTAwMjEw_rct"},
- {id:6, prix:299000, m:95, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, annee:1978, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
+ {id:6, prix:299000, m:95, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, annee:1978, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false, pub:"2026-05-13",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3131467764",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/8c/fa/b3/8cfab373e258ff58680656580324b18f9b00b4d6.jpg?rule=ad-large"},
- {id:7, prix:345000, m:81, p:3, ch:2, et:"4", q:"Jean Macé", stLouis:false, annee:1949, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
+ {id:7, prix:345000, m:81, p:3, ch:2, et:"4", q:"Jean Macé", stLouis:false, annee:1949, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false, pub:"2026-05-29",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3207032658",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/39/c2/d0/39c2d0f7f5b9309c840699b3ee9366a09906a0bf.jpg?rule=ad-large"},
- {id:8, prix:490000, m:92, p:4, ch:3, et:"1", q:"Jean Macé", stLouis:false, annee:1900, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:false, pap:false,
+ {id:8, prix:490000, m:92, p:4, ch:3, et:"1", q:"Jean Macé", stLouis:false, annee:1900, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:false, pap:false, pub:"2026-06-13",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3215556522",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/d6/cf/7b/d6cf7b08c78c65f68add1bc52b9b3374a0e40721.jpg?rule=ad-large"},
  {id:1, prix:325000, m:99, p:5, ch:4, et:"0/8", q:"Saint-Louis", stLouis:true, annee:1970, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
@@ -737,6 +759,11 @@ function priceChange(b){ const h=PRICEHIST[keyOf(b)]||[]; if(h.length<2) return 
   const last=h[h.length-1], prev=h[h.length-2];
   return { delta:last.p-prev.p, since:prev.t, from:prev.p, to:last.p }; }
 function dmy(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}); }
+// date de publication (point 5/6)
+function pubTs(b){ return b.pub? new Date(b.pub).getTime() : 0; }
+function ageDays(b){ if(!b.pub) return null; return Math.max(0, Math.round((Date.now()-new Date(b.pub).getTime())/864e5)); }
+function pubLabel(b){ if(!b.pub) return ''; const d=ageDays(b); const cls=d>90?'old':(d>45?'mid':'');
+  return `<div class="c-pub ${cls}">📅 publié le ${dmy(b.pub)} · en ligne depuis ${d} j${d>90?' ⚠️':''}</div>`; }
 
 // ----- nouveautés & modifications depuis la dernière visite -----
 const SEENKEY='scibam_seen_v1';
@@ -829,8 +856,19 @@ async function pullRemote(){ if(!syncOn()) return;
   }catch(e){}
 }
 
-let state={ filt:'nonclasse' };
+let state={ filt:'nonclasse', sort:'score' };
 const TABS=[['nonclasse','Non classé'],['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés']];
+// Classement de visibilité (point 7) — applicable dans tous les onglets, y compris Archivés
+const SORTOPTS=[['score','🏆 Meilleure note'],['gain','💰 Gain à l\'achat'],['cashflow','💵 Cash-flow'],['date','📅 Date de pub']];
+const SORTERS={
+  score:   (x,y)=> y.a.score-x.a.score,
+  gain:    (x,y)=> (y.a.prixMarche-y.b.prix)-(x.a.prixMarche-x.b.prix),
+  cashflow:(x,y)=> y.a.cashflow-x.a.cashflow,
+  date:    (x,y)=> pubTs(y.b)-pubTs(x.b)
+};
+function renderSortbar(){ if(!$('sortbar'))return;
+  $('sortbar').innerHTML='<span class="sb-lbl">Trier :</span>'+SORTOPTS.map(([k,l])=>
+    `<button class="sortbtn ${state.sort===k?'on':''}" data-sort="${k}">${l}</button>`).join(''); }
 
 function statusCounts(){ const s=allListings().map(getStatus);
   return { nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
@@ -879,6 +917,7 @@ function card(b,a){
             <div class="c-price">${eur(b.prix)}</div>
             <div class="c-q">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''}</div>
             ${b.adresse?`<div class="c-addr">📍 ${b.adresse}</div>`:''}
+            ${pubLabel(b)}
             <div class="c-stars">${starHTML(a.stars)}<span class="emp-lbl">emplacement</span></div>
           </div>
           <span class="verdict ${a.vClass} vpill">${a.verdict}</span>
@@ -894,13 +933,13 @@ function card(b,a){
       </div>
       <div class="ind">
         <div class="ind-k">Rentabilité</div>
-        <div class="ind-v">${pct(a.rentBrute)}</div>
+        <div class="ind-v ${a.rentBrute>=0.05?'pos':(a.rentBrute<0.03?'neg':'')}">${pct(a.rentBrute)}</div>
         <div class="ind-s">net ${pct(a.rentNette)}</div>
       </div>
       <div class="ind">
-        <div class="ind-k">Sous-évaluation</div>
+        <div class="ind-k">${sousEval>=0?'Gain de réévaluation':'Surcote vs marché'}</div>
         <div class="ind-v ${sousEval>=0?'pos':'neg'}">${sousEval>=0?'+':'−'}${eur(Math.abs(sousEval))}</div>
-        <div class="ind-s">${sousEval>=0?'gain ':''}${sousEval>=0?'+':'−'}${Math.abs(Math.round(gainM2)).toLocaleString('fr-FR')} €/m² vs marché</div>
+        <div class="ind-s">${sousEval>=0?'potentiel revente · +':'−'}${Math.abs(Math.round(gainM2)).toLocaleString('fr-FR')} €/m² vs marché</div>
       </div>
       <div class="ind">
         <div class="ind-k">Cash-flow</div>
@@ -937,7 +976,8 @@ function render(){
   rows=rows.filter(({b})=>{ const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
-  rows.sort((x,y)=> (x.b._gone?1:0)-(y.b._gone?1:0) || y.a.score-x.a.score);
+  rows.sort((x,y)=> (x.b._gone?1:0)-(y.b._gone?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));
+  renderSortbar();
   const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive').sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
   const nNew=NEWSET.size, nMod=modifiedList().length, pill=$('newpill');
@@ -1194,7 +1234,13 @@ function attachDrag(card){
 }
 
 // events
-$('tabs').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(btn&&btn.dataset.filt){ state.filt=btn.dataset.filt; render(); }});
+$('tabs').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(btn&&btn.dataset.filt){
+  state.filt=btn.dataset.filt;
+  if(state.filt==='archive') state.sort='date';          // Archives : tri par date de publication (point 6)
+  else if(state.sort==='date') state.sort='score';
+  render(); }});
+$('sortbar').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(btn&&btn.dataset.sort){ state.sort=btn.dataset.sort; render(); }});
+$('gearBtn').addEventListener('click',()=>{ const p=$('settingsPanel'), g=$('gearBtn'); const open=p.hasAttribute('hidden'); if(open){p.removeAttribute('hidden');g.classList.add('on');} else {p.setAttribute('hidden','');g.classList.remove('on');} });
 $('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeDetail(); });
 // seuls les champs numériques du modèle déclenchent un recalcul ; les filtres ont leurs propres handlers
 document.querySelectorAll('#paramsBox input').forEach(inp=>inp.addEventListener('input',render));
@@ -1202,7 +1248,7 @@ $('papOnly').addEventListener('change',e=>setPapOnly(e.target.checked));
 $('runBtn').addEventListener('click',refreshNow);
 $('syncCode').addEventListener('change',e=>setSyncToken(e.target.value));
 
-$('sub').textContent="Lyon 7e · achat locatif · "+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long'});
+$('sub').innerHTML="Lyon 7e · achat locatif · <b>MAJ "+new Date(DATA_UPDATED).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+"</b> · 👤 Guillaume (admin)";
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
 updatePriceHist();
 refreshKnown();
