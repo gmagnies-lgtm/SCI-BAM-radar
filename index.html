@@ -388,6 +388,7 @@
     margin-bottom:8px;padding:3px 9px;border-radius:6px}
   .gonetag.g{background:rgba(148,163,184,.16);color:var(--mut);border:1px solid var(--line)}
   .gonetag.r{background:rgba(239,68,68,.16);color:var(--bad);border:1px solid rgba(239,68,68,.4)}
+  .gonetag.former{background:rgba(148,163,184,.12);color:var(--txt);border:1px dashed var(--line)}
 </style>
 </head>
 <body class="locked">
@@ -945,7 +946,10 @@ async function pullRemote(){ if(!syncOn()) return;
 }
 
 let state={ filt:'nonclasse', sort:'score' };
-const TABS=[['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés'],['nonclasse','À trier']];
+const TABS=[['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés'],['nonclasse','À trier'],['gone','Disparues']];
+// libellé de l'ancienne catégorie d'une annonce disparue (rappelée en tag)
+function formerCatLabel(b){ const s=getStatus(b);
+  return s==='contacter'?'À contacter' : s==='conserver'?'À conserver' : s==='archive'?'Archivé' : 'À trier'; }
 // onglet d'entrée : 1er onglet non vide (jamais « À trier » sauf si tout le reste est vide)
 function defaultTab(){ const c=statusCounts(); for(const k of ['contacter','conserver','archive']) if(c[k]>0) return k; return 'contacter'; }
 // Classement de visibilité (point 7) — applicable dans tous les onglets, y compris Archivés
@@ -960,9 +964,10 @@ function renderSortbar(){ if(!$('sortbar'))return;
   $('sortbar').innerHTML='<span class="sb-lbl">Trier :</span>'+SORTOPTS.map(([k,l])=>
     `<button class="sortbtn ${state.sort===k?'on':''}" data-sort="${k}">${l}</button>`).join(''); }
 
-function statusCounts(){ const s=allListings().map(getStatus);
+function statusCounts(){ const s=LISTINGS.map(getStatus);   // online seulement : les disparues vont dans « Disparues »
   return { nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
-           conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length }; }
+           conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length,
+           gone:GONE.length }; }
 function renderTabs(){ const c=statusCounts();
   $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
 function renderSources(){
@@ -995,7 +1000,7 @@ function card(b,a){
   const goneCls = b._gone ? (st==='archive'?'gone-arch':'gone-other') : '';
   return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''} ${goneCls}" onclick="openDetail(${b.id})">
     ${photoHTML(b)}
-    ${b._gone?`<div class="gonetag ${st==='archive'?'g':'r'}">${st==='archive'?'🗄 Annonce archivée — retirée du marché':'⚠️ Annonce retirée du marché'}</div>`:''}
+    ${b._gone?`<div class="gonetag ${st==='archive'?'g':'r'}">⚠️ Retirée du marché</div><div class="gonetag former">Était : ${formerCatLabel(b)}</div>`:''}
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
     ${(pc&&pc.delta)?`<div class="pricechg ${pc.delta<0?'down':'up'}">${pc.delta<0?'📉':'📈'} ${pc.delta<0?'−':'+'}${eur(Math.abs(pc.delta))} depuis le ${dmy(pc.since)} (${eur(pc.from)} → ${eur(pc.to)})</div>`:''}
@@ -1063,7 +1068,10 @@ function render(){
   $('ah_apport').textContent=eur(P.plafond);
   $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String($('p_taux').value).replace('.',',')} %`;
   let rows=allListings().map(b=>({b,a:analyse(b,P)}));
-  rows=rows.filter(({b})=>{ const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
+  rows=rows.filter(({b})=>{
+    if(state.filt==='gone') return b._gone;          // onglet Disparues : uniquement les annonces retirées
+    if(b._gone) return false;                         // ailleurs : on masque les disparues
+    const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
   rows.sort((x,y)=> (x.b._gone?1:0)-(y.b._gone?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));
@@ -1077,7 +1085,7 @@ function render(){
   renderUpbar(); updateSwipeLaunch(); renderGlance();
   $('count').textContent=rows.length+" bien"+(rows.length>1?'s':'')+" affiché"+(rows.length>1?'s':'');
   $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
-    || `<div class="foot">${state.filt==='nonclasse'?'🎉 Sas vide — tous les biens sont triés.':'Aucun bien dans cette catégorie.'}</div>`;
+    || `<div class="foot">${state.filt==='nonclasse'?'🎉 Sas vide — tous les biens sont triés.':state.filt==='gone'?'Aucune annonce disparue pour le moment — elles apparaîtront ici quand un bien suivi sera retiré du marché.':'Aucun bien dans cette catégorie.'}</div>`;
   if($('srcnote')){
     const scrap=SOURCES.filter(s=>s.def).map(s=>s.label).join(', ');
     const shown=SOURCES.filter(s=>SRC[s.key]).map(s=>s.label).join(', ')||'aucune';
