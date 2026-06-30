@@ -86,11 +86,13 @@
     background:var(--acc2);color:#06283d;font-weight:700;font-size:13.5px;
     padding:10px;border-radius:10px}
   /* onglets de statut */
-  .tabs{display:flex;gap:6px;margin:12px 0 4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .tab{flex:1;min-width:82px;white-space:nowrap;background:var(--bg2);color:var(--txt);
-    border:1px solid var(--line);border-radius:10px;padding:9px 6px;font-size:12.5px;font-weight:600}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+  .tab{flex:1 1 28%;min-width:96px;display:flex;align-items:center;justify-content:center;gap:5px;
+    white-space:nowrap;background:var(--bg2);color:var(--txt);
+    border:1px solid var(--line);border-radius:10px;padding:8px 6px;font-size:12.5px;font-weight:600}
   .tab.on{background:var(--acc);color:#0f172a;border-color:var(--acc)}
-  .tab span{display:inline-block;margin-left:5px;background:rgba(0,0,0,.18);border-radius:999px;padding:0 6px;font-size:11px}
+  .tab span{display:inline-block;background:rgba(0,0,0,.18);border-radius:999px;padding:0 6px;font-size:11px}
+  .tab.on span{background:rgba(0,0,0,.22)}
   /* apport hero */
   .apporthero{background:linear-gradient(135deg,rgba(245,158,11,.16),rgba(56,189,248,.10));
     border:1px solid var(--line);border-radius:12px;padding:14px;margin:6px 0 14px;text-align:center}
@@ -141,6 +143,10 @@
   .b-contacter.on{background:var(--acc2);color:#06283d;border-color:var(--acc2)}
   .b-conserver.on{background:var(--good);color:#04240f;border-color:var(--good)}
   .b-archive.on{background:#64748b;color:#0b1220;border-color:#64748b}
+  .b-restore{background:var(--acc2);color:#06283d;border-color:var(--acc2);font-weight:700}
+  .goneauto{flex:1;color:var(--mut);font-size:12px;text-align:center;padding:6px 4px}
+  .deadrow{text-align:center;margin-top:7px}
+  .deadlink{font-size:12px;color:var(--bad);font-weight:600;cursor:pointer;text-decoration:underline}
   .card.st-contacter{border-left:3px solid var(--acc2)}
   .card.st-conserver{border-left:3px solid var(--good)}
   .card.st-archive{opacity:.55}
@@ -762,6 +768,16 @@ function setStatus(b,s){ const k=keyOf(b); if(STATUS[k]===s) delete STATUS[k]; e
 function setStatusRaw(b,s){ const k=keyOf(b); if(!s) delete STATUS[k]; else STATUS[k]=s;
   try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} pushRemote(); render(); }
 function byId(id){ return LISTINGS.find(x=>x.id===id) || GONE.find(x=>x.id===id); }
+
+// ----- « Disparues » marquées par l'utilisateur (lien mort) — état réversible & synchronisé -----
+const GKEY='scibam_gone_v1';
+let GONEMARK={}; try{ GONEMARK=JSON.parse(localStorage.getItem(GKEY)||'{}'); }catch(e){ GONEMARK={}; }
+function isGoneMarked(b){ return !!GONEMARK[keyOf(b)]; }
+function isGone(b){ return b._gone===true || isGoneMarked(b); }   // auto (retirée des annonces) OU marquée manuellement
+function setGone(b,on){ if(!b) return; const k=keyOf(b);
+  if(on) GONEMARK[k]=1; else delete GONEMARK[k];
+  try{ localStorage.setItem(GKEY,JSON.stringify(GONEMARK)); }catch(e){}
+  pushRemote(); if(typeof render==='function') render(); }
 // ----- notes persistées, collées à la fiche -----
 const NTKEY='scibam_notes_v1';
 let NOTES={}; try{ NOTES=JSON.parse(localStorage.getItem(NTKEY)||'{}'); }catch(e){ NOTES={}; }
@@ -924,11 +940,12 @@ function syncToken(){ try{ return localStorage.getItem(SYNCTOKKEY)||''; }catch(e
 function setSyncToken(t){ t=(t||'').trim(); try{ t?localStorage.setItem(SYNCTOKKEY,t):localStorage.removeItem(SYNCTOKKEY); }catch(e){}
   if(typeof renderSyncStatus==='function') renderSyncStatus(); pullRemote(); }
 function syncOn(){ return !!(SYNC.url && syncToken()); }
-function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST }; }
+function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST, gone:GONEMARK }; }
 function applyRemote(r){
   if(!r||typeof r!=='object') return false; let ch=false;
   if(r.status&&typeof r.status==='object'){ STATUS={...STATUS,...r.status}; try{localStorage.setItem(STKEY,JSON.stringify(STATUS));}catch(e){} ch=true; }
   if(r.notes&&typeof r.notes==='object'){ NOTES={...NOTES,...r.notes}; try{localStorage.setItem(NTKEY,JSON.stringify(NOTES));}catch(e){} ch=true; }
+  if(r.gone&&typeof r.gone==='object'){ GONEMARK={...GONEMARK,...r.gone}; try{localStorage.setItem(GKEY,JSON.stringify(GONEMARK));}catch(e){} ch=true; }
   if(r.pricehist&&typeof r.pricehist==='object'){ for(const k in r.pricehist){ const a=PRICEHIST[k]||[],b=r.pricehist[k]||[]; if(b.length>a.length) PRICEHIST[k]=b; } savePriceHist(); ch=true; }
   return ch;
 }
@@ -946,7 +963,7 @@ async function pullRemote(){ if(!syncOn()) return;
 }
 
 let state={ filt:'nonclasse', sort:'score' };
-const TABS=[['contacter','À contacter'],['conserver','À conserver'],['archive','Archivés'],['nonclasse','À trier'],['gone','Disparues']];
+const TABS=[['contacter','Contacter'],['conserver','Conserver'],['archive','Archivés'],['nonclasse','À trier'],['gone','Disparues']];
 // libellé de l'ancienne catégorie d'une annonce disparue (rappelée en tag)
 function formerCatLabel(b){ const s=getStatus(b);
   return s==='contacter'?'À contacter' : s==='conserver'?'À conserver' : s==='archive'?'Archivé' : 'À trier'; }
@@ -964,10 +981,10 @@ function renderSortbar(){ if(!$('sortbar'))return;
   $('sortbar').innerHTML='<span class="sb-lbl">Trier :</span>'+SORTOPTS.map(([k,l])=>
     `<button class="sortbtn ${state.sort===k?'on':''}" data-sort="${k}">${l}</button>`).join(''); }
 
-function statusCounts(){ const s=LISTINGS.map(getStatus);   // online seulement : les disparues vont dans « Disparues »
+function statusCounts(){ const s=LISTINGS.filter(b=>!isGone(b)).map(getStatus);   // online & non marqués : les disparues vont dans « Disparues »
   return { nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
            conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length,
-           gone:GONE.length }; }
+           gone:GONE.length + LISTINGS.filter(isGoneMarked).length }; }
 function renderTabs(){ const c=statusCounts();
   $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
 function renderSources(){
@@ -997,10 +1014,11 @@ function card(b,a){
   const qualStars=a.parts.qual/15*5, liqStars=a.parts.liq/15*5;
   const sousEval=a.prixMarche-b.prix, gainM2=b.m?sousEval/b.m:0;   // >0 = sous le marché DVF = gain au m²
   const pc=priceChange(b);
-  const goneCls = b._gone ? (st==='archive'?'gone-arch':'gone-other') : '';
+  const gone = isGone(b);
+  const goneCls = gone ? (st==='archive'?'gone-arch':'gone-other') : '';
   return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''} ${goneCls}" onclick="openDetail(${b.id})">
     ${photoHTML(b)}
-    ${b._gone?`<div class="gonetag ${st==='archive'?'g':'r'}">⚠️ Retirée du marché</div><div class="gonetag former">Était : ${formerCatLabel(b)}</div>`:''}
+    ${gone?`<div class="gonetag ${st==='archive'?'g':'r'}">⚠️ Retirée du marché</div><div class="gonetag former">Était : ${formerCatLabel(b)}</div>`:''}
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
     ${(pc&&pc.delta)?`<div class="pricechg ${pc.delta<0?'down':'up'}">${pc.delta<0?'📉':'📈'} ${pc.delta<0?'−':'+'}${eur(Math.abs(pc.delta))} depuis le ${dmy(pc.since)} (${eur(pc.from)} → ${eur(pc.to)})</div>`:''}
@@ -1051,14 +1069,19 @@ function card(b,a){
       </div>
     </div>
     <div class="statusrow" onclick="event.stopPropagation()">
-      <button class="stbtn b-contacter ${st==='contacter'?'on':''}" onclick="setStatus(byId(${b.id}),'contacter')">📞 Contacter</button>
+    ${gone
+      ? (isGoneMarked(b)
+          ? `<button class="stbtn b-restore" onclick="setGone(byId(${b.id}),false)">↩︎ Remettre en « ${formerCatLabel(b)} »</button>`
+          : `<span class="goneauto">Retirée des annonces suivies — n'apparaît plus dans la veille</span>`)
+      : `<button class="stbtn b-contacter ${st==='contacter'?'on':''}" onclick="setStatus(byId(${b.id}),'contacter')">📞 Contacter</button>
       <button class="stbtn b-conserver ${st==='conserver'?'on':''}" onclick="setStatus(byId(${b.id}),'conserver')">⭐ Conserver</button>
-      <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${b.id}),'archive')">🗑 Archiver</button>
+      <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${b.id}),'archive')">🗑 Archiver</button>`}
     </div>
     ${(st||note)?`<div class="noterow" onclick="event.stopPropagation()">
       <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${b.id}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
     </div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Voir sur ${src} — photos ↗</a>`:''}
+    ${(b.url&&!gone)?`<div class="deadrow" onclick="event.stopPropagation()"><span class="deadlink" onclick="setGone(byId(${b.id}),true)">⚠️ Lien mort ? → marquer disparue</span></div>`:''}
   </div>`;
 }
 
@@ -1069,12 +1092,12 @@ function render(){
   $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String($('p_taux').value).replace('.',',')} %`;
   let rows=allListings().map(b=>({b,a:analyse(b,P)}));
   rows=rows.filter(({b})=>{
-    if(state.filt==='gone') return b._gone;          // onglet Disparues : uniquement les annonces retirées
-    if(b._gone) return false;                         // ailleurs : on masque les disparues
+    if(state.filt==='gone') return isGone(b);          // onglet Disparues : auto-retirées + marquées manuellement
+    if(isGone(b)) return false;                        // ailleurs : on masque les disparues
     const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
-  rows.sort((x,y)=> (x.b._gone?1:0)-(y.b._gone?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));
+  rows.sort((x,y)=> (isGone(x.b)?1:0)-(isGone(y.b)?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));
   renderSortbar();
   const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive').sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
