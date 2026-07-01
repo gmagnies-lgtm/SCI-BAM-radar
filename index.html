@@ -691,19 +691,45 @@ const LISTINGS = [
    img:"https://mms.seloger.com/4/6/7/7/4677211f-f5d7-44b9-9cd5-8cf5fe77ceba.jpg?ci_seal=2dd88ca4ed1c67d6cb8190c6cd974f6ed1bb3c9a"}
 ];
 
-// quartiers : note d'emplacement (0-1) — Jean Macé prime, Guillotière correct, Gerland en devenir
-const QSCORE = {"Saint-Louis":0.86, "Jean Macé":0.9, "Guillotière":0.76, "Guillotière Sud":0.78, "Gerland":0.72, "Jean-Jaurès / Girondins":0.82, "Girondins":0.8, "Debourg":0.74, "Lyon 7e":0.78};
+// ---------- QUARTIERS : normalisation des libellés d'annonces vers une clé canonique ----------
+// Les sites (SeLoger/leboncoin/ParuVendu) écrivent le quartier chacun à leur façon
+// (« La Guillotière Sud », « Place Jean Jaurès », « Jean-Jaurès / Girondins »…) : sans
+// normalisation, ~1 annonce sur 3 retombait sur le prix moyen de l'arrondissement.
+function quartierKey(q){
+  q=(q||'').toLowerCase();
+  if(/saint[- ]?louis|st[- ]?louis|victor bas?ch/.test(q)) return 'Saint-Louis';
+  if(/jean mac|saint[- ]?michel/.test(q))                  return 'Jean Macé';
+  if(/guilloti[èe]re sud/.test(q))                         return 'Guillotière Sud';
+  if(/guilloti/.test(q))                                   return 'Guillotière';
+  if(/girondins/.test(q))                                  return 'Girondins';       // avant Jaurès (« Jean-Jaurès / Girondins »)
+  if(/jaur[èe]s/.test(q))                                  return 'Place Jean Jaurès';
+  if(/debourg/.test(q))                                    return 'Debourg';
+  if(/gerland/.test(q))                                    return 'Gerland';
+  if(/saxe|gambetta/.test(q))                              return 'Saxe-Gambetta';
+  if(/berges|quai/.test(q))                                return 'Berges du Rhône';
+  if(/blandan/.test(q))                                    return 'Parc Blandan';
+  if(/garibaldi/.test(q))                                  return 'Garibaldi';
+  return 'Lyon 7e';
+}
+// note d'emplacement (0-1) — Jean Macé & Berges priment, Gerland/Debourg en devenir
+const QSCORE = {"Saint-Louis":0.86, "Jean Macé":0.9, "Guillotière":0.76, "Guillotière Sud":0.78, "Gerland":0.72,
+  "Girondins":0.8, "Place Jean Jaurès":0.78, "Debourg":0.74, "Saxe-Gambetta":0.84, "Berges du Rhône":0.88,
+  "Parc Blandan":0.8, "Garibaldi":0.78, "Lyon 7e":0.78};
 
 // ---------- RÉFÉRENCES DE MARCHÉ (DVF / Notaires) ----------
-// Source : MeilleursAgents (données publiques Notaires/DVF + INSEE), 1er juin 2026, Lyon 7e.
-// Prix m² appartement par secteur + loyer observé. Sert de "prix de marché" pour la décote réelle.
+// Source : MeilleursAgents (données publiques Notaires/DVF + INSEE), relevé du 1er juillet 2026, Lyon 7e.
+// Prix m² appartement par secteur (pages quartier + rues-repères : Saint Michel/Mairie→Jean Macé,
+// Victor Basch/St Louis→Saint-Louis, Stalingrad/Lamothe→Guillotière, GQ07→Gerland, cours Gambetta,
+// quai Claude Bernard, place Jean Jaurès, rue des Girondins, av. Debourg, bd des Tchécoslovaques, rue Chevreul).
 const MARKET = {
-  date:"1er juin 2026", source:"DVF / Notaires (via MeilleursAgents)",
-  pm2Moyen:4640, pm2Min:3265, pm2Max:5819, loyerObserve:16.8,
+  date:"1er juillet 2026", source:"DVF / Notaires (via MeilleursAgents)",
+  pm2Moyen:4629, pm2Min:3257, pm2Max:5805, loyerObserve:16.8,
   evol1an:-0.6, evol5ans:-10.5,
-  parQuartier:{ "Saint-Louis":4796, "Jean Macé":4750, "Guillotière":4550, "Guillotière Sud":4800, "Gerland":4350 }
+  parQuartier:{ "Saint-Louis":4785, "Jean Macé":4825, "Guillotière":4719, "Guillotière Sud":4800,
+    "Gerland":4353, "Girondins":4584, "Place Jean Jaurès":4748, "Debourg":4220, "Saxe-Gambetta":4789,
+    "Berges du Rhône":5171, "Parc Blandan":4569, "Garibaldi":4757 }
 };
-function marchePm2(q){ return MARKET.parQuartier[q] || MARKET.pm2Moyen; }
+function marchePm2(q){ return MARKET.parQuartier[quartierKey(q)] || MARKET.pm2Moyen; }
 
 const $ = id => document.getElementById(id);
 const eur = n => Math.round(n).toLocaleString('fr-FR')+" €";
@@ -767,7 +793,7 @@ function analyse(b, P){
   const ecartMarche = (prixMarche - b.prix)/prixMarche;             // >0 = sous le marché
 
   // ===== EMPLACEMENT : note sur 5 étoiles, affichée à part (hors score chiffré) =====
-  const stars = (QSCORE[b.q] ?? 0.7) * 5;
+  const stars = (QSCORE[quartierKey(b.q)] ?? 0.7) * 5;
 
   // ===== COMPOSANTES DU SCORE /100 =====
   // PRIX vs MARCHÉ (25) : optimal "dans le marché à ~10% sous". Au-dessus = surcoté.
