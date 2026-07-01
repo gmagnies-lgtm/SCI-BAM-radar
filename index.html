@@ -908,6 +908,12 @@ function refreshKnown(){
 }
 function allListings(){ return LISTINGS.concat(GONE); }
 
+// --- Filtre quartiers (demande Guillaume, 2026-07-01) : Gerland / Jean Jaurès écartés SAUF cash-flow positif ---
+const EXCL_Q=/gerland|jaur[eè]s/i;   // quartiers à écarter par défaut
+const EXCL_CF_MIN=0;                 // « très positif » = cash-flow strictement > 0 €/mois → conservé
+function isExclQ(b,P){ if(!EXCL_Q.test(b.q||'')) return false;
+  try{ return analyse(b, P||params()).cashflow <= EXCL_CF_MIN; }catch(e){ return true; } }
+
 // ----- notification web : nouvelles annonces à traiter -----
 function requestNotifPerm(){ try{ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){} }
 function maybeNotify(){
@@ -926,6 +932,7 @@ function renderGlance(){
   const g=$('glance'); if(!g) return;
   const P=params();
   const pool=LISTINGS.filter(b=>getStatus(b)!=='archive')
+    .filter(b=> !isExclQ(b,P))
     .filter(b=> SRC[siteKeyOf(b.url)]!==false)
     .filter(b=> !PAPONLY || b.pap===true)
     .map(b=>({b,a:analyse(b,P)}));
@@ -1012,10 +1019,11 @@ function renderSortbar(){ if(!$('sortbar'))return;
   $('sortbar').innerHTML='<span class="sb-lbl">Trier :</span>'+SORTOPTS.map(([k,l])=>
     `<button class="sortbtn ${state.sort===k?'on':''}" data-sort="${k}">${l}</button>`).join(''); }
 
-function statusCounts(){ const s=LISTINGS.filter(b=>!isGone(b)).map(getStatus);   // online & non marqués : les disparues vont dans « Disparues »
+function statusCounts(){ const P=params();
+  const s=LISTINGS.filter(b=>!isGone(b) && !isExclQ(b,P)).map(getStatus);   // online, non marqués, hors quartiers écartés
   return { nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
            conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length,
-           gone:GONE.length + LISTINGS.filter(isGoneMarked).length }; }
+           gone:GONE.filter(b=>!isExclQ(b,P)).length + LISTINGS.filter(b=>isGoneMarked(b)&&!isExclQ(b,P)).length }; }
 function renderTabs(){ const c=statusCounts();
   $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
 function renderSources(){
@@ -1126,13 +1134,14 @@ function render(){
     if(state.filt==='gone') return isGone(b);          // onglet Disparues : auto-retirées + marquées manuellement
     if(isGone(b)) return false;                        // ailleurs : on masque les disparues
     const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
+  rows=rows.filter(({b,a})=> !(EXCL_Q.test(b.q||'') && a.cashflow<=EXCL_CF_MIN));  // quartiers écartés sauf cash-flow positif
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
   rows.sort((x,y)=> (isGone(x.b)?1:0)-(isGone(y.b)?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));
   renderSortbar();
-  const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive').sort((x,y)=>y.a.score-x.a.score)[0];
+  const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive' && !isExclQ(r.b,P)).sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
-  const nNew=NEWSET.size, nMod=modifiedList().length, pill=$('newpill');
+  const nNew=LISTINGS.filter(b=>isNewListing(b)&&!isExclQ(b,P)).length, nMod=modifiedList().length, pill=$('newpill');
   if(nNew||nMod){ pill.classList.remove('calm');
     pill.textContent=`${nNew?`🆕 ${nNew}`:''}${nNew&&nMod?' · ':''}${nMod?`✏️ ${nMod}`:''}`; }
   else { pill.classList.add('calm'); pill.textContent='à jour'; }
@@ -1143,8 +1152,11 @@ function render(){
   if($('srcnote')){
     const scrap=SOURCES.filter(s=>s.def).map(s=>s.label).join(', ');
     const shown=SOURCES.filter(s=>SRC[s.key]).map(s=>s.label).join(', ')||'aucune';
+    const P2=params();
+    const nExcl=LISTINGS.filter(b=>!isGone(b)&&isExclQ(b,P2)).length;
     $('srcnote').innerHTML=`La veille quotidienne scrappe par défaut : <b>${scrap}</b>. `+
       `Affichées ici : ${shown}${PAPONLY?' · <b>particuliers seulement</b>':''}. `+
+      (nExcl?`<b>${nExcl} annonce${nExcl>1?'s':''} Gerland / Jean Jaurès masquée${nExcl>1?'s':''}</b> (cash-flow non positif). `:'')+
       `« Rafraîchir » recharge la dernière mise à jour publiée.`;
   }
 }
@@ -1270,6 +1282,7 @@ function closeDetail(){ $('modal').classList.remove('show'); $('modal').setAttri
 let DECK=[], swIdx=0, swHist=[];
 function buildDeck(){ const P=params();
   return LISTINGS.filter(b=>!getStatus(b))
+    .filter(b=> !isExclQ(b,P))
     .filter(b=> SRC[siteKeyOf(b.url)]!==false)
     .filter(b=> !PAPONLY || b.pap===true)
     .map(b=>({b,a:analyse(b,P)}))
