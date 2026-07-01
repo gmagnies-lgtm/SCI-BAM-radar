@@ -1023,7 +1023,7 @@ function statusCounts(){ const P=params();
   const s=LISTINGS.filter(b=>!isGone(b) && !isExclQ(b,P)).map(getStatus);   // online, non marqués, hors quartiers écartés
   return { nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
            conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length,
-           gone:GONE.filter(b=>!isExclQ(b,P)).length + LISTINGS.filter(b=>isGoneMarked(b)&&!isExclQ(b,P)).length }; }
+           gone:GONE.filter(b=>!isExclQ(b,P)).length + LISTINGS.filter(b=>isGone(b)&&!isExclQ(b,P)).length }; }
 function renderTabs(){ const c=statusCounts();
   $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
 function renderSources(){
