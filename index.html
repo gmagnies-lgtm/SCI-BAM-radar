@@ -455,7 +455,7 @@
       <div class="fld"><label>Frais notaire ancien (%)</label><input id="p_notaire" type="number" step="0.1" value="7.5"></div>
       <div class="fld"><label>Loyer (€/m²)</label><input id="p_loyer" type="number" step="0.5" value="17"></div>
       <div class="fld"><label>Vacance (%)</label><input id="p_vac" type="number" step="0.5" value="2"></div>
-      <div class="fld"><label>Charges non récup. (€/mois)</label><input id="p_charges" type="number" value="395"></div>
+      <div class="fld"><label>Charges non récup. (€/mois)</label><input id="p_charges" type="number" value="200"></div>
       <div class="fld"><label>Valeur garage (€)</label><input id="p_gar" type="number" value="25000"></div>
       <div class="fld"><label>Valeur cave (€)</label><input id="p_cave" type="number" value="5000"></div>
       <div class="fld"><label>Valeur terrasse (€)</label><input id="p_terr" type="number" value="15000"></div>
@@ -795,32 +795,48 @@ function analyse(b, P){
 }
 function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
 
+// ----- entrées datées + tombstones : chaque valeur est stockée {v:valeur, t:ms} -----
+// Une suppression devient {v:null, t:ms} (« tombstone ») au lieu d'effacer la clé : la synchro
+// peut ainsi propager les suppressions entre appareils (l'entrée la plus récente gagne).
+function tsNorm(e){ return (e&&typeof e==='object'&&'t' in e) ? e : {v:e, t:0}; }  // migre l'ancien format (valeur nue → t:0)
+function tsGet(M,k){ const e=M[k]; if(e==null) return null; const v=tsNorm(e).v; return v==null?null:v; }
+function tsSet(M,k,v){ M[k]={v:(v==null?null:v), t:Date.now()}; }                  // v null/undefined → tombstone
+function tsMigrate(M){ for(const k in M) M[k]=tsNorm(M[k]); return M; }
+function tsPurge(M){ const cut=Date.now()-60*864e5;                                // tombstones > 60 j : purgées
+  for(const k in M){ const e=M[k]; if(e&&typeof e==='object'&&e.v==null&&e.t<cut) delete M[k]; } }
+function tsMerge(local,remote){ let ch=false;                                      // fusion : la plus récente gagne
+  for(const k in remote){ const r=tsNorm(remote[k]), l=local[k]&&tsNorm(local[k]);
+    if(!l || r.t>l.t){ local[k]=r; ch=true; } }
+  return ch; }
+function tsLoad(key){ let M={}; try{ M=JSON.parse(localStorage.getItem(key)||'{}'); }catch(e){ M={}; }
+  tsMigrate(M); tsPurge(M); return M; }
+
 // ----- statuts persistés sur l'appareil -----
 const STKEY='scibam_status_v1';
-let STATUS={}; try{ STATUS=JSON.parse(localStorage.getItem(STKEY)||'{}'); }catch(e){ STATUS={}; }
+let STATUS=tsLoad(STKEY);
 function keyOf(b){ return b.url || ('id'+b.id); }
-function getStatus(b){ return STATUS[keyOf(b)]||null; }
-function setStatus(b,s){ const k=keyOf(b); if(STATUS[k]===s) delete STATUS[k]; else STATUS[k]=s;
+function getStatus(b){ return tsGet(STATUS,keyOf(b)); }
+function setStatus(b,s){ const k=keyOf(b); tsSet(STATUS,k, tsGet(STATUS,k)===s?null:s);
   try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} pushRemote(); render(); }
 // statut explicite (pas de bascule) — utilisé par le mode swipe et l'annulation
-function setStatusRaw(b,s){ const k=keyOf(b); if(!s) delete STATUS[k]; else STATUS[k]=s;
+function setStatusRaw(b,s){ const k=keyOf(b); tsSet(STATUS,k, s||null);
   try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} pushRemote(); render(); }
 function byId(id){ return LISTINGS.find(x=>x.id===id) || GONE.find(x=>x.id===id); }
 
 // ----- « Disparues » marquées par l'utilisateur (lien mort) — état réversible & synchronisé -----
 const GKEY='scibam_gone_v1';
-let GONEMARK={}; try{ GONEMARK=JSON.parse(localStorage.getItem(GKEY)||'{}'); }catch(e){ GONEMARK={}; }
-function isGoneMarked(b){ return !!GONEMARK[keyOf(b)]; }
+let GONEMARK=tsLoad(GKEY);
+function isGoneMarked(b){ return !!tsGet(GONEMARK,keyOf(b)); }
 function isGone(b){ return b.gone===true || b._gone===true || isGoneMarked(b); }   // lien mort vérifié (données) OU auto OU marquée manuellement
 function setGone(b,on){ if(!b) return; const k=keyOf(b);
-  if(on) GONEMARK[k]=1; else delete GONEMARK[k];
+  tsSet(GONEMARK,k, on?1:null);
   try{ localStorage.setItem(GKEY,JSON.stringify(GONEMARK)); }catch(e){}
   pushRemote(); if(typeof render==='function') render(); }
 // ----- notes persistées, collées à la fiche -----
 const NTKEY='scibam_notes_v1';
-let NOTES={}; try{ NOTES=JSON.parse(localStorage.getItem(NTKEY)||'{}'); }catch(e){ NOTES={}; }
-function getNote(b){ return NOTES[keyOf(b)]||''; }
-function setNote(b,t){ const k=keyOf(b); if(t&&t.trim()) NOTES[k]=t; else delete NOTES[k];
+let NOTES=tsLoad(NTKEY);
+function getNote(b){ return tsGet(NOTES,keyOf(b))||''; }
+function setNote(b,t){ const k=keyOf(b); tsSet(NOTES,k, (t&&t.trim())?t:null);
   try{ localStorage.setItem(NTKEY,JSON.stringify(NOTES)); }catch(e){} pushRemote(); }
 function sourceOf(url){ if(!url) return 'Annonce';
   if(/seloger/.test(url)) return 'SeLoger'; if(/leboncoin/.test(url)) return 'leboncoin';
@@ -988,9 +1004,10 @@ function syncOn(){ return !!(SYNC.url && syncToken()); }
 function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST, gone:GONEMARK }; }
 function applyRemote(r){
   if(!r||typeof r!=='object') return false; let ch=false;
-  if(r.status&&typeof r.status==='object'){ STATUS={...STATUS,...r.status}; try{localStorage.setItem(STKEY,JSON.stringify(STATUS));}catch(e){} ch=true; }
-  if(r.notes&&typeof r.notes==='object'){ NOTES={...NOTES,...r.notes}; try{localStorage.setItem(NTKEY,JSON.stringify(NOTES));}catch(e){} ch=true; }
-  if(r.gone&&typeof r.gone==='object'){ GONEMARK={...GONEMARK,...r.gone}; try{localStorage.setItem(GKEY,JSON.stringify(GONEMARK));}catch(e){} ch=true; }
+  // fusion datée (tombstones) : pour chaque clé, l'entrée la plus récente gagne — y compris les suppressions
+  if(r.status&&typeof r.status==='object'){ if(tsMerge(STATUS,r.status)){ ch=true; try{localStorage.setItem(STKEY,JSON.stringify(STATUS));}catch(e){} } }
+  if(r.notes&&typeof r.notes==='object'){ if(tsMerge(NOTES,r.notes)){ ch=true; try{localStorage.setItem(NTKEY,JSON.stringify(NOTES));}catch(e){} } }
+  if(r.gone&&typeof r.gone==='object'){ if(tsMerge(GONEMARK,r.gone)){ ch=true; try{localStorage.setItem(GKEY,JSON.stringify(GONEMARK));}catch(e){} } }
   if(r.pricehist&&typeof r.pricehist==='object'){ for(const k in r.pricehist){ const a=PRICEHIST[k]||[],b=r.pricehist[k]||[]; if(b.length>a.length) PRICEHIST[k]=b; } savePriceHist(); ch=true; }
   return ch;
 }
@@ -1194,7 +1211,8 @@ function projete(b,P){
   const tri=irr(flows);
   const d=0.04; let van=-a.apport; for(let t=1;t<=N;t++) van+=(cf[t-1]+(t===N?equity[N-1]:0))/Math.pow(1+d,t);
   const enrich=equity[N-1]+cum[N-1]-a.apport;
-  const dscr=(P.loyer*b.m*12*(1-P.vac))/(a.mens*12);
+  const noi1=P.loyer*b.m*12*(1-P.vac)-P.charges*12;               // loyers nets de vacance − charges (an 1)
+  const dscr=a.mens>0 ? noi1/(a.mens*12) : 99;                    // DSCR bancaire = NOI / service de la dette
   const ltv=a.emprunt/b.prix;
   let cfPos=cf.findIndex(x=>x>=0); cfPos=cfPos<0?null:cfPos+1;
   // points extrêmes du cash-flow annuel
@@ -1258,7 +1276,7 @@ function openDetail(id){
     ['VAN @4 %',eur(p.van),'valeur actuelle nette'],
     ['Enrichissement net 25 ans',eur(p.enrich),'patrimoine créé − apport'],
     ['Rendement / apport',pct((a.cashflow*12)/a.apport),'cash-on-cash an 1'],
-    ['DSCR',p.dscr.toFixed(2),p.dscr>=1?'loyer couvre la dette':'loyer < mensualité'],
+    ['DSCR',p.dscr.toFixed(2),p.dscr>=1?'loyers − charges couvrent la dette':'loyers − charges < mensualité'],
     ['Cash-flow positif',p.cfPos?`dès l'an ${p.cfPos}`:'non sur 25 ans','bascule auto-financement'],
     ['Année construction',b.annee||'—',b.annee?(b.annee>=2005?'après 2005 ✓':'avant 2005'):'']
   ];
