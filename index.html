@@ -395,6 +395,61 @@
   .gonetag.g{background:rgba(148,163,184,.16);color:var(--mut);border:1px solid var(--line)}
   .gonetag.r{background:rgba(239,68,68,.16);color:var(--bad);border:1px solid rgba(239,68,68,.4)}
   .gonetag.former{background:rgba(148,163,184,.12);color:var(--txt);border:1px dashed var(--line)}
+  /* ===== CRM négociation ===== */
+  .crm{position:fixed;inset:0;z-index:65;background:var(--bg);display:none;overflow-y:auto;
+    -webkit-overflow-scrolling:touch;padding:0 0 46px}
+  .crm.show{display:block}
+  body.locked .crm{display:none!important}
+  .crm-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:rgba(15,23,42,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:11px 14px}
+  .crm-top b{font-size:15px}
+  .crm-count{color:var(--mut);font-weight:600;font-size:13px;margin-left:6px}
+  .crm-icbtn{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;
+    padding:8px 12px;font-size:14px;font-weight:700}
+  .crm-wrap{max-width:760px;margin:0 auto;padding:12px}
+  .crm-photo{position:relative;height:clamp(200px,34vw,300px);border-radius:14px;border:1px solid var(--line);
+    background:#0b1223 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--mut)}
+  .ph-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(2,6,23,.55);
+    border:1px solid var(--line);color:#fff;border-radius:999px;width:38px;height:38px;font-size:16px}
+  .ph-prev{left:8px}.ph-next{right:8px}
+  .ph-count{position:absolute;bottom:8px;right:10px;background:rgba(2,6,23,.6);border-radius:999px;
+    padding:2px 9px;font-size:12px;font-weight:700;color:#fff}
+  .crm-price{font-size:24px;font-weight:800;margin:12px 0 0}
+  .crm-price small{font-size:13px;color:var(--warn);font-weight:700}
+  .crm-meta{color:var(--mut);font-size:13px;margin:2px 0 4px}
+  .crm-pub{color:var(--mut);font-size:12.5px}
+  .crm-sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:12px 0}
+  .crm-sec h3{margin:0 0 10px;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+  .crm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .crm-cell{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .crm-cell .k{color:var(--mut);font-size:11px}
+  .crm-cell .v{font-weight:800;font-size:15px;margin-top:2px}
+  .crm-cell .v.pos{color:var(--good)}.crm-cell .v.neg{color:var(--bad)}
+  .crm-cell .s{color:var(--mut);font-size:11px;margin-top:2px}
+  .crm-cell.hero{grid-column:1/-1;border-color:var(--acc);background:rgba(245,158,11,.07)}
+  .crm-cell.hero .v{font-size:18px}
+  .crm-fld{display:flex;align-items:center;gap:8px;margin:7px 0}
+  .crm-fld label{flex:none;width:46%;color:var(--mut);font-size:12.5px}
+  .crm-fld input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:8px 10px;font-size:14px;min-width:0}
+  .crm-fld input:not(:placeholder-shown){border-color:var(--good)}
+  .crm-steps{display:flex;gap:6px;flex-wrap:wrap}
+  .crm-step{flex:1;min-width:72px;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:8px 6px;font-size:12.5px;font-weight:700;text-align:center;line-height:1.35}
+  .crm-step small{display:block;color:var(--mut);font-weight:600;font-size:10.5px}
+  .crm-step.on{background:var(--acc);border-color:var(--acc);color:#0f172a}
+  .crm-step.on small{color:#0f172a}
+  .crm-step.done{border-color:var(--good)}
+  .crm-relance{display:inline-block;background:rgba(245,158,11,.15);border:1px solid var(--warn);color:var(--warn);
+    border-radius:8px;padding:4px 9px;font-size:12.5px;font-weight:700;margin-top:9px}
+  .crm-check{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .crm-chk{display:flex;align-items:flex-start;gap:7px;background:var(--bg);border:1px dashed var(--line);
+    border-radius:9px;padding:7px 9px;font-size:12.5px;color:var(--mut);line-height:1.35}
+  .crm-chk.ok{border-style:solid;border-color:var(--good);color:var(--txt)}
+  .crm-neg{font-size:13px;color:var(--mut);margin-top:9px;line-height:1.6}
+  .crm-neg b{color:var(--txt)}
+  .gocrm{display:block;width:100%;margin-top:8px;background:linear-gradient(90deg,rgba(245,158,11,.14),rgba(56,189,248,.14));
+    border:1px solid var(--acc);color:var(--acc);border-radius:10px;padding:9px;font-size:13.5px;font-weight:800}
 </style>
 </head>
 <body class="locked">
@@ -506,6 +561,18 @@
   </div>
   <div class="sw-hint">← glisse à gauche pour <b style="color:var(--good)">conserver</b> · glisse à droite pour <b style="color:var(--bad)">archiver</b> →</div>
   <button class="sw-back" onclick="closeSwipe()">← Retour à mes annonces</button>
+</div>
+
+<div class="crm" id="crm" aria-hidden="true">
+  <div class="crm-top">
+    <button class="crm-icbtn" onclick="closeCRM()">← Radar</button>
+    <div><b>🤝 CRM négo</b><span class="crm-count" id="crmCount"></span></div>
+    <div style="display:flex;gap:6px">
+      <button class="crm-icbtn" onclick="crmNav(-1)" title="Bien précédent">◀</button>
+      <button class="crm-icbtn" onclick="crmNav(1)" title="Bien suivant">▶</button>
+    </div>
+  </div>
+  <div class="crm-wrap" id="crmBody"></div>
 </div>
 
 <div class="modal" id="modal" aria-hidden="true">
@@ -763,19 +830,24 @@ function capitalMax(M, i, n){ return M*(1-Math.pow(1+i,-n))/i; }
 
 function analyse(b, P){
   const n = P.duree*12, i = P.taux/12;
+  const crm = tsGet(CRMD, keyOf(b)) || {};           // données réelles saisies dans le CRM (remplacent l'hypothèse)
+  const sus = +crm.sus || 0;                         // éléments vendus en sus du prix (parking, cave…)
   const annexes = b.gar*P.vgar + b.cave*P.vcave + b.terr*P.vterr;
   const valAppart = b.prix - annexes;
   const pm2reel = valAppart / b.m;
-  const fraisNot = b.prix * P.notaire;
-  const coutTotal = b.prix + fraisNot;
-  const apport = apportPour(b.prix, P);
+  const base = b.prix + sus;                         // coût d'acquisition réel (annonce + en sus)
+  const fraisNot = base * P.notaire;
+  const coutTotal = base + fraisNot;
+  const apport = apportPour(base, P);
   const emprunt = Math.max(0, coutTotal - apport);
   const mens = mensualite(emprunt, i, n);
-  const loyerMois = P.loyer * b.m;
+  const loyerMois = +crm.loyer > 0 ? +crm.loyer : P.loyer * b.m;   // loyer réel si occupé
   const loyerNet = loyerMois * (1-P.vac);
-  const cashflow = loyerNet - mens - P.charges;
+  const chMois = (crm.charges!=null && crm.charges!=='') ? +crm.charges : P.charges;  // charges copro réelles
+  const tfMois = (+crm.tf || 0)/12;                  // taxe foncière connue (€/an → €/mois)
+  const cashflow = loyerNet - mens - chMois - tfMois;
   const rentBrute = (loyerMois*12) / coutTotal;
-  const rentNette = ((loyerNet*12) - P.charges*12) / coutTotal;
+  const rentNette = (loyerNet - chMois - tfMois)*12 / coutTotal;
   // prix conseillé : loyer mensuel net couvre la mensualité, avec la même règle d'apport
   const empruntMax = capitalMax(loyerNet, i, n);
   // cas non plafonné : apport = pct*prix  => prix*(1+notaire) - pct*prix = empruntMax
@@ -787,6 +859,12 @@ function analyse(b, P){
   const prixPlafond = prixConseille * 1.04; // marge négo
   // écart au prix cible rendement : >0 = bien affiché SOUS le prix soutenable par les loyers
   const ecart = (prixConseille - b.prix)/prixConseille;
+  // ===== ÉQUILIBRE (CRM) : cash-flow = 0, charges + taxe foncière incluses =====
+  const mensEq = Math.max(0, loyerNet - chMois - tfMois);      // mensualité max soutenable
+  const empruntEq = capitalMax(mensEq, i, n);
+  const apportEq = Math.max(0, coutTotal - empruntEq);         // apport pour être à l'équilibre à CE prix
+  // ancre de négo : prix d'ANNONCE max auquel l'équilibre reste atteignable avec l'apport PLAFOND
+  const prixEq = (empruntEq + P.plafond) / (1 + P.notaire) - sus;   // (le « en sus » reste dû)
   // PRIX DE MARCHÉ (DVF) : €/m² du secteur × surface appart + annexes
   const mPm2 = marchePm2(b.q);
   const prixMarche = mPm2*b.m + annexes;
@@ -817,6 +895,7 @@ function analyse(b, P){
   else if(score>=55){ verdict="À SURVEILLER"; vClass="v-watch"; }
   return {annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,
           cashflow,rentBrute,rentNette,prixConseille,prixPlafond,ecart,
+          sus,chMois,tfMois,apportEq,prixEq,
           mPm2,prixMarche,ecartMarche,stars,parts,mkClass,score,verdict,vClass};
 }
 function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
@@ -864,6 +943,14 @@ let NOTES=tsLoad(NTKEY);
 function getNote(b){ return tsGet(NOTES,keyOf(b))||''; }
 function setNote(b,t){ const k=keyOf(b); tsSet(NOTES,k, (t&&t.trim())?t:null);
   try{ localStorage.setItem(NTKEY,JSON.stringify(NOTES)); }catch(e){} pushRemote(); }
+// ----- CRM négociation : données réelles par bien (charges, TF, contact, pipeline…) — synchronisé -----
+const CRMKEY='scibam_crm_v1';
+let CRMD=tsLoad(CRMKEY);
+function crmOf(b){ return tsGet(CRMD,keyOf(b))||{}; }
+function crmSet(b,patch){ const k=keyOf(b); const cur={...(tsGet(CRMD,k)||{})};
+  for(const f in patch){ const v=patch[f]; if(v==null||v===''||(Array.isArray(v)&&!v.length)) delete cur[f]; else cur[f]=v; }
+  tsSet(CRMD,k, Object.keys(cur).length?cur:null);
+  try{ localStorage.setItem(CRMKEY,JSON.stringify(CRMD)); }catch(e){} pushRemote(); }
 function sourceOf(url){ if(!url) return 'Annonce';
   if(/seloger/.test(url)) return 'SeLoger'; if(/leboncoin/.test(url)) return 'leboncoin';
   if(/paruvendu/.test(url)) return 'ParuVendu'; if(/bienici/.test(url)) return "Bien'ici";
@@ -1027,13 +1114,14 @@ function syncToken(){ try{ return localStorage.getItem(SYNCTOKKEY)||''; }catch(e
 function setSyncToken(t){ t=(t||'').trim(); try{ t?localStorage.setItem(SYNCTOKKEY,t):localStorage.removeItem(SYNCTOKKEY); }catch(e){}
   if(typeof renderSyncStatus==='function') renderSyncStatus(); pullRemote(); }
 function syncOn(){ return !!(SYNC.url && syncToken()); }
-function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST, gone:GONEMARK }; }
+function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST, gone:GONEMARK, crm:CRMD }; }
 function applyRemote(r){
   if(!r||typeof r!=='object') return false; let ch=false;
   // fusion datée (tombstones) : pour chaque clé, l'entrée la plus récente gagne — y compris les suppressions
   if(r.status&&typeof r.status==='object'){ if(tsMerge(STATUS,r.status)){ ch=true; try{localStorage.setItem(STKEY,JSON.stringify(STATUS));}catch(e){} } }
   if(r.notes&&typeof r.notes==='object'){ if(tsMerge(NOTES,r.notes)){ ch=true; try{localStorage.setItem(NTKEY,JSON.stringify(NOTES));}catch(e){} } }
   if(r.gone&&typeof r.gone==='object'){ if(tsMerge(GONEMARK,r.gone)){ ch=true; try{localStorage.setItem(GKEY,JSON.stringify(GONEMARK));}catch(e){} } }
+  if(r.crm&&typeof r.crm==='object'){ if(tsMerge(CRMD,r.crm)){ ch=true; try{localStorage.setItem(CRMKEY,JSON.stringify(CRMD));}catch(e){} } }
   if(r.pricehist&&typeof r.pricehist==='object'){ for(const k in r.pricehist){ const a=PRICEHIST[k]||[],b=r.pricehist[k]||[]; if(b.length>a.length) PRICEHIST[k]=b; } savePriceHist(); ch=true; }
   return ch;
 }
@@ -1167,6 +1255,7 @@ function card(b,a){
       : `<button class="stbtn b-contacter ${st==='contacter'?'on':''}" onclick="setStatus(byId(${b.id}),'contacter')">📞 Contacter</button>
       <button class="stbtn b-conserver ${st==='conserver'?'on':''}" onclick="setStatus(byId(${b.id}),'conserver')">⭐ Conserver</button>
       <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${b.id}),'archive')">🗑 Archiver</button>`}
+    ${(st==='contacter'&&!gone)?`<button class="gocrm" onclick="openCRM(${b.id})">🤝 Go to CRM — préparer la négo →</button>`:''}
     </div>
     ${(st||note)?`<div class="noterow" onclick="event.stopPropagation()">
       <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${b.id}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
@@ -1223,9 +1312,9 @@ function projete(b,P){
   for(let t=1;t<=N;t++){
     let pay=0;
     if(t<=L){ for(let mo=0;mo<12;mo++){ const int=bal*i, pr=Math.min(a.mens-int,bal); bal-=pr; pay+=a.mens; } }
-    const loyerBrutAn=P.loyer*b.m*12*Math.pow(1+GROWTH.loyer,t-1);
+    const loyerBrutAn=a.loyerMois*12*Math.pow(1+GROWTH.loyer,t-1);
     const loyerNetAn=loyerBrutAn*(1-P.vac);
-    const chargesAn=P.charges*12*Math.pow(1+GROWTH.charges,t-1);
+    const chargesAn=(a.chMois+a.tfMois)*12*Math.pow(1+GROWTH.charges,t-1);
     const noi=loyerNetAn-chargesAn;
     const cashflow=noi-pay; cumv+=cashflow;
     const valBien=b.prix*Math.pow(1+GROWTH.valeur,t);
@@ -1237,7 +1326,7 @@ function projete(b,P){
   const tri=irr(flows);
   const d=0.04; let van=-a.apport; for(let t=1;t<=N;t++) van+=(cf[t-1]+(t===N?equity[N-1]:0))/Math.pow(1+d,t);
   const enrich=equity[N-1]+cum[N-1]-a.apport;
-  const noi1=P.loyer*b.m*12*(1-P.vac)-P.charges*12;               // loyers nets de vacance − charges (an 1)
+  const noi1=(a.loyerNet-a.chMois-a.tfMois)*12;                   // loyers nets − charges − TF (an 1, données CRM si connues)
   const dscr=a.mens>0 ? noi1/(a.mens*12) : 99;                    // DSCR bancaire = NOI / service de la dette
   const ltv=a.emprunt/b.prix;
   let cfPos=cf.findIndex(x=>x>=0); cfPos=cfPos<0?null:cfPos+1;
@@ -1330,6 +1419,125 @@ function openDetail(id){
   $('modal').classList.add('show'); $('modal').setAttribute('aria-hidden','false');
 }
 function closeDetail(){ $('modal').classList.remove('show'); $('modal').setAttribute('aria-hidden','true'); }
+
+// ===================== CRM NÉGOCIATION =====================
+// Page dédiée aux biens « À contacter » : données réelles, apport/prix d'équilibre,
+// checklist des infos manquantes (questions à poser) et pipeline daté.
+const CRM_STEPS=[['contacte','✉️ Contacté'],['rdv','📅 RDV'],['visite','👁 Visité'],['offre','💶 Offre']];
+const CRM_RELANCE_J=5;                       // relance suggérée après N jours sans passage à l'étape suivante
+let crmList=[], crmIdx=0, crmPhoto=0;
+const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+function crmBiens(){ const P=params();
+  return LISTINGS.filter(b=>getStatus(b)==='contacter' && !isGone(b))
+    .map(b=>({b})).sort((x,y)=>analyse(y.b,P).score-analyse(x.b,P).score); }
+function openCRM(id){ crmList=crmBiens();
+  const i=id!=null?crmList.findIndex(r=>r.b.id===id):0; crmIdx=i<0?0:i; crmPhoto=0;
+  $('crm').classList.add('show'); $('crm').setAttribute('aria-hidden','false'); renderCRM();
+  $('crm').scrollTop=0; }
+function closeCRM(){ $('crm').classList.remove('show'); $('crm').setAttribute('aria-hidden','true'); render(); }
+function crmNav(d){ if(crmList.length<2) return; crmIdx=(crmIdx+d+crmList.length)%crmList.length; crmPhoto=0; renderCRM(); $('crm').scrollTop=0; }
+function crmPhotos(b){ return (b.photos&&b.photos.length)?b.photos:(b.img?[b.img]:[]); }
+function crmPhotoNav(d){ const n=crmPhotos(crmList[crmIdx].b).length; if(n<2) return;
+  crmPhoto=(crmPhoto+d+n)%n; renderCRM(); }
+function crmField(id,f,v){ const b=byId(id); if(!b) return;
+  crmSet(b,{[f]:String(v??'').trim()}); renderCRM(); }
+function crmStepDate(c,s){ const h=(c.hist||[]).filter(x=>x.s===s); return h.length?h[h.length-1].t:null; }
+function crmStepGo(id,s){ const b=byId(id); if(!b) return; const c=crmOf(b);
+  const next=c.step===s?'':s;                                   // re-taper l'étape en cours = revenir en arrière
+  const hist=(c.hist||[]).concat([{s:next||'retour',t:Date.now()}]).slice(-40);
+  crmSet(b,{step:next,hist}); renderCRM(); }
+function renderCRM(){
+  crmList=crmList.filter(r=>getStatus(r.b)==='contacter' && !isGone(r.b));
+  const body=$('crmBody');
+  if(!crmList.length){ $('crmCount').textContent='';
+    body.innerHTML=`<div class="foot" style="padding:40px 10px">Aucun bien en « 📞 Contacter ».<br>Classe un bien depuis le radar puis reviens ici préparer la négo.</div>`; return; }
+  if(crmIdx>=crmList.length) crmIdx=0;
+  const P=params(), b=crmList[crmIdx].b, a=analyse(b,P), c=crmOf(b);
+  $('crmCount').textContent=` · ${crmIdx+1}/${crmList.length}`;
+  const ph=crmPhotos(b), img=ph.length?ph[Math.min(crmPhoto,ph.length-1)]:'';
+  const adresse=c.adresse||b.adresse||'';
+  const pub=b.pub||c.pub||'';
+  const chReel=c.charges!=null&&c.charges!=='';
+  const dStep=c.step?crmStepDate(c,c.step):null;
+  const stepIdx=CRM_STEPS.findIndex(([k])=>k===c.step);
+  const relance=c.step==='contacte'&&dStep&&(Date.now()-dStep)>CRM_RELANCE_J*864e5;
+  // checklist : chaque info manquante = une question à poser
+  const chk=[
+    ['Charges copro', chReel?`${c.charges} €/mois`:null],
+    ['Taxe foncière', c.tf?`${c.tf} €/an`:null],
+    ['Contact', c.contact||null],
+    ['Adresse exacte', adresse||null],
+    ['DPE', c.dpe||null],
+    ['Travaux votés / prévus', c.travaux||null],
+    ['Copro : nb de lots', c.lots||null],
+    ['Occupé ? loyer actuel', c.loyer?`${c.loyer} €/mois`:null],
+  ];
+  const negoPct=(b.prix-a.prixEq)/b.prix;
+  const equil = a.prixEq>=b.prix;
+  body.innerHTML=`
+    <div class="crm-photo" style="${img?`background-image:url('${esc(img)}')`:''}">
+      ${!img?'<span>pas de photo</span>':''}
+      ${ph.length>1?`<button class="ph-nav ph-prev" onclick="crmPhotoNav(-1)">◀</button>
+      <button class="ph-nav ph-next" onclick="crmPhotoNav(1)">▶</button>
+      <span class="ph-count">${crmPhoto+1}/${ph.length}</span>`:''}
+    </div>
+    <div class="crm-price">${eur(b.prix)}${a.sus?` <small>+ ${eur(a.sus)} en sus</small>`:''}</div>
+    <div class="crm-meta">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''} · ${starHTML(a.stars)}</div>
+    ${adresse?`<div class="crm-pub">📍 ${esc(adresse)}</div>`:''}
+    ${pub?`<div class="crm-pub">📅 annonce du ${dmy(new Date(pub).getTime())}${ageDays({pub})!=null?` · en ligne depuis ${ageDays({pub})} j`:''}</div>`:''}
+    ${c.contact?`<div class="crm-pub">👤 ${esc(c.contact)}</div>`:''}
+    ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" style="margin-top:8px">Voir l'annonce sur ${sourceLabel(b.url)} ↗</a>`:''}
+
+    <div class="crm-sec"><h3>⚖️ Économie du projet</h3>
+      <div class="crm-grid">
+        <div class="crm-cell"><div class="k">Score / verdict</div><div class="v">${a.score}/100</div><div class="s">${a.verdict}</div></div>
+        <div class="crm-cell"><div class="k">€/m² vs marché</div><div class="v">${Math.round(a.pm2reel).toLocaleString('fr-FR')}</div><div class="s">marché ${Math.round(a.mPm2).toLocaleString('fr-FR')} € (${a.ecartMarche>=0?'−':'+'}${pct0(Math.abs(a.ecartMarche))})</div></div>
+        <div class="crm-cell"><div class="k">Rentabilité</div><div class="v">${pct(a.rentBrute)}</div><div class="s">nette ${pct(a.rentNette)}</div></div>
+        <div class="crm-cell"><div class="k">Cash-flow</div><div class="v ${a.cashflow>=0?'pos':'neg'}">${a.cashflow>=0?'+':''}${Math.round(a.cashflow)} €/m</div>
+          <div class="s">charges ${Math.round(a.chMois)} €${chReel?' (réelles)':' (hyp.)'}${a.tfMois?` + TF ${Math.round(a.tfMois)} €/m`:''}</div></div>
+        <div class="crm-cell hero"><div class="k">⚖️ Apport pour un cash-flow à l'équilibre</div>
+          <div class="v">${eur(a.apportEq)}</div>
+          <div class="s">${a.apportEq>P.plafond?`dépasse ton plafond de ${eur(P.plafond)} → négocier le prix ↓`:`dans ton plafond (${eur(P.plafond)}) · apport règle actuelle : ${eur(a.apport)}`}</div></div>
+        <div class="crm-cell hero"><div class="k">🎯 Prix d'équilibre avec ton apport max (${eur(P.plafond)})</div>
+          <div class="v ${equil?'pos':''}">${equil?'atteignable à ce prix ✓':eur(a.prixEq)}</div>
+          <div class="s">${equil?`équilibre avec ${eur(a.apportEq)} d'apport, sans négocier`:`soit ${pct(negoPct)} à négocier sous le prix affiché`}</div></div>
+      </div>
+      ${!equil?`<div class="crm-neg">💬 Argument : « À ${eur(b.prix)}, il me faut <b>${eur(a.apportEq)}</b> d'apport pour équilibrer.
+      Mon équilibre, c'est <b>${eur(a.prixEq)}</b>${a.sus?` (hors ${eur(a.sus)} en sus)`:''}. »</div>`:''}
+    </div>
+
+    <div class="crm-sec"><h3>📋 Données réelles du bien <span style="text-transform:none">(remplacent les hypothèses)</span></h3>
+      <div class="crm-fld"><label>Charges copro (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${P.charges} €" value="${esc(c.charges)}" onchange="crmField(${b.id},'charges',this.value)"></div>
+      <div class="crm-fld"><label>Taxe foncière (€/an)</label><input type="number" inputmode="numeric" placeholder="inconnue" value="${esc(c.tf)}" onchange="crmField(${b.id},'tf',this.value)"></div>
+      <div class="crm-fld"><label>En sus du prix (€) — parking, cave…</label><input type="number" inputmode="numeric" placeholder="0" value="${esc(c.sus)}" onchange="crmField(${b.id},'sus',this.value)"></div>
+      <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(P.loyer*b.m)} €" value="${esc(c.loyer)}" onchange="crmField(${b.id},'loyer',this.value)"></div>
+      <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${b.id},'adresse',this.value)"></div>
+      <div class="crm-fld"><label>Contact (agence, nom, tél.)</label><input type="text" placeholder="Mme…, 06…" value="${esc(c.contact)}" onchange="crmField(${b.id},'contact',this.value)"></div>
+      <div class="crm-fld"><label>DPE</label><input type="text" placeholder="A → G" value="${esc(c.dpe)}" onchange="crmField(${b.id},'dpe',this.value)"></div>
+      <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${b.id},'travaux',this.value)"></div>
+      <div class="crm-fld"><label>Copro : nb de lots</label><input type="text" placeholder="?" value="${esc(c.lots)}" onchange="crmField(${b.id},'lots',this.value)"></div>
+      ${!b.pub?`<div class="crm-fld"><label>Date de l'annonce</label><input type="date" value="${esc(c.pub)}" onchange="crmField(${b.id},'pub',this.value)"></div>`:''}
+    </div>
+
+    <div class="crm-sec"><h3>❓ Il manque ${chk.filter(x=>!x[1]).length?`${chk.filter(x=>!x[1]).length} info${chk.filter(x=>!x[1]).length>1?'s':''} — questions à poser`:'rien — dossier complet ✓'}</h3>
+      <div class="crm-check">
+        ${chk.map(([l,v])=>`<div class="crm-chk ${v?'ok':''}">${v?'☑':'☐'} <span><b>${l}</b>${v?`<br>${esc(v)}`:' ?'}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="crm-sec"><h3>🚀 Pipeline</h3>
+      <div class="crm-steps">
+        ${CRM_STEPS.map(([k,l],i)=>{const d=crmStepDate(c,k);
+          return `<button class="crm-step ${c.step===k?'on':(stepIdx>i?'done':'')}" onclick="crmStepGo(${b.id},'${k}')">${l}${d&&stepIdx>=i?`<small>${dmy(d)}</small>`:''}</button>`;}).join('')}
+      </div>
+      ${relance?`<div class="crm-relance">⚠️ Contacté il y a ${Math.round((Date.now()-dStep)/864e5)} j sans suite → relancer ?</div>`:''}
+    </div>
+
+    <div class="crm-sec"><h3>📝 Notes négo</h3>
+      <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
+        onchange="setNote(byId(${b.id}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+    </div>`;
+}
 
 // ===================== MODE SWIPE =====================
 let DECK=[], swIdx=0, swHist=[];

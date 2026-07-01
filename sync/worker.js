@@ -37,7 +37,8 @@ export default {
       const b = await req.json().catch(() => ({}));
       if (!ok(b.token)) return json({ error: 'unauthorized' }, 401);
       const state = {
-        status: b.status || {}, notes: b.notes || {}, pricehist: b.pricehist || {}, updatedAt: Date.now()
+        status: b.status || {}, notes: b.notes || {}, pricehist: b.pricehist || {},
+        gone: b.gone || {}, crm: b.crm || {}, updatedAt: Date.now()
       };
       await env.SCIBAM.put(KEY, JSON.stringify(state));
       return json({ ok: true, updatedAt: state.updatedAt });
