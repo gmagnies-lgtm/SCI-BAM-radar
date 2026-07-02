@@ -581,10 +581,47 @@
 
 <script>
 // ---------- DONNÉES (annonces réelles extraites — Lyon 7e) ----------
-// new:false = apparue lors du dernier rafraîchissement (alimenté par la veille quotidienne)
+// new:true = apparue lors du dernier rafraîchissement (alimenté par la veille quotidienne)
 // Date du dernier push de données (mise à jour par la veille à chaque publication). Format AAAA-MM-JJ.
 const DATA_UPDATED = "2026-07-02";
 const LISTINGS = [
+ // ===== Veille 2026-07-02 (2e passage) : +12 annonces (leboncoin: 9, ParuVendu: 3) =====
+ {id:3226146324, prix:450000, m:86, p:3, ch:2, et:"3/7", q:"Lyon 7e", stLouis:false, annee:1936, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3226146324",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/14/e1/b3/14e1b300eb0206ab5104559aa62c52f077f4e7a2.jpg?rule=ad-large"},
+ {id:3226131566, prix:443500, m:80, p:3, ch:2, et:"4/9", q:"Jean Macé", stLouis:false, annee:1954, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3226131566",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/b4/db/fd/b4dbfdbb6523840e4da4c109db072d6ddc9d41a6.jpg?rule=ad-large"},
+ {id:1289358232, prix:460000, m:87, p:3, ch:2, et:"2", q:"Garibaldi", stLouis:false, annee:1986, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.paruvendu.fr/immobilier/vente/appartement/1289358232A1KIVHAP000",
+   img:"https://img.paruvendu.fr/media_ext/_https_/photos.exportadapt.com/79/17/LzQ5MDEwLzQ5MDEwNTE1MTFfMTAuanBnPzIwMjYwNzAyMDEwMDE3_rct"},
+ {id:1290112387, prix:430000, m:96, p:4, ch:2, et:"4", q:"Grange Blanche", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.paruvendu.fr/immobilier/vente/appartement/1290112387A1KIVHAP000",
+   img:"https://img.paruvendu.fr/media_ext/_https_/img.netty.immo/ee/97/L3Byb2R1Y3Rjdy9jb21wYW55NTQxNDVmeW4vMi9WQTMwMjAxLzE3Nzc1NjE2MjgyX1ZBMzAyMDFfNV9vcmlnaW5hbC5qcGc_MjAyNjA3MDIwNzI5MDM_rct"},
+ {id:1292409297, prix:779000, m:94, p:4, ch:3, et:"", q:"Lyon 3e", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.paruvendu.fr/immobilier/vente/appartement/1292409297A1KIVHAP000",
+   img:"https://img.paruvendu.fr/media_ext/_https_/media.immo-facile.com/fb/06/L29mZmljZTgvYXNpbnZlc3RpbW1vL2NhdGFsb2cvaW1hZ2VzL3ByX3AvNi8wLzgvMy85LzMvOS8xLzYwODM5MzkxYS5qcGc_REFURU1BSj0yMi8wNi8yMDI2LTEzOjM1OjQyJjIwMjYwNzAyMDkzMDEy_rct"},
+ {id:3226118862, prix:444000, m:86, p:3, ch:2, et:"9/9", q:"Jean Macé", stLouis:false, annee:1948, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-01",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3226118862",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/39/2b/26/392b26c736af70bf214454f7cbf01fbc76461fe2.jpg?rule=ad-large"},
+ {id:3160350392, prix:460000, m:96, p:4, ch:3, et:"2/10", q:"Lyon 3e", stLouis:false, annee:1990, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-01",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3160350392",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/05/10/ef/0510ef3387556dcc97f724b408ca5d26ca1ebb07.jpg?rule=ad-large"},
+ {id:3225785649, prix:499000, m:85, p:4, ch:3, et:"3/5", q:"Lacassagne", stLouis:false, annee:2004, gar:0,cave:0,terr:1,jardin:1,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-01",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3225785649",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/cd/aa/86/cdaa866710153318ad4fd8125d8dc15fcc42cac2.jpg?rule=ad-large"},
+ {id:3225649647, prix:495000, m:109, p:5, ch:4, et:"5", q:"Saxe-Gambetta", stLouis:false, annee:1900, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-01",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3225649647",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/e7/01/7c/e7017c80bdf7bb5786945401982b3dc69127dfdb.jpg?rule=ad-large"},
+ {id:3225645965, prix:450000, m:91, p:4, ch:3, et:"2/7", q:"Saxe-Gambetta", stLouis:false, annee:1953, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-01",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3225645965",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/cc/11/73/cc1173d99a94c3fe3f1682852455f91bad1e4574.jpg?rule=ad-large"},
+ {id:3225644846, prix:400000, m:91, p:4, ch:3, et:"3/5", q:"Monplaisir", stLouis:false, annee:1977, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-01",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3225644846",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/52/3b/84/523b84b91eae5e274e91eaa258e15298ffad2eda.jpg?rule=ad-large"},
+ {id:3218497738, prix:239000, m:85, p:4, ch:2, et:"2/7", q:"Lyon 7e", stLouis:false, annee:1975, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-06-17",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3218497738",
+   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/6e/32/d2/6e32d26b02d4b664146bc5b904bc6a40378496c7.jpg?rule=ad-large"},
  // ===== Veille 2026-07-02 : +3 annonces (SeLoger: 3, Leboncoin: 0 - filtre renvoie des maisons uniquement) =====
  {id:270107469, prix:545000, m:107, p:4, ch:3, et:"3/8", q:"Saint Louis", stLouis:true, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-02",
    url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/la-guillotiere-sud/270107469.htm",
@@ -618,13 +655,13 @@ const LISTINGS = [
  {id:273724855, gone:true, prix:890000, m:102, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:false, pap:false,
    url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/jean-mace/273724855.htm",
    img:"https://v.seloger.com/s/crop/800x600/visuels/2/7/8/2/2782hrj23qr19agh7lytp6csweuumepazlkhc5qio.jpg"},
- {id:273723121, prix:423497, m:85, p:4, ch:3, et:"", q:"Gerland", stLouis:false, gar:0,cave:0,terr:1,jardin:1,asc:0,balc:0,meuble:0, new:false, pap:false,
+ {id:273723121, gone:true, prix:423497, m:85, p:4, ch:3, et:"", q:"Gerland", stLouis:false, gar:0,cave:0,terr:1,jardin:1,asc:0,balc:0,meuble:0, new:false, pap:false,
    url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/gerland/273723121.htm",
    img:"https://v.seloger.com/s/crop/800x600/visuels/1/2/0/4/1204j8vjfhhb6nopug47x76ac4n6rq1mtweq0g54w.jpg"},
- {id:273723123, prix:488650, m:101, p:5, ch:4, et:"", q:"Gerland", stLouis:false, gar:0,cave:0,terr:1,jardin:1,asc:0,balc:0,meuble:0, new:false, pap:false,
+ {id:273723123, gone:true, prix:488650, m:101, p:5, ch:4, et:"", q:"Gerland", stLouis:false, gar:0,cave:0,terr:1,jardin:1,asc:0,balc:0,meuble:0, new:false, pap:false,
    url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/gerland/273723123.htm",
    img:"https://v.seloger.com/s/crop/800x600/visuels/1/2/0/4/1204j8vjfhhb6nopug47x76ac4n6rq1mtweq0g54w.jpg"},
- {id:273722759, prix:404016, m:90, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, gar:0,cave:0,terr:1,jardin:1,asc:0,balc:0,meuble:0, new:false, pap:false,
+ {id:273722759, gone:true, prix:404016, m:90, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, gar:0,cave:0,terr:1,jardin:1,asc:0,balc:0,meuble:0, new:false, pap:false,
    url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/jean-mace/273722759.htm",
    img:"https://v.seloger.com/s/crop/800x600/visuels/0/3/g/r/03grn8hf0csi0e3lau62wylmtnfr4nartoi29uubk.jpg"},
  {id:273731335, prix:377000, m:94, p:3, ch:2, et:"", q:"La Guillotière Sud", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
@@ -749,7 +786,7 @@ const LISTINGS = [
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3207032658",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/39/c2/d0/39c2d0f7f5b9309c840699b3ee9366a09906a0bf.jpg?rule=ad-large"},
  {id:8, prix:490000, m:92, p:4, ch:3, et:"1", q:"Jean Macé", stLouis:false, annee:1900, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:false, pap:false, pub:"2026-06-13",
-   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3215556522",
+   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3226109113", // republication 01/07 (ancienne annonce 3215556522 retirée)
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/d6/cf/7b/d6cf7b08c78c65f68add1bc52b9b3374a0e40721.jpg?rule=ad-large"},
  {id:1, prix:325000, m:99, p:5, ch:4, et:"0/8", q:"Saint-Louis", stLouis:true, annee:1970, gar:0,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false,
    url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/jean-mace/273461581.htm",
@@ -1030,7 +1067,7 @@ let SEEN=null; try{ SEEN=JSON.parse(localStorage.getItem(SEENKEY)||'null'); }cat
 let NEWSET=new Set();   // clés nouvelles depuis la dernière visite (figées pour la session)
 function computeNews(){
   const cur=LISTINGS.map(keyOf);
-  if(!Array.isArray(SEEN)){           // 1re visite : ne pas tout marquer, on s'appuie sur new:false
+  if(!Array.isArray(SEEN)){           // 1re visite : ne pas tout marquer, on s'appuie sur new:true
     NEWSET=new Set(LISTINGS.filter(b=>b.new).map(keyOf));
   } else {
     const seen=new Set(SEEN);
