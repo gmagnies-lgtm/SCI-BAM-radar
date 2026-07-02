@@ -581,15 +581,25 @@
 
 <script>
 // ---------- DONNÉES (annonces réelles extraites — Lyon 7e) ----------
-// new:true = apparue lors du dernier rafraîchissement (alimenté par la veille quotidienne)
+// new:false = apparue lors du dernier rafraîchissement (alimenté par la veille quotidienne)
 // Date du dernier push de données (mise à jour par la veille à chaque publication). Format AAAA-MM-JJ.
-const DATA_UPDATED = "2026-07-01";
+const DATA_UPDATED = "2026-07-02";
 const LISTINGS = [
+ // ===== Veille 2026-07-02 : +3 annonces (SeLoger: 3, Leboncoin: 0 - filtre renvoie des maisons uniquement) =====
+ {id:270107469, prix:545000, m:107, p:4, ch:3, et:"3/8", q:"Saint Louis", stLouis:true, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-7eme-69/la-guillotiere-sud/270107469.htm",
+   img:"https://mms.seloger.com/d/1/4/a/d14aa90f-b0d6-4372-b411-1addb7f43fd5.jpg?ci_seal=9ea3449c492a6a0179c3d897c096770d29b4d1c0&w=626&h=470"},
+ {id:271528343, prix:349000, m:101, p:4, ch:2, et:"1/7", q:"Montchat", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-3eme-69/montchat/271528343.htm",
+   img:"https://mms.seloger.com/d/e/1/4/de148e4b-7c64-4f03-a136-0227bb0527d1.jpg?ci_seal=3afb06e3585a99e708feb427b94373d0632b1ebc&w=626&h=470"},
+ {id:273299363, prix:349000, m:88, p:4, ch:2, et:"5/5", q:"Sans Souci-Dauphiné", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-02",
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-69/273299363.htm",
+   img:"https://mms.seloger.com/b/4/9/3/b4930930-77d3-42cc-8a77-0addc5545391.jpg?ci_seal=34cb77aa6912a9d8998fca206916374297ed1b3f&w=626&h=470"},
  // ===== Veille 2026-07-01 (2e passage) : +2 leboncoin publiées le 01/07 =====
- {id:3192756792, prix:415000, m:84, p:4, ch:3, et:"3/5", q:"Lyon 7e", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-01",
+ {id:3192756792, prix:415000, m:84, p:4, ch:3, et:"3/5", q:"Lyon 7e", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false, pub:"2026-07-01",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3192756792",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/22/1b/ae/221bae474005c8c5b2490408d572eb9a790ae57f.jpg?rule=ad-large"},
- {id:3160085235, prix:449000, m:85, p:3, ch:2, et:"12/17", q:"Saxe-Gambetta", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-01",
+ {id:3160085235, prix:449000, m:85, p:3, ch:2, et:"12/17", q:"Saxe-Gambetta", stLouis:false, gar:1,cave:0,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:false, pap:false, pub:"2026-07-01",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3160085235",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/00/0e/53/000e53579f72fcf7fafa8e2bc093da87b33dcb3e.jpg?rule=ad-large"},
  // ===== Veille 2026-07-01 : 10 nouvelles annonces SeLoger "Nouveauté" (leboncoin: 0 nouvelle) =====
@@ -1020,7 +1030,7 @@ let SEEN=null; try{ SEEN=JSON.parse(localStorage.getItem(SEENKEY)||'null'); }cat
 let NEWSET=new Set();   // clés nouvelles depuis la dernière visite (figées pour la session)
 function computeNews(){
   const cur=LISTINGS.map(keyOf);
-  if(!Array.isArray(SEEN)){           // 1re visite : ne pas tout marquer, on s'appuie sur new:true
+  if(!Array.isArray(SEEN)){           // 1re visite : ne pas tout marquer, on s'appuie sur new:false
     NEWSET=new Set(LISTINGS.filter(b=>b.new).map(keyOf));
   } else {
     const seen=new Set(SEEN);
