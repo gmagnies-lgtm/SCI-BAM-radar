@@ -255,6 +255,13 @@
   .pricechg{font-weight:700;font-size:12px;padding:6px 10px;border-radius:8px;margin-bottom:9px;text-align:center}
   .pricechg.down{background:rgba(34,197,94,.16);color:var(--good)}
   .pricechg.up{background:rgba(239,68,68,.14);color:var(--bad)}
+  /* tampon promo « prix en baisse » (biens À contacter) */
+  .promostamp{position:absolute;top:14px;left:-6px;z-index:6;transform:rotate(-7deg);
+    background:#e11d48;color:#fff;font-size:12px;font-weight:900;letter-spacing:.5px;
+    text-transform:uppercase;padding:6px 12px 6px 16px;border-radius:6px;
+    border:2px dashed rgba(255,255,255,.9);box-shadow:0 3px 12px rgba(0,0,0,.4);
+    pointer-events:none}
+  .promostamp.crm{top:12px;left:10px}
   .sh-mmcf{font-size:12px;color:var(--mut);margin:8px 0 2px;line-height:1.5}
   .sh-mmcf b.pos{color:var(--good)} .sh-mmcf b.neg{color:var(--bad)}
   /* code de synchro */
@@ -585,6 +592,19 @@
 // Date du dernier push de données (mise à jour par la veille à chaque publication). Format AAAA-MM-JJ.
 const DATA_UPDATED = "2026-07-08";
 const LISTINGS = [
+ // ===== Veille 2026-07-08 (2e passage — SeLoger débloqué via Safari JS) : +4 annonces (SeLoger: 1, Belles Demeures: 3) =====
+ {id:274168621, prix:499000, m:106, p:5, ch:3, et:"1/4", q:"Saint Louis", stLouis:true, gar:0,cave:1,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+   url:"https://www.bellesdemeures.com/274168621/detail.htm",
+   img:"https://v.seloger.com/s/width/967/visuels/0/2/3/t/023tgrtkg7wzcmlhanmmfimoysx78j7o37e6ghjg0.jpg"},
+ {id:271969275, prix:490000, m:92, p:4, ch:3, et:"1", q:"Guillotière", stLouis:false, annee:1900, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+   url:"https://www.seloger.com/annonces/achat/appartement/lyon-69/271969275.htm",
+   img:"https://mms.seloger.com/1/f/e/5/1fe5859c-4697-4b44-b705-e1d9dd34c1d8.jpg"},
+ {id:274174595, prix:499000, m:101, p:4, ch:3, et:"1/5", q:"Part-Dieu", stLouis:false, gar:1,cave:1,terr:0,jardin:0,asc:0,balc:1,meuble:0, new:true, pap:false,
+   url:"https://www.bellesdemeures.com/274174595/detail.htm",
+   img:"https://v.seloger.com/s/width/967/visuels/1/y/9/z/1y9zch6hxbldpksimk0z833vhdwyw1h90k0e79c4w.jpg"},
+ {id:274370911, prix:620000, m:88, p:4, ch:2, et:"3", q:"Part-Dieu", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false,
+   url:"https://www.bellesdemeures.com/274370911/detail.htm",
+   img:"https://v.seloger.com/s/width/967/visuels/1/8/7/c/187cl5tg32c1ziinq9ontbapl659f9glnpw7bekqo.jpg"},
  // ===== Veille 2026-07-08 : +11 annonces (leboncoin: 11 dont 1 doublon PAP vu sur ParuVendu ; ParuVendu: 0 ; SeLoger: inaccessible sans navigateur) =====
  {id:3192809444, prix:300000, m:86, p:4, ch:3, et:"2/11", q:"Garibaldi", stLouis:false, annee:1971, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-08",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3192809444",
@@ -592,10 +612,10 @@ const LISTINGS = [
  {id:3229443361, prix:430000, m:83, p:4, ch:3, et:"", q:"Jean Jaurès", stLouis:false, annee:2021, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:true, pub:"2026-07-08",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3229443361",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/f4/49/0b/f4490b842bf4185a8dbade56ee6350cadb61b574.jpg?rule=ad-large"},
- {id:3196006172, prix:339900, m:80, p:4, ch:3, et:"1/6", q:"Férrandière", stLouis:false, annee:2016, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-08",
+ {id:3196006172, oldPrix:350000, prix:339900, m:80, p:4, ch:3, et:"1/6", q:"Férrandière", stLouis:false, annee:2016, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-08",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3196006172",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/af/5b/b6/af5bb60b129c332519e098eb7019a2bda4626f3e.jpg?rule=ad-large"},
- {id:3163803576, prix:399000, m:94, p:5, ch:4, et:"", q:"Villette", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-08",
+ {id:3163803576, oldPrix:449000, prix:399000, m:94, p:5, ch:4, et:"", q:"Villette", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-08",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3163803576",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/90/7f/f2/907ff267d59f4e067016d2d323df04418c967eab.jpg?rule=ad-large"},
  {id:3229252585, prix:340000, m:83, p:4, ch:3, et:"1/5", q:"Parc Blandan", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-07",
@@ -607,16 +627,16 @@ const LISTINGS = [
  {id:3196725256, prix:360000, m:87, p:4, ch:2, et:"5/6", q:"Monplaisir", stLouis:false, annee:1974, gar:0,cave:1,terr:0,jardin:1,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-07",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3196725256",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/03/c7/e7/03c7e7b125fd9ad3b3849bb9431082aa27201f29.jpg?rule=ad-large"},
- {id:3163750870, prix:399000, m:93, p:5, ch:4, et:"0", q:"Férrandière", stLouis:false, annee:1965, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-07",
+ {id:3163750870, oldPrix:449000, prix:399000, m:93, p:5, ch:4, et:"0", q:"Férrandière", stLouis:false, annee:1965, gar:1,cave:1,terr:0,jardin:0,asc:1,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-07",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3163750870",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/27/cd/5f/27cd5f6f3717c99ac816f66387091b3b18d5f227.jpg?rule=ad-large"},
- {id:3101132820, prix:340000, m:87, p:4, ch:3, et:"1/4", q:"Férrandière", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-07",
+ {id:3101132820, oldPrix:355000, prix:340000, m:87, p:4, ch:3, et:"1/4", q:"Férrandière", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:1,balc:1,meuble:0, new:true, pap:false, pub:"2026-07-07",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3101132820",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/51/0c/bc/510cbc3f146f84b24a3972f61fa524a09a41e549.jpg?rule=ad-large"},
  {id:3196324112, prix:350000, m:106, p:4, ch:2, et:"", q:"Gerland", stLouis:false, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:false, pub:"2026-07-06",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3196324112",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/e6/e8/c9/e6e8c97a14efbd9f465a6906fb24fc303ce09132.jpg?rule=ad-large"},
- {id:3201231893, prix:469000, m:92, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, annee:1900, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:true, pub:"2026-05-19",
+ {id:3201231893, oldPrix:479000, prix:469000, m:92, p:4, ch:3, et:"", q:"Jean Macé", stLouis:false, annee:1900, gar:0,cave:0,terr:0,jardin:0,asc:0,balc:0,meuble:0, new:true, pap:true, pub:"2026-05-19",
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3201231893",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/7e/57/43/7e5743043be951db080f73850347f2b553eef40f.jpg?rule=ad-large"},
  // ===== Veille 2026-07-04 : +16 annonces (leboncoin: 10, ParuVendu: 5, SeLoger: 1) =====
@@ -1137,6 +1157,10 @@ function updatePriceHist(){
 function priceChange(b){ const h=PRICEHIST[keyOf(b)]||[]; if(h.length<2) return null;
   const last=h[h.length-1], prev=h[h.length-2];
   return { delta:last.p-prev.p, since:prev.t, from:prev.p, to:last.p }; }
+// baisse de prix connue (€ >0) : historique observé sur l'appareil, sinon oldPrix gravé par la veille
+function priceDrop(b){ const pc=priceChange(b); if(pc&&pc.delta<0) return -pc.delta;
+  if(b.oldPrix&&b.oldPrix>b.prix) return b.oldPrix-b.prix; return null; }
+function kEur(v){ return v>=1000? `${Math.round(v/1000).toLocaleString('fr-FR')} k€` : `${v} €`; }
 function dmy(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}); }
 // date de publication (point 5/6)
 function pubTs(b){ return b.pub? new Date(b.pub).getTime() : 0; }
@@ -1323,8 +1347,10 @@ function card(b,a){
   const pc=priceChange(b);
   const gone = isGone(b);
   const goneCls = gone ? (st==='archive'?'gone-arch':'gone-other') : '';
+  const drop=priceDrop(b);
   return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''} ${goneCls}" onclick="openDetail(${b.id})">
     ${photoHTML(b)}
+    ${(st==='contacter'&&!gone&&drop)?`<div class="promostamp">🏷️ Prix en baisse de ${kEur(drop)}</div>`:''}
     ${gone?`<div class="gonetag ${st==='archive'?'g':'r'}">⚠️ Retirée du marché</div><div class="gonetag former">Était : ${formerCatLabel(b)}</div>`:''}
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
@@ -1606,6 +1632,7 @@ function renderCRM(){
   const equil = a.prixEq>=b.prix;
   body.innerHTML=`
     <div class="crm-photo" style="${img?`background-image:url('${esc(img)}')`:''}">
+      ${priceDrop(b)?`<div class="promostamp crm">🏷️ Prix en baisse de ${kEur(priceDrop(b))}</div>`:''}
       ${!img?'<span>pas de photo</span>':''}
       ${ph.length>1?`<button class="ph-nav ph-prev" onclick="crmPhotoNav(-1)">◀</button>
       <button class="ph-nav ph-next" onclick="crmPhotoNav(1)">▶</button>
