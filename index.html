@@ -300,22 +300,6 @@
   .c-pub{font-size:11px;color:var(--mut);margin-top:3px}
   .c-pub.mid{color:var(--warn)} .c-pub.old{color:var(--bad);font-weight:600}
   .pill.calm{background:var(--bg2);color:var(--mut)}
-  /* ===== bannière "nouveautés du jour" ===== */
-  .upbar{display:none;align-items:center;gap:10px;margin:12px 0 2px;padding:11px 13px;
-    border-radius:12px;background:linear-gradient(135deg,rgba(56,189,248,.16),rgba(245,158,11,.12));
-    border:1px solid rgba(56,189,248,.35);font-size:13px}
-  .upbar.show{display:flex}
-  .upbar .up-txt{flex:1;line-height:1.35}
-  .upbar .up-txt b{color:var(--acc2)}
-  .upbar .up-go{background:var(--acc);color:#0f172a;font-weight:800;border:0;border-radius:9px;
-    padding:8px 12px;font-size:13px;white-space:nowrap}
-  .upbar .up-x{background:transparent;border:0;color:var(--mut);font-size:16px;padding:2px 4px}
-  /* ===== bouton lancement swipe ===== */
-  /* barre « à trier » discrète (tableau de bord standby) */
-  .swipelaunch{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
-    margin:10px 0 2px;padding:9px 12px;border:1px solid rgba(245,158,11,.5);border-radius:10px;
-    background:rgba(245,158,11,.12);color:var(--acc);font-weight:700;font-size:13px;cursor:pointer}
-  .swipelaunch:disabled{opacity:.5;background:var(--bg2);color:var(--mut);border-color:var(--line);cursor:default}
   /* tableau de bord « En un coup d'œil » */
   .glance{margin:14px 0 2px}
   .glance-h{font-size:11px;letter-spacing:.5px;color:var(--mut);text-transform:uppercase;margin:0 0 8px}
@@ -397,6 +381,9 @@
   .sw-arch{background:rgba(239,68,68,.16);color:var(--bad);border:1px solid rgba(239,68,68,.5)}
   .sw-detail{flex:0 0 auto;background:var(--bg2);color:var(--txt);border:1px solid var(--line);padding:14px 16px}
   .sw-hint{text-align:center;font-size:11.5px;color:var(--mut);margin-top:9px}
+  .sw-later{display:block;margin:8px auto 0;padding:8px 16px;border:1px dashed var(--line);border-radius:999px;
+    background:transparent;color:var(--mut);font-weight:700;font-size:12.5px;cursor:pointer}
+  .sw-later:active{transform:scale(.97)}
   .sw-done{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
     justify-content:center;text-align:center;gap:8px;padding:24px;color:var(--mut)}
   .sw-done .big{font-size:46px} .sw-done b{color:var(--txt);font-size:17px}
@@ -518,12 +505,6 @@
 </header>
 
 <div class="wrap">
-  <div class="upbar" id="upbar">
-    <div class="up-txt" id="upTxt"></div>
-    <button class="up-go" onclick="openSwipe()">Trier →</button>
-    <button class="up-x" onclick="dismissUpbar()" title="Masquer">✕</button>
-  </div>
-  <button class="swipelaunch" id="swipeLaunch" onclick="openSwipe()">🔥 Mode swipe</button>
   <div class="glance" id="glance"></div>
   <div class="tabs" id="tabs"></div>
 
@@ -598,6 +579,7 @@
     <button class="sw-act sw-detail" onclick="swipeDetail()" title="Fiche technique">ℹ︎</button>
     <button class="sw-act sw-arch" onclick="swipeAction('right')">🗑 Archiver</button>
   </div>
+  <button class="sw-later" id="swLater" onclick="swipeLater()">🕐 + tard — je déciderai après</button>
   <div class="sw-hint">← glisse à gauche pour <b style="color:var(--good)">conserver</b> · glisse à droite pour <b style="color:var(--bad)">archiver</b> →</div>
   <button class="sw-back" onclick="closeSwipe()">← Retour à mes annonces</button>
 </div>
@@ -1442,8 +1424,6 @@ function maybeNotify(){
   }catch(e){}
 }
 function modifiedList(){ return LISTINGS.filter(isModified); }
-let _upbarHidden=false;
-function dismissUpbar(){ _upbarHidden=true; const e=$('upbar'); if(e) e.classList.remove('show'); }
 function renderGlance(){
   const g=$('glance'); if(!g) return;
   const P=params();
@@ -1467,16 +1447,6 @@ function renderGlance(){
     +tile('','💵','Cash-flow',cash,`${cash.a.cashflow>=0?'+':''}${Math.round(cash.a.cashflow).toLocaleString('fr-FR')} €/m · ${cash.b.q}`)
     +(old?tile('warnm','⏳','En ligne le + long',old,`${ageDays(old.b)} j · ${old.b.q}`):'')
     +`</div>`;
-}
-function renderUpbar(){
-  const e=$('upbar'); if(!e) return;
-  const nNew=NEWSET.size, nMod=modifiedList().length;
-  if(_upbarHidden || (!nNew && !nMod)){ e.classList.remove('show'); return; }
-  const parts=[];
-  if(nNew) parts.push(`<b>${nNew}</b> nouveau${nNew>1?'x':''} bien${nNew>1?'s':''}`);
-  if(nMod) parts.push(`<b>${nMod}</b> en modification`);
-  $('upTxt').innerHTML=`🆕 ${parts.join(' · ')} depuis ta dernière visite.`;
-  e.classList.add('show');
 }
 // recommandation lisible à partir du score / verdict
 function recommendation(a){
@@ -1674,11 +1644,11 @@ function render(){
   renderSortbar();
   const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive' && !isExclQ(r.b,P)).sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
-  const nNew=LISTINGS.filter(b=>isNewListing(b)&&!isExclQ(b,P)).length, nMod=modifiedList().length, pill=$('newpill');
-  if(nNew||nMod){ pill.classList.remove('calm');
-    pill.textContent=`${nNew?`🆕 ${nNew}`:''}${nNew&&nMod?' · ':''}${nMod?`✏️ ${nMod}`:''}`; }
+  const nTri=buildDeck().length, nMod=modifiedList().length, pill=$('newpill');
+  if(nTri||nMod){ pill.classList.remove('calm');
+    pill.textContent=[nTri?`🔥 ${nTri} à trier`:'', nMod?`✏️ ${nMod}`:''].filter(Boolean).join(' · '); }
   else { pill.classList.add('calm'); pill.textContent='à jour'; }
-  renderUpbar(); updateSwipeLaunch(); renderGlance();
+  renderGlance();
   $('count').textContent=rows.length+" bien"+(rows.length>1?'s':'')+" affiché"+(rows.length>1?'s':'');
   $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
     || `<div class="foot">${state.filt==='nonclasse'?'🎉 Sas vide — tous les biens sont triés.':state.filt==='gone'?'Aucune annonce disparue pour le moment — elles apparaîtront ici quand un bien suivi sera retiré du marché.':'Aucun bien dans cette catégorie.'}</div>`;
@@ -1942,11 +1912,6 @@ function buildDeck(){ const P=params();
     .map(b=>({b,a:analyse(b,P)}))
     .sort((x,y)=> (isNewListing(y.b)?1:0)-(isNewListing(x.b)?1:0) || y.a.score-x.a.score);
 }
-function updateSwipeLaunch(){
-  const btn=$('swipeLaunch'); if(!btn) return;
-  const n=buildDeck().length; btn.disabled=n===0;
-  btn.innerHTML = n ? `🔥 <b>${n}</b> à trier · Trier →` : '🎉 Tout est trié';
-}
 function swPhotoOpen(b){ return b.img
   ? `<div class="sw-photo" style="background-image:url('${b.img}')">`
   : `<div class="sw-photo ph"><span>${(b.q||'?').slice(0,1).toUpperCase()}</span>`; }
@@ -1986,12 +1951,14 @@ function renderSwipe(){
   const stack=$('swStack');
   if(swIdx>=DECK.length){
     $('swActions').style.display='none';
+    $('swLater').style.display='none';
     $('swProgress').textContent='';
     $('swUndo').disabled=swHist.length===0;
     stack.innerHTML=`<div class="sw-done"><div class="big">🎉</div><b>Tout est trié&nbsp;!</b><div>Plus aucun nouveau bien à passer en revue.</div></div>`;
     return;
   }
   $('swActions').style.display='flex';
+  $('swLater').style.display='block';
   const top=DECK[swIdx], under=DECK[swIdx+1];
   stack.innerHTML=(under?swCardHTML(under,'under'):'')+swCardHTML(top,'top');
   $('swProgress').textContent=`${swIdx+1}/${DECK.length}`;
@@ -2017,10 +1984,22 @@ function swipeAction(dir){           // left = conserver, right = archiver
   setStatusRaw(item.b, dir==='left'?'conserver':'archive');
   setTimeout(()=>{ swIdx++; renderSwipe(); }, 300);
 }
+// « + tard » : reporter le choix — la carte repart en fin de pile, statut inchangé (reste « À trier »)
+function swipeLater(){
+  if(swIdx>=DECK.length) return;
+  const card=$('swStack').querySelector('.sw-card.top'); if(!card) return;
+  card.style.transition='transform .28s ease, opacity .28s ease';
+  card.style.transform='translateY(70px) scale(.9)';
+  card.style.opacity='0';
+  DECK.push(DECK[swIdx]);
+  swHist.push({key:keyOf(DECK[swIdx].b), later:true});
+  setTimeout(()=>{ swIdx++; renderSwipe(); }, 260);
+}
 function undoSwipe(){
   if(!swHist.length) return;
-  const last=swHist.pop(), b=LISTINGS.find(x=>keyOf(x)===last.key);
-  if(b) setStatusRaw(b,null);
+  const last=swHist.pop();
+  if(last.later){ DECK.pop(); }
+  else { const b=LISTINGS.find(x=>keyOf(x)===last.key); if(b) setStatusRaw(b,null); }
   if(swIdx>0) swIdx--;
   renderSwipe();
 }
