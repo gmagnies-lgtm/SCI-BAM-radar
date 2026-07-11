@@ -249,6 +249,18 @@
   .gate button{width:100%;background:var(--acc);color:#0f172a;border:none;border-radius:10px;
     padding:13px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px}
   .gate .err{color:var(--bad);font-size:12.5px;min-height:16px;margin:8px 0 0}
+  .gate .err.ok{color:var(--good)}
+  .gate select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:12px;font-size:15px;margin-bottom:10px;box-sizing:border-box}
+  .gate-links{margin-top:14px;font-size:12.5px;color:var(--mut)}
+  .gate-links a{color:var(--acc);text-decoration:none}
+  /* panneau admin (comptes) */
+  .adm-row{display:flex;justify-content:space-between;gap:10px;align-items:center;
+    border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;font-size:12.5px}
+  .adm-row .adm-st.pending{color:var(--warn)} .adm-row .adm-st.approved{color:var(--good)} .adm-row .adm-st.rejected{color:var(--bad)}
+  .adm-btns{display:flex;gap:6px;flex:none;flex-wrap:wrap}
+  .adm-btns button{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer}
+  .adm-tmp{border:1px dashed var(--acc);border-radius:10px;padding:10px;margin:8px 0;font-size:12.5px}
   .logout{color:var(--mut);font-size:11px;text-decoration:underline;cursor:pointer}
   /* adresse, changement de prix, min/max cash-flow */
   .c-addr{font-size:12px;color:var(--mut);margin-top:3px}
@@ -465,13 +477,28 @@
   <div class="gate-box">
     <img class="gate-logo" src="assets/icon-192.png" alt="SCI BAM">
     <h2>SCI <span>BAM</span> · Radar</h2>
-    <div class="lead">Accès privé — compte de <b>Guillaume</b> (admin)</div>
+    <div class="lead" id="gateLead">Accès privé — connexion</div>
     <form id="gateForm" autocomplete="off">
-      <input id="g_user" type="text" placeholder="Identifiant" autocapitalize="none" autocorrect="off" autocomplete="username">
-      <input id="g_pass" type="password" placeholder="Mot de passe" autocomplete="current-password" inputmode="numeric">
+      <input id="g_user" type="text" placeholder="E-mail" autocapitalize="none" autocorrect="off" autocomplete="username">
+      <input id="g_pass" type="password" placeholder="Mot de passe" autocomplete="current-password">
       <button type="submit">Se connecter</button>
       <div class="err" id="g_err"></div>
     </form>
+    <form id="signupForm" autocomplete="off" hidden>
+      <input id="s_name" type="text" placeholder="Prénom / nom" autocomplete="name">
+      <input id="s_email" type="email" placeholder="E-mail" autocapitalize="none" autocomplete="email">
+      <input id="s_pass" type="password" placeholder="Mot de passe (6 caractères min.)" autocomplete="new-password">
+      <input id="s_pass2" type="password" placeholder="Confirmer le mot de passe" autocomplete="new-password">
+      <select id="s_from" title="Profil de départ">
+        <option value="">Partir d'un profil vierge</option>
+        <option value="guillaume">Charger les tris du profil de Guillaume</option>
+      </select>
+      <button type="submit">Créer mon compte</button>
+      <div class="err" id="s_err"></div>
+    </form>
+    <div class="gate-links">
+      <a href="#" id="lnkMode">Créer un compte</a> · <a href="#" id="lnkForgot">Mot de passe oublié ?</a>
+    </div>
   </div>
 </div>
 
@@ -532,12 +559,17 @@
       <label class="paptoggle"><input type="checkbox" id="papOnly"><span>🤝 Particuliers uniquement (sans agence)</span></label>
       <button class="runbtn" id="runBtn">🔄 Rafraîchir les annonces</button>
       <div class="srcnote" id="srcnote"></div>
-      <div class="syncrow">
+      <div class="syncrow" id="syncRow">
         <label class="srclbl" for="syncCode">🔗 Code de synchro (entre appareils)</label>
         <input id="syncCode" type="password" placeholder="Coller ton code de synchro" autocomplete="off" autocapitalize="none">
         <div class="syncstatus" id="syncStatus"></div>
       </div>
     </div>
+  </details>
+
+  <details class="params" id="adminBox" hidden>
+    <summary>👥 Comptes (admin)</summary>
+    <div id="adminList" style="padding:4px 2px">Chargement…</div>
   </details>
   </div>
 
@@ -1337,10 +1369,15 @@ function ringColor(a){ return a.verdict==='ACHETER'?'var(--good)':(a.verdict==='
 const SYNC={ url:'https://sci-bam-sync.gmagnies.workers.dev' };   // URL du Worker (non secrète). Le code de synchro N'EST PAS ici :
                          // il est saisi par l'utilisateur et stocké en local (jamais dans le dépôt public).
 const SYNCTOKKEY='scibam_synctoken_v1';
+const SESSKEY='scibam_session_v1';   // session multi-utilisateurs {token,name,email,admin}
+function session(){ try{ return JSON.parse(localStorage.getItem(SESSKEY)||'null'); }catch(e){ return null; } }
+function setSession(s){ try{ s?localStorage.setItem(SESSKEY,JSON.stringify(s)):localStorage.removeItem(SESSKEY); }catch(e){} }
 function syncToken(){ try{ return localStorage.getItem(SYNCTOKKEY)||''; }catch(e){ return ''; } }
 function setSyncToken(t){ t=(t||'').trim(); try{ t?localStorage.setItem(SYNCTOKKEY,t):localStorage.removeItem(SYNCTOKKEY); }catch(e){}
-  if(typeof renderSyncStatus==='function') renderSyncStatus(); pullRemote(); }
-function syncOn(){ return !!(SYNC.url && syncToken()); }
+  if(typeof renderSyncStatus==='function') renderSyncStatus(); if(typeof renderAdmin==='function') renderAdmin(); pullRemote(); }
+// token effectif : session multi-utilisateurs (prioritaire) sinon code de synchro historique (Guillaume)
+function effToken(){ const s=session(); return (s&&s.token)||syncToken(); }
+function syncOn(){ return !!(SYNC.url && effToken()); }
 function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST, gone:GONEMARK, crm:CRMD }; }
 function applyRemote(r){
   if(!r||typeof r!=='object') return false; let ch=false;
@@ -1355,10 +1392,10 @@ function applyRemote(r){
 let _pushT=null;
 function pushRemote(){ if(!syncOn()) return; clearTimeout(_pushT);
   _pushT=setTimeout(()=>{ fetch(SYNC.url+'/data',{method:'PUT',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({token:syncToken(), ...snapshot()})}).catch(()=>{}); }, 1200);
+    body:JSON.stringify({token:effToken(), ...snapshot()})}).catch(()=>{}); }, 1200);
 }
 async function pullRemote(){ if(!syncOn()) return;
-  try{ const r=await fetch(SYNC.url+'/data?token='+encodeURIComponent(syncToken()),{cache:'no-store'});
+  try{ const r=await fetch(SYNC.url+'/data?token='+encodeURIComponent(effToken()),{cache:'no-store'});
        if(!r.ok) return; const d=await r.json();
        if(applyRemote(d)) render();
        pushRemote();   // renvoyer l'état fusionné pour converger entre appareils
@@ -1399,6 +1436,11 @@ function renderSources(){
 }
 function renderSyncStatus(){
   const e=$('syncStatus'); if(!e) return;
+  const s=session();
+  if(s){ // compte multi-utilisateurs : la synchro passe par la session, le code n'est plus utile
+    if($('syncRow') && !s.admin) $('syncRow').style.display='none';
+    e.className='syncstatus ok'; e.innerHTML=`✅ Connecté·e en tant que <b>${s.name||s.email}</b> — synchro par compte. <span class="logout" onclick="logout()">Se déconnecter</span>`;
+    return; }
   if(!SYNC.url){ e.className='syncstatus'; e.innerHTML='Synchro pas encore configurée (relais en cours de mise en place).'; return; }
   if(!syncToken()){ e.className='syncstatus'; e.innerHTML='Colle ton code de synchro pour activer le partage entre téléphone et ordinateur.'; return; }
   e.className='syncstatus ok'; e.innerHTML='✅ Synchro active sur cet appareil.';
@@ -1928,7 +1970,10 @@ state.filt=defaultTab();   // entrer sur le 1er onglet non vide, jamais « À tr
 render();
 maybeNotify();
 
-// ----- écran de connexion (déterrent côté client : le dépôt étant public, le code reste lisible) -----
+// ----- écran de connexion — admin local (héritage) + comptes multi-utilisateurs via le Worker -----
+// L'identifiant historique de Guillaume (sans @) reste vérifié côté client (déterrent, dépôt public).
+// Les comptes invités (e-mail + mot de passe) sont gérés côté Worker : hash serveur, session 30 j,
+// validation par l'admin avant le premier accès, tris clonables depuis le profil de Guillaume.
 const AUTHKEY='scibam_auth_v1';
 const GATE={ user:'gmagnies', iter:310000,
   salt:'b665a63d94431c4542433fab70d46752',
@@ -1940,17 +1985,105 @@ async function pbkdf2Hex(pw,saltHex,iter){
   const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},key,256);
   return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-function unlock(){ document.body.classList.remove('locked'); requestNotifPerm(); pullRemote(); maybeNotify(); }
-function logout(){ try{ localStorage.removeItem(AUTHKEY); }catch(e){} location.reload(); }
-if(localStorage.getItem(AUTHKEY)==='1') unlock();
+function isAdminUI(){ const s=session(); return localStorage.getItem(AUTHKEY)==='1' || !!(s&&s.admin); }
+function unlock(){ document.body.classList.remove('locked'); requestNotifPerm(); pullRemote(); maybeNotify(); renderSyncStatus(); renderAdmin(); }
+function logout(){ const s=session();
+  if(s&&s.token) fetch(SYNC.url+'/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:s.token})}).catch(()=>{});
+  setSession(null); try{ localStorage.removeItem(AUTHKEY); }catch(e){} location.reload(); }
+if(localStorage.getItem(AUTHKEY)==='1' || session()) unlock();
+
+async function api(path,body){ const r=await fetch(SYNC.url+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+  const d=await r.json().catch(()=>({})); d._http=r.status; return d; }
+
 $('gateForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const u=$('g_user').value.trim().toLowerCase(), p=$('g_pass').value, err=$('g_err');
-  err.textContent='…';
-  let ok=false; try{ ok = u===GATE.user && (await pbkdf2Hex(p,GATE.salt,GATE.iter))===GATE.hash; }catch(_){ }
-  if(ok){ try{ localStorage.setItem(AUTHKEY,'1'); }catch(_){ } $('g_pass').value=''; err.textContent=''; unlock(); }
-  else { err.textContent='Identifiant ou mot de passe incorrect.'; $('g_pass').value=''; }
+  err.className='err'; err.textContent='…';
+  if(!u.includes('@')){                                   // identifiant historique (admin local)
+    let ok=false; try{ ok = u===GATE.user && (await pbkdf2Hex(p,GATE.salt,GATE.iter))===GATE.hash; }catch(_){ }
+    if(ok){ try{ localStorage.setItem(AUTHKEY,'1'); }catch(_){ } $('g_pass').value=''; err.textContent=''; unlock(); }
+    else { err.textContent='Identifiant ou mot de passe incorrect.'; $('g_pass').value=''; }
+    return;
+  }
+  try{                                                     // compte multi-utilisateurs (Worker)
+    const d=await api('/auth/login',{email:u,password:p});
+    if(d.ok){ setSession({token:d.token,name:d.name,email:d.email,admin:!!d.admin});
+      $('g_pass').value=''; err.textContent='';
+      if(d.mustChange){ const np=prompt('Ton mot de passe était temporaire — choisis ton nouveau mot de passe (6 caractères min.) :');
+        if(np&&np.length>=6) await api('/auth/password',{token:d.token,newPassword:np}); }
+      unlock(); return; }
+    if(d.error==='en_attente'){ err.textContent='⏳ Compte en attente de validation par Guillaume — réessaie bientôt.'; return; }
+    if(d.error==='refuse'){ err.textContent='Ce compte n\'a pas été validé.'; return; }
+    err.textContent='E-mail ou mot de passe incorrect.'; $('g_pass').value='';
+  }catch(_){ err.textContent='Réseau indisponible — réessaie.'; }
 });
+
+// — inscription —
+$('lnkMode').addEventListener('click',e=>{ e.preventDefault();
+  const su=$('signupForm'), lo=$('gateForm'), showSignup=su.hidden;
+  su.hidden=!showSignup; lo.hidden=showSignup;
+  $('lnkMode').textContent=showSignup?'← Retour à la connexion':'Créer un compte';
+  $('gateLead').textContent=showSignup?'Créer un compte — validé par Guillaume avant le premier accès':'Accès privé — connexion'; });
+$('signupForm').addEventListener('submit',async e=>{
+  e.preventDefault(); const err=$('s_err'); err.className='err';
+  const name=$('s_name').value.trim(), email=$('s_email').value.trim().toLowerCase(),
+        p1=$('s_pass').value, p2=$('s_pass2').value, loadFrom=$('s_from').value;
+  if(!name){ err.textContent='Indique ton prénom / nom.'; return; }
+  if(!email.includes('@')){ err.textContent='E-mail invalide.'; return; }
+  if(p1.length<6){ err.textContent='Mot de passe : 6 caractères minimum.'; return; }
+  if(p1!==p2){ err.textContent='Les deux mots de passe ne correspondent pas.'; return; }
+  err.textContent='…';
+  try{
+    const d=await api('/auth/signup',{email,password:p1,name,loadFrom});
+    if(d.ok){ err.className='err ok';
+      err.textContent='✅ Compte créé ! Guillaume doit le valider — reviens te connecter un peu plus tard.';
+      $('signupForm').reset(); return; }
+    if(d.error==='compte_existant'){ err.textContent='Un compte existe déjà avec cet e-mail.'; return; }
+    err.textContent='Inscription impossible ('+(d.error||d._http)+').';
+  }catch(_){ err.textContent='Réseau indisponible — réessaie.'; }
+});
+
+// — mot de passe oublié (réinitialisation via l'admin tant qu'il n'y a pas d'envoi d'e-mail) —
+$('lnkForgot').addEventListener('click',async e=>{ e.preventDefault();
+  const err=$('g_err'); err.className='err';
+  let email=$('g_user').value.trim().toLowerCase();
+  if(!email.includes('@')) email=(prompt('Ton adresse e-mail de compte :')||'').trim().toLowerCase();
+  if(!email.includes('@')) return;
+  try{ await api('/auth/reset-request',{email});
+    err.className='err ok'; err.textContent='✅ Demande envoyée — Guillaume va te transmettre un mot de passe temporaire.';
+  }catch(_){ err.textContent='Réseau indisponible — réessaie.'; }
+});
+
+// — panneau admin : validation des comptes, réinitialisations —
+async function renderAdmin(){
+  const box=$('adminBox'); if(!box) return;
+  if(!isAdminUI() || !effToken()){ box.hidden=true; return; }
+  box.hidden=false; const el=$('adminList');
+  try{
+    const r=await fetch(SYNC.url+'/admin/users?token='+encodeURIComponent(effToken()),{cache:'no-store'});
+    if(!r.ok){ el.innerHTML='⚠️ Accès admin refusé — vérifie le code de synchro.'; return; }
+    const d=await r.json();
+    const rows=(d.users||[]).sort((a,b)=>((a.status==='pending')?0:1)-((b.status==='pending')?0:1) || (b.createdAt||0)-(a.createdAt||0));
+    el.innerHTML = rows.length ? rows.map(u=>`
+      <div class="adm-row">
+        <div class="adm-id"><b>${u.name||''}</b> &lt;${u.email}&gt; ${u.admin?'👑':''}<br>
+          <span class="adm-st ${u.status}">${u.status==='pending'?'⏳ en attente':u.status==='approved'?'✅ validé':'⛔ refusé'}</span>
+          ${u.loadFrom?' · hérite des tris de Guillaume':''}${u.resetRequested?' · 🔑 <b>réinitialisation demandée</b>':''}</div>
+        <div class="adm-btns">
+          ${u.status==='pending'?`<button onclick="admApprove('${u.email}',true)">✅ Valider</button>
+          <button onclick="admApprove('${u.email}',false)">⛔ Refuser</button>`:''}
+          ${u.resetRequested?`<button onclick="admSetpass('${u.email}')">🔑 Mdp temporaire</button>`:''}
+        </div>
+      </div>`).join('') : 'Aucun compte pour le moment. Les inscriptions apparaîtront ici pour validation.';
+  }catch(_){ el.innerHTML='⚠️ Réseau indisponible.'; }
+}
+async function admApprove(email,ok){
+  await api('/admin/approve',{token:effToken(),email,ok}).catch(()=>{}); renderAdmin(); }
+async function admSetpass(email){
+  const d=await api('/admin/setpass',{token:effToken(),email});
+  if(d.tempPassword) $('adminList').insertAdjacentHTML('afterbegin',
+    `<div class="adm-tmp">🔑 Mot de passe temporaire pour <b>${email}</b> : <b>${d.tempPassword}</b><br>À lui transmettre — il devra en choisir un nouveau à la connexion.</div>`);
+  renderAdmin(); }
 
 // ----- PWA : service worker (offline + MAJ auto de la veille) -----
 if ('serviceWorker' in navigator) {
