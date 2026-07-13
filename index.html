@@ -330,7 +330,7 @@
   .sw-card{position:absolute;inset:0;background:var(--card);border:1px solid var(--line);
     border-radius:18px;overflow:hidden;display:flex;flex-direction:column;
     box-shadow:0 18px 40px rgba(0,0,0,.45);will-change:transform}
-  .sw-card.top{touch-action:pan-y}
+  .sw-card.top{touch-action:none}
   .sw-card.under{transform:scale(.94) translateY(14px);filter:brightness(.8)}
   .sw-photo{position:relative;flex:1;min-height:0;background-size:cover;background-position:center;
     background-color:#0b1220}
@@ -375,6 +375,7 @@
   .sw-stamp.keep{left:20px;color:var(--good);border-color:var(--good);transform:rotate(-14deg)}
   .sw-stamp.arch{right:20px;color:var(--bad);border-color:var(--bad);transform:rotate(14deg)}
   .sw-stamp.contact{left:50%;top:16px;color:var(--acc2);border-color:var(--acc2);transform:translateX(-50%) rotate(-5deg)}
+  .sw-stamp.later{left:50%;top:auto;bottom:16px;font-size:20px;color:var(--mut);border-color:var(--mut);transform:translateX(-50%) rotate(-5deg)}
   /* boutons d'action */
   .sw-contact{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:6px 0 8px;
     padding:13px;border-radius:13px;border:1px solid var(--acc2);background:var(--acc2);color:#06283d;
@@ -586,7 +587,7 @@
     <button class="sw-act sw-arch" onclick="swipeAction('right')">🗑 Archiver</button>
   </div>
   <button class="sw-later" id="swLater" onclick="swipeLater()">🕐 + tard — je déciderai après</button>
-  <div class="sw-hint">↑ glisse vers le haut pour <b style="color:var(--acc2)">contacter</b> · ← <b style="color:var(--good)">conserver</b> · <b style="color:var(--bad)">archiver</b> →</div>
+  <div class="sw-hint">↑ <b style="color:var(--acc2)">contacter</b> · ← <b style="color:var(--good)">conserver</b> · <b style="color:var(--bad)">archiver</b> → · ↓ <b style="color:var(--mut)">+ tard</b></div>
   <button class="sw-back" onclick="closeSwipe()">← Retour à mes annonces</button>
 </div>
 
@@ -2587,6 +2588,7 @@ function swCardHTML(item, cls){
       <div class="sw-stamp keep">CONSERVER</div>
       <div class="sw-stamp arch">ARCHIVER</div>
       <div class="sw-stamp contact">CONTACTER ↑</div>
+      <div class="sw-stamp later">+ TARD ↓</div>
       <div class="sw-overlay">
         <div>
           <div class="sw-price">${eur(b.prix)}</div>
@@ -2667,7 +2669,7 @@ function undoSwipe(){
 function attachDrag(card){
   if(!card) return;
   let sx=0,sy=0,dx=0,dy=0,dragging=false,decided=false,horiz=false;
-  const keep=card.querySelector('.sw-stamp.keep'), arch=card.querySelector('.sw-stamp.arch'), contact=card.querySelector('.sw-stamp.contact');
+  const keep=card.querySelector('.sw-stamp.keep'), arch=card.querySelector('.sw-stamp.arch'), contact=card.querySelector('.sw-stamp.contact'), later=card.querySelector('.sw-stamp.later');
   const TH=Math.min(120, window.innerWidth*0.28);
   const THUP=Math.min(120, window.innerHeight*0.16);
   card.addEventListener('pointerdown',e=>{
@@ -2695,18 +2697,26 @@ function attachDrag(card){
       card.style.transform=`translateY(${dy}px) scale(${(1+dy*0.00012).toFixed(3)})`;
       const up=Math.min(1, -dy/(THUP*0.6));
       if(contact) contact.style.opacity=up;
-      if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0;
+      if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0; if(later) later.style.opacity=0;
       card.style.borderColor='var(--acc2)';
       card.style.boxShadow=`0 0 0 ${(up*4).toFixed(1)}px rgba(56,189,248,${(up*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`;
+    } else {                                                         // bas => reprendre + tard = gris
+      card.style.transform=`translateY(${dy}px) scale(${(1-dy*0.00012).toFixed(3)})`;
+      const dn=Math.min(1, dy/(THUP*0.6));
+      if(later) later.style.opacity=dn;
+      if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0; if(contact) contact.style.opacity=0;
+      card.style.borderColor='var(--mut)';
+      card.style.boxShadow=`0 0 0 ${(dn*4).toFixed(1)}px rgba(148,163,184,${(dn*.5).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`;
     }
   });
   const end=()=>{
     if(!dragging) return; dragging=false;
     if(horiz && Math.abs(dx)>TH){ swipeAction(dx<0?'left':'right'); return; }
     if(!horiz && dy < -THUP){ swipeAction('up'); return; }
+    if(!horiz && dy > THUP){ swipeLater(); return; }
     card.style.transition='transform .25s ease, box-shadow .25s ease'; card.style.transform='';
     card.style.borderColor=''; card.style.boxShadow='';
-    if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0; if(contact) contact.style.opacity=0;
+    if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0; if(contact) contact.style.opacity=0; if(later) later.style.opacity=0;
   };
   card.addEventListener('pointerup',end);
   card.addEventListener('pointercancel',end);
