@@ -386,6 +386,7 @@
   .sw-keep{background:rgba(34,197,94,.18);color:var(--good);border:1px solid rgba(34,197,94,.5)}
   .sw-arch{background:rgba(239,68,68,.16);color:var(--bad);border:1px solid rgba(239,68,68,.5)}
   .sw-detail{flex:0 0 auto;background:var(--bg2);color:var(--txt);border:1px solid var(--line);padding:14px 16px}
+  .sw-link{color:var(--acc2);border-color:rgba(56,189,248,.5)}
   .sw-hint{text-align:center;font-size:11.5px;color:var(--mut);margin-top:9px}
   .sw-later{display:block;margin:8px auto 0;padding:8px 16px;border:1px dashed var(--line);border-radius:999px;
     background:transparent;color:var(--mut);font-weight:700;font-size:12.5px;cursor:pointer}
@@ -584,6 +585,7 @@
   <div class="sw-actions" id="swActions">
     <button class="sw-act sw-keep" onclick="swipeAction('left')">⭐ Conserver</button>
     <button class="sw-act sw-detail" onclick="swipeDetail()" title="Fiche technique">ℹ︎</button>
+    <button class="sw-act sw-detail sw-link" onclick="swipeOpenLink()" title="Voir l'annonce ↗">🔗</button>
     <button class="sw-act sw-arch" onclick="swipeAction('right')">🗑 Archiver</button>
   </div>
   <button class="sw-later" id="swLater" onclick="swipeLater()">🕐 + tard — je déciderai après</button>
@@ -2635,6 +2637,7 @@ function openSwipe(){
 }
 function closeSwipe(){ $('swipe').classList.remove('show'); $('swipe').setAttribute('aria-hidden','true'); render(); }
 function swipeDetail(){ if(swIdx<DECK.length) openDetail(DECK[swIdx].b.id); }
+function swipeOpenLink(){ if(swIdx<DECK.length){ const u=DECK[swIdx].b.url; if(u) window.open(u,'_blank','noopener'); } }
 function swipeAction(dir){           // left = conserver, right = archiver, up = à contacter
   if(swIdx>=DECK.length) return;
   const card=$('swStack').querySelector('.sw-card.top'); if(!card) return;
