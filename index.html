@@ -374,8 +374,13 @@
     padding:7px 14px;border-radius:12px;border:4px solid;opacity:0;transform:rotate(-14deg);pointer-events:none}
   .sw-stamp.keep{left:20px;color:var(--good);border-color:var(--good);transform:rotate(-14deg)}
   .sw-stamp.arch{right:20px;color:var(--bad);border-color:var(--bad);transform:rotate(14deg)}
+  .sw-stamp.contact{left:50%;top:16px;color:var(--acc2);border-color:var(--acc2);transform:translateX(-50%) rotate(-5deg)}
   /* boutons d'action */
-  .sw-actions{display:flex;gap:10px;align-items:stretch;margin-top:4px}
+  .sw-contact{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:6px 0 8px;
+    padding:13px;border-radius:13px;border:1px solid var(--acc2);background:var(--acc2);color:#06283d;
+    font-weight:800;font-size:14.5px;cursor:pointer}
+  .sw-contact:active{transform:scale(.98)}
+  .sw-actions{display:flex;gap:10px;align-items:stretch;margin-top:0}
   .sw-act{flex:1;border:0;border-radius:13px;padding:14px 8px;font-size:14px;font-weight:800}
   .sw-keep{background:rgba(34,197,94,.18);color:var(--good);border:1px solid rgba(34,197,94,.5)}
   .sw-arch{background:rgba(239,68,68,.16);color:var(--bad);border:1px solid rgba(239,68,68,.5)}
@@ -574,13 +579,14 @@
     <button class="sw-icbtn" id="swUndo" onclick="undoSwipe()" title="Annuler" disabled>↩︎</button>
   </div>
   <div class="sw-stack" id="swStack"></div>
+  <button class="sw-contact" id="swContact" onclick="swipeAction('up')">📞 À contacter — priorité négo</button>
   <div class="sw-actions" id="swActions">
     <button class="sw-act sw-keep" onclick="swipeAction('left')">⭐ Conserver</button>
     <button class="sw-act sw-detail" onclick="swipeDetail()" title="Fiche technique">ℹ︎</button>
     <button class="sw-act sw-arch" onclick="swipeAction('right')">🗑 Archiver</button>
   </div>
   <button class="sw-later" id="swLater" onclick="swipeLater()">🕐 + tard — je déciderai après</button>
-  <div class="sw-hint">← glisse à gauche pour <b style="color:var(--good)">conserver</b> · glisse à droite pour <b style="color:var(--bad)">archiver</b> →</div>
+  <div class="sw-hint">↑ glisse vers le haut pour <b style="color:var(--acc2)">contacter</b> · ← <b style="color:var(--good)">conserver</b> · <b style="color:var(--bad)">archiver</b> →</div>
   <button class="sw-back" onclick="closeSwipe()">← Retour à mes annonces</button>
 </div>
 
@@ -2580,6 +2586,7 @@ function swCardHTML(item, cls){
       </div>
       <div class="sw-stamp keep">CONSERVER</div>
       <div class="sw-stamp arch">ARCHIVER</div>
+      <div class="sw-stamp contact">CONTACTER ↑</div>
       <div class="sw-overlay">
         <div>
           <div class="sw-price">${eur(b.prix)}</div>
@@ -2602,6 +2609,7 @@ function renderSwipe(){
   const stack=$('swStack');
   if(swIdx>=DECK.length){
     $('swActions').style.display='none';
+    $('swContact').style.display='none';
     $('swLater').style.display='none';
     $('swProgress').textContent='';
     $('swUndo').disabled=swHist.length===0;
@@ -2609,6 +2617,7 @@ function renderSwipe(){
     return;
   }
   $('swActions').style.display='flex';
+  $('swContact').style.display='flex';
   $('swLater').style.display='block';
   const top=DECK[swIdx], under=DECK[swIdx+1];
   stack.innerHTML=(under?swCardHTML(under,'under'):'')+swCardHTML(top,'top');
@@ -2624,15 +2633,16 @@ function openSwipe(){
 }
 function closeSwipe(){ $('swipe').classList.remove('show'); $('swipe').setAttribute('aria-hidden','true'); render(); }
 function swipeDetail(){ if(swIdx<DECK.length) openDetail(DECK[swIdx].b.id); }
-function swipeAction(dir){           // left = conserver, right = archiver
+function swipeAction(dir){           // left = conserver, right = archiver, up = à contacter
   if(swIdx>=DECK.length) return;
   const card=$('swStack').querySelector('.sw-card.top'); if(!card) return;
-  const item=DECK[swIdx], off=dir==='left'?-1:1;
+  const item=DECK[swIdx];
   card.style.transition='transform .32s ease, opacity .32s ease';
-  card.style.transform=`translateX(${off*window.innerWidth}px) rotate(${off*18}deg)`;
+  if(dir==='up') card.style.transform=`translateY(-${window.innerHeight}px) scale(.9)`;
+  else { const off=dir==='left'?-1:1; card.style.transform=`translateX(${off*window.innerWidth}px) rotate(${off*18}deg)`; }
   card.style.opacity='0';
   swHist.push({key:keyOf(item.b)});
-  setStatusRaw(item.b, dir==='left'?'conserver':'archive');
+  setStatusRaw(item.b, dir==='up'?'contacter':(dir==='left'?'conserver':'archive'));
   setTimeout(()=>{ swIdx++; renderSwipe(); }, 300);
 }
 // « + tard » : reporter le choix — la carte repart en fin de pile, statut inchangé (reste « À trier »)
@@ -2657,8 +2667,9 @@ function undoSwipe(){
 function attachDrag(card){
   if(!card) return;
   let sx=0,sy=0,dx=0,dy=0,dragging=false,decided=false,horiz=false;
-  const keep=card.querySelector('.sw-stamp.keep'), arch=card.querySelector('.sw-stamp.arch');
+  const keep=card.querySelector('.sw-stamp.keep'), arch=card.querySelector('.sw-stamp.arch'), contact=card.querySelector('.sw-stamp.contact');
   const TH=Math.min(120, window.innerWidth*0.28);
+  const THUP=Math.min(120, window.innerHeight*0.16);
   card.addEventListener('pointerdown',e=>{
     if(e.target.closest('.sw-act')) return;
     dragging=true; decided=false; horiz=false; sx=e.clientX; sy=e.clientY; dx=0; dy=0;
@@ -2668,23 +2679,34 @@ function attachDrag(card){
     if(!dragging) return;
     dx=e.clientX-sx; dy=e.clientY-sy;
     if(!decided && (Math.abs(dx)>8||Math.abs(dy)>8)){ decided=true; horiz=Math.abs(dx)>Math.abs(dy); }
-    if(!horiz) return;
-    card.style.transform=`translateX(${dx}px) rotate(${dx*0.05}deg)`;
-    const prog=Math.max(-1,Math.min(1, dx/(TH*0.55)));            // plein effet dès ~55 % du seuil = réaction plus tôt
-    if(keep) keep.style.opacity=Math.max(0,-prog);
-    if(arch) arch.style.opacity=Math.max(0, prog);
-    if(prog<0){ const i=-prog; card.style.borderColor='var(--good)';                     // gauche => conserver = vert
-      card.style.boxShadow=`0 0 0 ${(i*4).toFixed(1)}px rgba(34,197,94,${(i*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`; }
-    else if(prog>0){ const i=prog; card.style.borderColor='var(--bad)';                  // droite => archiver = rouge
-      card.style.boxShadow=`0 0 0 ${(i*4).toFixed(1)}px rgba(239,68,68,${(i*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`; }
-    else { card.style.borderColor=''; card.style.boxShadow=''; }
+    if(!decided) return;
+    if(horiz){
+      card.style.transform=`translateX(${dx}px) rotate(${dx*0.05}deg)`;
+      const prog=Math.max(-1,Math.min(1, dx/(TH*0.55)));           // plein effet dès ~55 % du seuil = réaction plus tôt
+      if(keep) keep.style.opacity=Math.max(0,-prog);
+      if(arch) arch.style.opacity=Math.max(0, prog);
+      if(contact) contact.style.opacity=0;
+      if(prog<0){ const i=-prog; card.style.borderColor='var(--good)';                   // gauche => conserver = vert
+        card.style.boxShadow=`0 0 0 ${(i*4).toFixed(1)}px rgba(34,197,94,${(i*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`; }
+      else if(prog>0){ const i=prog; card.style.borderColor='var(--bad)';                // droite => archiver = rouge
+        card.style.boxShadow=`0 0 0 ${(i*4).toFixed(1)}px rgba(239,68,68,${(i*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`; }
+      else { card.style.borderColor=''; card.style.boxShadow=''; }
+    } else if(dy<0){                                                // haut => à contacter = cyan
+      card.style.transform=`translateY(${dy}px) scale(${(1+dy*0.00012).toFixed(3)})`;
+      const up=Math.min(1, -dy/(THUP*0.6));
+      if(contact) contact.style.opacity=up;
+      if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0;
+      card.style.borderColor='var(--acc2)';
+      card.style.boxShadow=`0 0 0 ${(up*4).toFixed(1)}px rgba(56,189,248,${(up*.55).toFixed(2)}),0 18px 40px rgba(0,0,0,.45)`;
+    }
   });
   const end=()=>{
     if(!dragging) return; dragging=false;
     if(horiz && Math.abs(dx)>TH){ swipeAction(dx<0?'left':'right'); return; }
+    if(!horiz && dy < -THUP){ swipeAction('up'); return; }
     card.style.transition='transform .25s ease, box-shadow .25s ease'; card.style.transform='';
     card.style.borderColor=''; card.style.boxShadow='';
-    if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0;
+    if(keep) keep.style.opacity=0; if(arch) arch.style.opacity=0; if(contact) contact.style.opacity=0;
   };
   card.addEventListener('pointerup',end);
   card.addEventListener('pointercancel',end);
