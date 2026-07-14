@@ -3,7 +3,7 @@
    - HTML (navigation) : réseau d'abord, puis cache hors-ligne (pour voir les MAJ de la veille dès qu'on est en ligne).
    - Icônes / manifeste : cache d'abord.
    - Photos SeLoger : cache d'abord, MAJ en arrière-plan (visibles hors-ligne). */
-const VERSION = 'sci-bam-v29';
+const VERSION = 'sci-bam-v30';
 const SHELL = 'shell-' + VERSION;
 const IMG = 'img-' + VERSION;
 const SHELL_ASSETS = [

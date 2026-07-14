@@ -167,6 +167,20 @@
   .sh-x{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:50%;
     width:34px;height:34px;font-size:15px;flex:none}
   .sh-verdict{display:inline-block;margin:12px 0;font-weight:800;font-size:13px;padding:5px 12px;border-radius:8px}
+  /* curseur loyer €/m² dans la simulation */
+  .sh-loyer{background:var(--card);border:1px solid rgba(56,189,248,.35);border-radius:12px;padding:11px 13px;margin:4px 0 6px}
+  .sh-loyer.real{border-color:rgba(34,197,94,.4);font-size:12.5px;color:var(--mut);line-height:1.5}
+  .sh-loyer.real b{color:var(--txt)}
+  .shl-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--mut)}
+  .shl-top b{font-size:16px;color:var(--acc2);font-weight:800}
+  #shlRange{width:100%;margin:9px 0 2px;accent-color:var(--acc2)}
+  .shl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--mut)}
+  .shl-live{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:9px;font-size:12px;color:var(--mut)}
+  .shl-live b{font-size:14px;color:var(--txt);font-weight:800}
+  .shl-live b.pos{color:var(--good)} .shl-live b.neg{color:var(--bad)}
+  .shl-hint{font-size:11px;color:var(--mut);margin-top:7px}
+  .shl-reset{margin-top:9px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer}
   .sh-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
   .sh-cell{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
   .sh-k{font-size:11px;color:var(--mut)}
@@ -530,7 +544,7 @@
       <div class="fld"><label>Taux crédit + assur. (%)</label><input id="p_taux" type="number" step="0.1" value="3.3"></div>
       <div class="fld"><label>Durée (ans)</label><input id="p_duree" type="number" value="20"></div>
       <div class="fld"><label>Frais notaire ancien (%)</label><input id="p_notaire" type="number" step="0.1" value="7.5"></div>
-      <div class="fld"><label>Loyer (€/m²)</label><input id="p_loyer" type="number" step="0.5" value="17"></div>
+      <div class="fld"><label>Loyer défaut (€/m²)</label><input id="p_loyer" type="number" step="0.5" value="15"></div>
       <div class="fld"><label>Vacance (%)</label><input id="p_vac" type="number" step="0.5" value="2"></div>
       <div class="fld"><label>Charges non récup. (€/mois)</label><input id="p_charges" type="number" value="200"></div>
       <div class="fld"><label>Valeur garage (€)</label><input id="p_gar" type="number" value="25000"></div>
@@ -568,7 +582,7 @@
   <div class="mktbar" id="mktbar"></div>
   <div class="foot">
     Touchez une carte pour la simulation cash-flow complète (modèle SCI BAM).<br>
-    Moteur selon le cahier des charges · loyer 17 €/m² (marché observé 16,8). Annonces : leboncoin · ParuVendu · SeLoger (Lyon 7e/3e), sites configurables.<br>
+    Moteur selon le cahier des charges · loyer défaut 15 €/m², ajustable par bien (curseur 13–18) dans la simulation ; marché relevé 14/07/2026 : médiane ~13 €/m² HC pour 80–120 m² en 7e/3e. Annonces : leboncoin · ParuVendu · SeLoger (Lyon 7e/3e), sites configurables.<br>
     Prix de marché : DVF / Notaires via MeilleursAgents (1ᵉʳ juin 2026). Vos statuts sont mémorisés sur cet appareil.<br>
     <span class="logout" onclick="logout()">Se déconnecter</span>
   </div>
@@ -1808,7 +1822,7 @@ const QSCORE = {"Saint-Louis":0.86, "Jean Macé":0.9, "Guillotière":0.76, "Guil
 // quai Claude Bernard, place Jean Jaurès, rue des Girondins, av. Debourg, bd des Tchécoslovaques, rue Chevreul).
 const MARKET = {
   date:"1er juillet 2026", source:"DVF / Notaires (via MeilleursAgents)",
-  pm2Moyen:4629, pm2Min:3257, pm2Max:5805, loyerObserve:16.8,
+  pm2Moyen:4629, pm2Min:3257, pm2Max:5805, loyerObserve:13.2,
   evol1an:-0.6, evol5ans:-10.5,
   parQuartier:{ "Saint-Louis":4785, "Jean Macé":4825, "Guillotière":4719, "Guillotière Sud":4800,
     "Gerland":4353, "Girondins":4584, "Place Jean Jaurès":4748, "Debourg":4220, "Saxe-Gambetta":4789,
@@ -1846,7 +1860,7 @@ function mensualite(E, i, n){ if(E<=0) return 0; return E*i/(1-Math.pow(1+i,-n))
 // capital empruntable pour une mensualité M
 function capitalMax(M, i, n){ return M*(1-Math.pow(1+i,-n))/i; }
 
-function analyse(b, P){
+function analyse(b, P, loyerM2Override){
   const n = P.duree*12, i = P.taux/12;
   const crm = tsGet(CRMD, keyOf(b)) || {};           // données réelles saisies dans le CRM (remplacent l'hypothèse)
   const sus = +crm.sus || 0;                         // éléments vendus en sus du prix (parking, cave…)
@@ -1859,7 +1873,9 @@ function analyse(b, P){
   const apport = apportPour(base, P);
   const emprunt = Math.max(0, coutTotal - apport);
   const mens = mensualite(emprunt, i, n);
-  const loyerMois = +crm.loyer > 0 ? +crm.loyer : P.loyer * b.m;   // loyer réel si occupé
+  const lm2ov = (loyerM2Override!=null && loyerM2Override!=='') ? +loyerM2Override : getLoyerM2(b);  // aperçu live > curseur enregistré
+  const loyerM2eff = (lm2ov!=null) ? lm2ov : P.loyer;              // sinon défaut global
+  const loyerMois = +crm.loyer > 0 ? +crm.loyer : loyerM2eff * b.m; // loyer réel si occupé, sinon €/m² (ajusté) × surface
   const loyerNet = loyerMois * (1-P.vac);
   const chMois = (crm.charges!=null && crm.charges!=='') ? +crm.charges : P.charges;  // charges copro réelles
   const tfMois = (+crm.tf || 0)/12;                  // taxe foncière connue (€/an → €/mois)
@@ -1911,7 +1927,7 @@ function analyse(b, P){
   let verdict="PASSER", vClass="v-pass";
   if(score>=70 && e>=-0.03 && e<=0.25){ verdict="ACHETER"; vClass="v-go"; }
   else if(score>=55){ verdict="À SURVEILLER"; vClass="v-watch"; }
-  return {annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,
+  return {annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,loyerM2eff,
           cashflow,rentBrute,rentNette,prixConseille,prixPlafond,ecart,
           sus,chMois,tfMois,apportEq,prixEq,
           mPm2,prixMarche,ecartMarche,stars,parts,mkClass,score,verdict,vClass};
@@ -1961,6 +1977,12 @@ let NOTES=tsLoad(NTKEY);
 function getNote(b){ return tsGet(NOTES,keyOf(b))||''; }
 function setNote(b,t){ const k=keyOf(b); tsSet(NOTES,k, (t&&t.trim())?t:null);
   try{ localStorage.setItem(NTKEY,JSON.stringify(NOTES)); }catch(e){} pushRemote(); }
+// ----- loyer €/m² ajusté par bien (curseur dans la simulation) — synchronisé -----
+const LMKEY='scibam_loyerm2_v1';
+let LOYERM2=tsLoad(LMKEY);
+function getLoyerM2(b){ const v=tsGet(LOYERM2,keyOf(b)); return (v!=null&&v!=='')?+v:null; }
+function setLoyerM2Raw(b,val){ const k=keyOf(b); tsSet(LOYERM2,k,(val==null||val==='')?null:+val);
+  try{ localStorage.setItem(LMKEY,JSON.stringify(LOYERM2)); }catch(e){} pushRemote(); }
 // ----- CRM négociation : données réelles par bien (charges, TF, contact, pipeline…) — synchronisé -----
 const CRMKEY='scibam_crm_v1';
 let CRMD=tsLoad(CRMKEY);
@@ -2129,7 +2151,7 @@ function setSyncToken(t){ t=(t||'').trim(); try{ t?localStorage.setItem(SYNCTOKK
 // token effectif : session multi-utilisateurs (prioritaire) sinon code de synchro historique (Guillaume)
 function effToken(){ const s=session(); return (s&&s.token)||syncToken(); }
 function syncOn(){ return !!(SYNC.url && effToken()); }
-function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST, gone:GONEMARK, crm:CRMD }; }
+function snapshot(){ return { status:STATUS, notes:NOTES, pricehist:PRICEHIST, gone:GONEMARK, crm:CRMD, loyerm2:LOYERM2 }; }
 function applyRemote(r){
   if(!r||typeof r!=='object') return false; let ch=false;
   // fusion datée (tombstones) : pour chaque clé, l'entrée la plus récente gagne — y compris les suppressions
@@ -2137,6 +2159,7 @@ function applyRemote(r){
   if(r.notes&&typeof r.notes==='object'){ if(tsMerge(NOTES,r.notes)){ ch=true; try{localStorage.setItem(NTKEY,JSON.stringify(NOTES));}catch(e){} } }
   if(r.gone&&typeof r.gone==='object'){ if(tsMerge(GONEMARK,r.gone)){ ch=true; try{localStorage.setItem(GKEY,JSON.stringify(GONEMARK));}catch(e){} } }
   if(r.crm&&typeof r.crm==='object'){ if(tsMerge(CRMD,r.crm)){ ch=true; try{localStorage.setItem(CRMKEY,JSON.stringify(CRMD));}catch(e){} } }
+  if(r.loyerm2&&typeof r.loyerm2==='object'){ if(tsMerge(LOYERM2,r.loyerm2)){ ch=true; try{localStorage.setItem(LMKEY,JSON.stringify(LOYERM2));}catch(e){} } }
   if(r.pricehist&&typeof r.pricehist==='object'){ for(const k in r.pricehist){ const a=PRICEHIST[k]||[],b=r.pricehist[k]||[]; if(b.length>a.length) PRICEHIST[k]=b; } savePriceHist(); ch=true; }
   return ch;
 }
@@ -2326,8 +2349,8 @@ function render(){
 
 // ----- projection pluriannuelle (modèle SCI BAM, 25 ans) -----
 const GROWTH={ loyer:0.025, charges:0.02, valeur:0.01 };  // hypothèses du tableur
-function projete(b,P){
-  const a=analyse(b,P);
+function projete(b,P,loyerM2Override){
+  const a=analyse(b,P,loyerM2Override);
   const N=25, L=P.duree, i=P.taux/12;
   let bal=a.emprunt, cumv=0;
   const years=[],cf=[],cum=[],rb=[],mrn=[],equity=[],crd=[],valeur=[];
@@ -2424,6 +2447,15 @@ function openDetail(id){
       <button class="sh-x" onclick="closeDetail()">✕</button>
     </div>
     <span class="sh-verdict ${a.vClass}">${a.verdict}</span>
+    ${(+crmOf(b).loyer>0)
+      ? `<div class="sh-loyer real">💶 Loyer réel saisi (CRM) : <b>${eur(+crmOf(b).loyer)}/mois</b> · ${(+crmOf(b).loyer/b.m).toFixed(1).replace('.',',')} €/m² — c'est lui qui alimente la simulation.</div>`
+      : `<div class="sh-loyer" id="shLoyer">
+      <div class="shl-top"><span>Loyer retenu pour ce bien</span><b id="shlVal">${a.loyerM2eff.toFixed(1).replace('.',',')} €/m²</b></div>
+      <input id="shlRange" type="range" min="13" max="18" step="0.5" value="${a.loyerM2eff}" oninput="loyerLive(${b.id},this.value)" onchange="loyerCommit(${b.id},this.value)">
+      <div class="shl-scale"><span>13 · bas</span><span>marché ~13</span><span>18 · haut</span></div>
+      <div class="shl-live" id="shlLive">${loyerStrip(a,p)}</div>
+      ${getLoyerM2(b)!=null?`<button class="shl-reset" onclick="loyerCommit(${b.id},'')">↺ Revenir au défaut (${(''+P.loyer).replace('.',',')} €/m²)</button>`:'<div class="shl-hint">Glisse pour tester un loyer plus prudent ou plus haut — tout se recalcule.</div>'}
+    </div>`}
     <div class="sh-chart-h">Cash-flow annuel <span class="lg lg-cf">■ cash-flow</span> <span class="lg lg-eq">▬ valeur nette du bien</span></div>
     <div class="sh-chart">${chartSVG(p)}</div>
     <div class="sh-mmcf">Cash-flow le plus bas : <b class="${p.cfMin>=0?'pos':'neg'}">${p.cfMin>=0?'+':''}${eur(p.cfMin)}/an</b> (≈ ${p.cfMin>=0?'+':''}${Math.round(p.cfMin/12).toLocaleString('fr-FR')} €/mois · an ${p.cfMinY}) — le plus haut : <b class="pos">+${eur(p.cfMax)}/an</b> (≈ +${Math.round(p.cfMax/12).toLocaleString('fr-FR')} €/mois · an ${p.cfMaxY})</div>
@@ -2441,6 +2473,17 @@ function openDetail(id){
   $('modal').classList.add('show'); $('modal').setAttribute('aria-hidden','false');
 }
 function closeDetail(){ $('modal').classList.remove('show'); $('modal').setAttribute('aria-hidden','true'); }
+// ----- curseur loyer €/m² dans la simulation : aperçu live puis enregistrement -----
+function loyerStrip(a,p){ const cf=Math.round(a.cashflow);
+  return `<span>Loyer <b>${eur(Math.round(a.loyerMois))}/mois</b></span>`
+       +`<span>Cash-flow <b class="${cf>=0?'pos':'neg'}">${cf>=0?'+':''}${cf.toLocaleString('fr-FR')} €/m</b></span>`
+       +`<span>Rdt net <b>${pct(a.rentNette)}</b></span>`
+       +`<span>DSCR <b>${p.dscr.toFixed(2)}</b></span>`; }
+function loyerLive(id,val){ const b=byId(id),P=params();
+  const a=analyse(b,P,val), p=projete(b,P,val);
+  const v=$('shlVal'); if(v) v.textContent=(+val).toFixed(1).replace('.',',')+' €/m²';
+  const l=$('shlLive'); if(l) l.innerHTML=loyerStrip(a,p); }
+function loyerCommit(id,val){ setLoyerM2Raw(byId(id), val===''?'':+val); openDetail(id); }
 
 // ===================== CRM NÉGOCIATION =====================
 // Page dédiée aux biens « À contacter » : données réelles, apport/prix d'équilibre,
