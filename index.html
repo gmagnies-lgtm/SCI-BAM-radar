@@ -2693,8 +2693,8 @@ function refreshKnown(){
 }
 function allListings(){ return LISTINGS.concat(GONE); }
 
-// --- Filtre quartiers (demande Guillaume, 2026-07-01) : Gerland / Jean Jaurès écartés SAUF cash-flow positif ---
-const EXCL_Q=/gerland|jaur[eè]s/i;   // quartiers à écarter par défaut
+// --- Filtre quartiers (demandes Guillaume, 2026-07-01 et 2026-08-31) : Gerland / Jean Jaurès / Debourg / Dauphiné-Lacassagne / Tony Garnier écartés SAUF cash-flow positif ---
+const EXCL_Q=/gerland|jaur[eè]s|debourg|dauphin[eé]|lacassagne|tony[\s-]*garnier/i;   // quartiers à écarter par défaut
 const EXCL_CF_MIN=0;                 // « très positif » = cash-flow strictement > 0 €/mois → conservé
 function isExclQ(b,P){ if(!EXCL_Q.test(b.q||'')) return false;
   try{ return analyse(b, P||params()).cashflow <= EXCL_CF_MIN; }catch(e){ return true; } }
