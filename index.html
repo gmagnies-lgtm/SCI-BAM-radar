@@ -2693,8 +2693,8 @@ function refreshKnown(){
 }
 function allListings(){ return LISTINGS.concat(GONE); }
 
-// --- Filtre quartiers (demandes Guillaume, 2026-07-01 et 2026-08-31) : Gerland / Jean Jaurès / Debourg / Dauphiné-Lacassagne / Tony Garnier écartés SAUF cash-flow positif ---
-const EXCL_Q=/gerland|jaur[eè]s|debourg|dauphin[eé]|lacassagne|tony[\s-]*garnier/i;   // quartiers à écarter par défaut
+// --- Filtre quartiers (demandes Guillaume, 2026-07-01, 2026-08-31 et 2026-09-25) : Gerland / Jean Jaurès / Debourg / Dauphiné-Lacassagne / Sans Souci / Tony Garnier / Villette / Part-Dieu écartés SAUF cash-flow positif ---
+const EXCL_Q=/gerland|jaur[eè]s|debourg|dauphin[eé]|lacassagne|tony[\s-]*garnier|sans[\s-]*souci|villette|part[\s-]*dieu/i;   // quartiers à écarter par défaut
 const EXCL_CF_MIN=0;                 // « très positif » = cash-flow strictement > 0 €/mois → conservé
 function isExclQ(b,P){ if(!EXCL_Q.test(b.q||'')) return false;
   try{ return analyse(b, P||params()).cashflow <= EXCL_CF_MIN; }catch(e){ return true; } }
@@ -2928,7 +2928,7 @@ function render(){
   rows=rows.filter(({b,a})=> !(EXCL_Q.test(b.q||'') && a.cashflow<=EXCL_CF_MIN));  // quartiers écartés sauf cash-flow positif
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
-  rows.sort((x,y)=> (isGone(x.b)?1:0)-(isGone(y.b)?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));
+  rows.sort((x,y)=> (isGone(x.b)?1:0)-(isGone(y.b)?1:0) || (isStLouis(y.b)?1:0)-(isStLouis(x.b)?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));   // Saint-Louis = quartier cible, toujours en tête
   renderSortbar();
   const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive' && !isExclQ(r.b,P)).sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
@@ -3218,7 +3218,7 @@ function buildDeck(){ const P=params();
     .filter(b=> SRC[siteKeyOf(b.url)]!==false)
     .filter(b=> !PAPONLY || b.pap===true)
     .map(b=>({b,a:analyse(b,P)}))
-    .sort((x,y)=> (isNewListing(y.b)?1:0)-(isNewListing(x.b)?1:0) || y.a.score-x.a.score);
+    .sort((x,y)=> (isStLouis(y.b)?1:0)-(isStLouis(x.b)?1:0) || (isNewListing(y.b)?1:0)-(isNewListing(x.b)?1:0) || y.a.score-x.a.score);
 }
 function swPhotoOpen(b){ return b.img
   ? `<div class="sw-photo" style="background-image:url('${b.img}')">`
