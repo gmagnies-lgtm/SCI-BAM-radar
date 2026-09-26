@@ -327,6 +327,12 @@
   .gtile.go{border-color:rgba(34,197,94,.45)} .gtile.go .gt-v{color:var(--good)}
   .gtile.warnm{border-color:rgba(245,158,11,.45)} .gtile.warnm .gt-v{color:var(--warn)}
   /* ===== tag "annonce en modification" (cartes liste) ===== */
+  .favstar{position:absolute;top:calc(clamp(170px,26vw,240px) - 52px);right:10px;z-index:3;width:40px;height:40px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.55);color:#fff;font-size:22px;line-height:40px;padding:0;cursor:pointer}
+  .favstar.on{background:var(--acc);color:#111}
+  .notepeek{background:rgba(245,158,11,.12);border-left:3px solid var(--acc);border-radius:6px;padding:7px 10px;margin:8px 12px 0;font-size:13px;line-height:1.35;white-space:normal}
+  .modpill{cursor:pointer}
+  .modpill.on{outline:2px solid var(--acc)}
   .modtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.4px;margin:8px 0 0;
     padding:3px 8px;border-radius:6px;background:rgba(245,158,11,.16);color:var(--warn);
     border:1px solid rgba(245,158,11,.45)}
@@ -519,6 +525,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex:none">
         <span class="pill" id="newpill" onclick="openSwipe()" title="Trier les nouveaux biens">0 nouv.</span>
+        <span class="pill modpill" id="modpill" onclick="showModified()" title="Biens dont le prix a changé" hidden></span>
         <button class="gear" id="gearBtn" title="Réglages (apport, paramètres, sources, filtres)">⚙️</button>
       </div>
     </div>
@@ -3735,6 +3742,23 @@ function crmSet(b,patch){ const k=keyOf(b); const cur={...(tsGet(CRMD,k)||{})};
   for(const f in patch){ const v=patch[f]; if(v==null||v===''||(Array.isArray(v)&&!v.length)) delete cur[f]; else cur[f]=v; }
   tsSet(CRMD,k, Object.keys(cur).length?cur:null);
   try{ localStorage.setItem(CRMKEY,JSON.stringify(CRMD)); }catch(e){} pushRemote(); }
+// ----- favoris ⭐ (onglet À contacter) — rangés dans la fiche CRM, donc synchronisés -----
+function isFav(b){ return !!crmOf(b).fav; }
+function toggleFav(id){ const b=byId(id); if(!b) return; crmSet(b,{fav:isFav(b)?null:1}); render(); }
+// ----- réparation des clés : une annonce republiée change d'url ; on rattache au bien les
+// statuts / notes / CRM restés sous une ancienne url (même n° d'annonce dans l'url ou l'id) -----
+function healKeys(){ let ch=false;
+  const num=k=>(String(k).match(/\d{8,}/g)||[]);
+  const inUse=new Set(LISTINGS.map(keyOf));
+  [[STATUS,STKEY],[NOTES,NTKEY],[CRMD,CRMKEY],[GONEMARK,GKEY],[LOYERM2,LMKEY]].forEach(([M,lk])=>{
+    const idx={}; for(const k in M){ if(inUse.has(k)) continue; for(const n of num(k)) (idx[n]=idx[n]||[]).push(k); }
+    let mch=false;
+    LISTINGS.forEach(b=>{ const pk=keyOf(b); if(M[pk]!=null) return;
+      const ids=new Set([...num(b.id),...num(b.url),...num(b.key||'')]); let best=null;
+      ids.forEach(n=>(idx[n]||[]).forEach(k=>{ const e=tsNorm(M[k]); if(e.v!=null&&(!best||e.t>best.t)) best=e; }));
+      if(best){ M[pk]={v:best.v,t:best.t||1}; mch=true; } });
+    if(mch){ ch=true; try{ localStorage.setItem(lk,JSON.stringify(M)); }catch(e){} } });
+  return ch; }
 function sourceOf(url){ if(!url) return 'Annonce';
   if(/seloger/.test(url)) return 'SeLoger'; if(/leboncoin/.test(url)) return 'leboncoin';
   if(/paruvendu/.test(url)) return 'ParuVendu'; if(/bienici/.test(url)) return "Bien'ici";
@@ -3849,7 +3873,8 @@ function maybeNotify(){
       icon:'assets/icon-192.png', tag:'scibam-new' });
   }catch(e){}
 }
-function modifiedList(){ return LISTINGS.filter(isModified); }
+function modifiedList(){ const P=params(); return LISTINGS.filter(b=>isModified(b) && !isGone(b) && !isExclQ(b,P)); }
+function showModified(){ state.filt='modif'; if(state.sort==='fav') state.sort='score'; render(); window.scrollTo({top:0,behavior:'smooth'}); }
 function renderGlance(){
   const g=$('glance'); if(!g) return;
   const P=params();
@@ -3915,7 +3940,7 @@ function pushRemote(){ if(!syncOn()) return; clearTimeout(_pushT);
 async function pullRemote(){ if(!syncOn()) return;
   try{ const r=await fetch(SYNC.url+'/data?token='+encodeURIComponent(effToken()),{cache:'no-store'});
        if(!r.ok) return; const d=await r.json();
-       if(applyRemote(d)) render();
+       const ch=applyRemote(d); if(healKeys()||ch) render();
        pushRemote();   // renvoyer l'état fusionné pour converger entre appareils
   }catch(e){}
 }
@@ -3928,15 +3953,16 @@ function formerCatLabel(b){ const s=getStatus(b);
 // onglet d'entrée : 1er onglet non vide (jamais « À trier » sauf si tout le reste est vide)
 function defaultTab(){ const c=statusCounts(); for(const k of ['contacter','conserver','archive']) if(c[k]>0) return k; return 'contacter'; }
 // Classement de visibilité (point 7) — applicable dans tous les onglets, y compris Archivés
-const SORTOPTS=[['score','🏆 Meilleure note'],['gain','💰 Gain à l\'achat'],['cashflow','💵 Cash-flow'],['date','📅 Date de pub']];
+const SORTOPTS=[['fav','⭐ Favoris'],['score','🏆 Meilleure note'],['gain','💰 Gain à l\'achat'],['cashflow','💵 Cash-flow'],['date','📅 Date de pub']];
 const SORTERS={
+  fav:     (x,y)=> (isFav(y.b)?1:0)-(isFav(x.b)?1:0) || y.a.score-x.a.score,
   score:   (x,y)=> y.a.score-x.a.score,
   gain:    (x,y)=> (y.a.prixMarche-y.b.prix)-(x.a.prixMarche-x.b.prix),
   cashflow:(x,y)=> y.a.cashflow-x.a.cashflow,
   date:    (x,y)=> pubTs(y.b)-pubTs(x.b)
 };
 function renderSortbar(){ if(!$('sortbar'))return;
-  $('sortbar').innerHTML='<span class="sb-lbl">Trier :</span>'+SORTOPTS.map(([k,l])=>
+  $('sortbar').innerHTML='<span class="sb-lbl">Trier :</span>'+SORTOPTS.filter(([k])=>k!=='fav'||state.filt==='contacter').map(([k,l])=>
     `<button class="sortbtn ${state.sort===k?'on':''}" data-sort="${k}">${l}</button>`).join(''); }
 
 function statusCounts(){ const P=params();
@@ -3985,10 +4011,12 @@ function card(b,a){
     ${photoHTML(b)}
     ${(st==='contacter'&&!gone&&drop)?`<div class="promostamp">🏷️ Prix en baisse de ${kEur(drop)}</div>`:''}
     ${gone?`<div class="gonetag ${st==='archive'?'g':'r'}">⚠️ Retirée du marché</div><div class="gonetag former">Était : ${formerCatLabel(b)}</div>`:''}
+    ${(st==='contacter'&&!gone)?`<button class="favstar ${isFav(b)?'on':''}" onclick="event.stopPropagation();toggleFav(${b.id})" title="${isFav(b)?'Retirer des favoris':'Ajouter aux favoris'}">${isFav(b)?'★':'☆'}</button>`:''}
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
+    ${note?`<div class="notepeek">📝 ${note.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
     ${(pc&&pc.delta)?`<div class="pricechg ${pc.delta<0?'down':'up'}">${pc.delta<0?'📉':'📈'} ${pc.delta<0?'−':'+'}${eur(Math.abs(pc.delta))} depuis le ${dmy(pc.since)} (${eur(pc.from)} → ${eur(pc.to)})</div>`:''}
-    ${(pc&&pc.delta)?`<div class="modtag">✏️ Annonce en modification</div>`:''}
+    ${(pc&&pc.delta)?`<div class="modtag">✏️ Prix modifié</div>`:''}
     <div class="c-main">
       <div class="c-body">
         <div class="c-top">
@@ -4063,18 +4091,19 @@ function render(){
   rows=rows.filter(({b})=>{
     if(state.filt==='gone') return isGone(b);          // onglet Disparues : auto-retirées + marquées manuellement
     if(isGone(b)) return false;                        // ailleurs : on masque les disparues
+    if(state.filt==='modif') return isModified(b);     // pastille ✏️ : biens dont le prix a changé (tous statuts)
     const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
   rows=rows.filter(({b,a})=> !(EXCL_Q.test(b.q||'') && a.cashflow<=EXCL_CF_MIN));  // quartiers écartés sauf cash-flow positif
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
-  rows.sort((x,y)=> (isGone(x.b)?1:0)-(isGone(y.b)?1:0) || (isStLouis(y.b)?1:0)-(isStLouis(x.b)?1:0) || (SORTERS[state.sort]||SORTERS.score)(x,y));   // Saint-Louis = quartier cible, toujours en tête
+  rows.sort((x,y)=> (isGone(x.b)?1:0)-(isGone(y.b)?1:0) || (state.sort==='score'?(isStLouis(y.b)?1:0)-(isStLouis(x.b)?1:0):0) || (SORTERS[state.sort]||SORTERS.score)(x,y));   // Saint-Louis en tête du tri par défaut ; un tri choisi (gain, cash-flow, date, favoris) s'applique tel quel
   renderSortbar();
   const best=LISTINGS.map(b=>({b,a:analyse(b,P)})).filter(r=>getStatus(r.b)!=='archive' && !isExclQ(r.b,P)).sort((x,y)=>y.a.score-x.a.score)[0];
   $('ah_mini').innerHTML=best?`Top bien : ${eur(best.b.prix)} · apport ${eur(best.a.apport)} · cash-flow <b style="color:${best.a.cashflow>=0?'var(--good)':'var(--bad)'}">${best.a.cashflow>=0?'+':''}${Math.round(best.a.cashflow)} €/mois</b> · rdt brut ${pct(best.a.rentBrute)}`:'';
   const nTri=buildDeck().length, nMod=modifiedList().length, pill=$('newpill');
-  if(nTri||nMod){ pill.classList.remove('calm');
-    pill.textContent=[nTri?`🔥 ${nTri} à trier`:'', nMod?`✏️ ${nMod}`:''].filter(Boolean).join(' · '); }
+  if(nTri){ pill.classList.remove('calm'); pill.textContent=`🔥 ${nTri} à trier`; }
   else { pill.classList.add('calm'); pill.textContent='à jour'; }
+  const mp=$('modpill'); if(nMod){ mp.hidden=false; mp.textContent=`✏️ ${nMod} prix modifié${nMod>1?'s':''}`; mp.classList.toggle('on',state.filt==='modif'); } else mp.hidden=true;
   renderGlance();
   $('count').textContent=rows.length+" bien"+(rows.length>1?'s':'')+" affiché"+(rows.length>1?'s':'');
   $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
@@ -4298,6 +4327,10 @@ function renderCRM(){
     ${c.contact?`<div class="crm-pub">👤 ${esc(c.contact)}</div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" style="margin-top:8px">Voir l'annonce sur ${sourceLabel(b.url)} ↗</a>`:''}
 
+    <div class="crm-sec"><h3>📝 Notes négo</h3>
+      <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
+        onchange="setNote(byId(${b.id}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+    </div>
     <div class="crm-sec"><h3>⚖️ Économie du projet</h3>
       <div class="crm-grid">
         <div class="crm-cell"><div class="k">Score / verdict</div><div class="v">${a.score}/100</div><div class="s">${a.verdict}</div></div>
@@ -4343,9 +4376,6 @@ function renderCRM(){
       ${relance?`<div class="crm-relance">⚠️ Contacté il y a ${Math.round((Date.now()-dStep)/864e5)} j sans suite → relancer ?</div>`:''}
     </div>
 
-    <div class="crm-sec"><h3>📝 Notes négo</h3>
-      <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
-        onchange="setNote(byId(${b.id}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
     </div>`;
 }
 
@@ -4520,7 +4550,7 @@ function attachDrag(card){
 $('tabs').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(btn&&btn.dataset.filt){
   state.filt=btn.dataset.filt;
   if(state.filt==='archive') state.sort='date';          // Archives : tri par date de publication (point 6)
-  else if(state.sort==='date') state.sort='score';
+  else if(state.sort==='date'||(state.sort==='fav'&&state.filt!=='contacter')) state.sort='score';
   render(); }});
 $('sortbar').addEventListener('click',e=>{ const btn=e.target.closest('button'); if(btn&&btn.dataset.sort){ state.sort=btn.dataset.sort; render(); }});
 $('gearBtn').addEventListener('click',()=>{ const p=$('settingsPanel'), g=$('gearBtn'); const open=p.hasAttribute('hidden'); if(open){p.removeAttribute('hidden');g.classList.add('on');} else {p.setAttribute('hidden','');g.classList.remove('on');} });
@@ -4533,6 +4563,7 @@ $('syncCode').addEventListener('change',e=>setSyncToken(e.target.value));
 
 $('sub').innerHTML="Lyon 7e · achat locatif · <b>MAJ "+new Date(DATA_UPDATED).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+"</b> · 👤 Guillaume (admin)";
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
+healKeys();
 updatePriceHist();
 refreshKnown();
 computeNews();
