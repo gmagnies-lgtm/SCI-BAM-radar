@@ -495,6 +495,15 @@
   .crm-views button{background:var(--bg2);border:none;color:var(--mut);padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
   .crm-views button.on{background:var(--acc);color:#0f172a}
   .crm-views button.on .crm-count{color:#0f172a}
+  /* les petits plus */
+  .plus-list{display:flex;flex-wrap:wrap;gap:6px}
+  .plus-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.45);
+    color:var(--txt);border-radius:999px;padding:5px 6px 5px 11px;font-size:12.5px;font-weight:600}
+  .plus-chip button{background:none;border:none;color:var(--mut);cursor:pointer;font-size:12px;padding:0 3px}
+  .plus-chip button:hover{color:var(--bad)}
+  .plus-add{display:flex;gap:6px;margin-top:9px}
+  .plus-add input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit}
+  .plus-add button{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:0 12px;font-weight:800;cursor:pointer}
   /* hypothèses de cash-flow : prix demandé vs objectif */
   table.cfh{width:100%;border-collapse:collapse;font-size:13px}
   .cfh th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--mut);font-weight:700;text-align:right;padding:6px 6px 8px;border-bottom:1px solid var(--line)}
@@ -4711,6 +4720,14 @@ function crmCFHTML(b,P,c){
   </div>
   <button class="crm-link" onclick="openDetail(${idj(b.id)})">📈 Simulation complète (curseur loyer, 25 ans)</button>
   <button class="crm-link" onclick="crmOpenParams()">⚙️ Modifier les hypothèses</button>`; }
+// ----- les petits plus : atouts inédits / mis en avant dans l'annonce (crm.plus) — arguments et points à vérifier en visite -----
+function crmPlusAdd(){ const b=crmCurB(), el=$('plusIn'); if(!b||!el) return; const t=el.value.trim(); if(!t) return;
+  crmSet(b,{plus:(crmOf(b).plus||[]).concat([t])}); renderCRM(); }
+function crmPlusDel(i){ const b=crmCurB(); if(!b) return; const L=(crmOf(b).plus||[]).slice(); L.splice(i,1); crmSet(b,{plus:L}); renderCRM(); }
+function crmPlusHTML(c){ const L=c.plus||[];
+  return `${L.length?`<div class="plus-list">${L.map((t,i)=>`<span class="plus-chip">✨ ${esc(t)}<button title="Retirer" onclick="crmPlusDel(${i})">✕</button></span>`).join('')}</div>`
+    :`<div class="msg-empty" style="padding:0 0 4px;text-align:left">Rien de noté. Relève dans l'annonce ce qui sort de l'ordinaire (local vélo, vue, rangements…).</div>`}
+    <div class="plus-add"><input id="plusIn" type="text" placeholder="Ajouter un petit plus…" onkeydown="if(event.key==='Enter')crmPlusAdd()"><button onclick="crmPlusAdd()">＋</button></div>`; }
 function crmOpenParams(){ closeCRM(); const p=$('settingsPanel'); if(p.hasAttribute('hidden')) $('gearBtn').click();
   const d=$('paramsBox'); if(d) d.open=true; setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50); }
 function renderCRM(){
@@ -4811,6 +4828,8 @@ function renderCRM(){
         ${chk.map(([l,v])=>`<div class="crm-chk ${v?'ok':''}">${v?'☑':'☐'} <span><b>${l}</b>${v?`<br>${esc(v)}`:' ?'}</span></div>`).join('')}
       </div>
     </div>
+
+    <div class="crm-sec"><h3>✨ Les petits plus${(c.plus||[]).length?` · ${c.plus.length}`:''}</h3>${crmPlusHTML(c)}</div>
 
     <div class="crm-sec"><h3>🚀 Pipeline</h3>
       <div class="crm-steps">
