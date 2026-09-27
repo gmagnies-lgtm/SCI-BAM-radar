@@ -616,6 +616,7 @@
         <span class="pill" id="newpill" onclick="openSwipe()" title="Trier les nouveaux biens">0 nouv.</span>
         <span class="pill modpill" id="modpill" onclick="showModified()" title="Biens dont le prix a changé" hidden></span>
         <span class="pill" id="crmpill" onclick="openCRM()" title="CRM négo : comparatif et suivi des biens">🤝 CRM</span>
+        <button class="gear" id="reloadBtn" onclick="refreshNow()" title="Rafraîchir : dernière version de l'app + dernières données (⌘R)">🔄</button>
         <button class="gear" id="gearBtn" title="Réglages (apport, paramètres, sources, filtres)">⚙️</button>
       </div>
     </div>
@@ -4082,7 +4083,7 @@ function pushRemote(){ if(!syncOn()) return; clearTimeout(_pushT);
 async function pullRemote(){ if(!syncOn()) return;
   try{ const r=await fetch(SYNC.url+'/data?token='+encodeURIComponent(effToken()),{cache:'no-store'});
        if(!r.ok) return; const d=await r.json();
-       const ch=applyRemote(d); if(healKeys()||ch) render();
+       const ch=applyRemote(d); if(healKeys()||ch){ render(); crmRefreshIfIdle(); }
        pushRemote();   // renvoyer l'état fusionné pour converger entre appareils
   }catch(e){}
 }
@@ -5053,8 +5054,26 @@ async function admSetpass(email){
     `<div class="adm-tmp">🔑 Mot de passe temporaire pour <b>${email}</b> : <b>${d.tempPassword}</b><br>À lui transmettre — il devra en choisir un nouveau à la connexion.</div>`);
   renderAdmin(); }
 
+// ----- rafraîchissement auto : au retour sur l'app (focus), on relit les données synchronisées
+// et on cherche une nouvelle version ; une nouvelle version s'installe d'elle-même (rechargement
+// immédiat si l'on n'est pas en train de saisir, sinon bandeau). Bouton 🔄 / ⌘R = forcer. -----
+function isEditing(){ const a=document.activeElement; return !!(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.tagName==='SELECT')); }
+function crmRefreshIfIdle(){ if($('crm')&&$('crm').classList.contains('show')&&!isEditing()){ crmList=crmBiens(); renderCRM(); } }
+let _lastWake=0;
+function onWake(){ if(document.hidden||document.body.classList.contains('locked')) return;
+  if(Date.now()-_lastWake<20000) return; _lastWake=Date.now();
+  pullRemote();
+  if('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{}); }
+document.addEventListener('visibilitychange',onWake); window.addEventListener('focus',onWake);
+document.addEventListener('keydown',e=>{ if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='r'){ e.preventDefault(); refreshNow(); } });
+setInterval(()=>{ if(!document.hidden) pullRemote(); }, 5*60*1000);
+function newVersionReady(){ if(!isEditing()){ location.reload(); return; }
+  crmToast('Nouvelle version disponible — touche 🔄 pour l\'afficher'); }
+
 // ----- PWA : service worker (offline + MAJ auto de la veille) -----
 if ('serviceWorker' in navigator) {
+  const hadCtrl=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(hadCtrl) newVersionReady(); });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then(reg => {
       // vérifie une nouvelle version à chaque ouverture
