@@ -523,6 +523,8 @@
   .crm-link{display:inline-flex;align-items:center;gap:5px;margin-top:10px;background:var(--bg);border:1px solid var(--acc2);color:var(--acc2);
     border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
   .crm-link+.crm-link{margin-left:6px}
+  a.maplink{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}
+  a.maplink:hover{color:var(--acc2)}
   /* mini-graphique cash-flow (≈ 7 lignes) : entrées vs sorties mensuelles, prix demandé / objectif */
   .cfc{--c-in:#16a34a;--c-mens:#0284c7;--c-ch:#d97706;--c-tf:#8b5cf6}
   .cfc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--mut);margin-bottom:6px}
@@ -4222,7 +4224,7 @@ function card(b,a){
           <div>
             <div class="c-price">${eur(b.prix)}</div>
             <div class="c-q">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''}</div>
-            ${b.adresse?`<div class="c-addr">📍 ${b.adresse}</div>`:''}
+            ${b.adresse?`<div class="c-addr">📍 <a class="maplink" href="${mapsDir(b.adresse)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Itinéraire depuis ${HOME_ADDR} dans Google Maps">${b.adresse} ↗</a></div>`:''}
             ${pubLabel(b)}
             <div class="c-stars">${starHTML(a.stars)}<span class="emp-lbl">emplacement</span></div>
           </div>
@@ -4758,6 +4760,11 @@ function crmPlusHTML(c){ const L=c.plus||[];
   return `${L.length?`<div class="plus-list">${L.map((t,i)=>`<span class="plus-chip">✨ ${esc(t)}<button title="Retirer" onclick="crmPlusDel(${i})">✕</button></span>`).join('')}</div>`
     :`<div class="msg-empty" style="padding:0 0 4px;text-align:left">Rien de noté. Relève dans l'annonce ce qui sort de l'ordinaire (local vélo, vue, rangements…).</div>`}
     <div class="plus-add"><input id="plusIn" type="text" placeholder="Ajouter un petit plus…" onkeydown="if(event.key==='Enter')crmPlusAdd()"><button onclick="crmPlusAdd()">＋</button></div>`; }
+// ----- adresse → itinéraire Google Maps depuis le domicile actuel -----
+const HOME_ADDR='4 rue Pauline Kergomard, 69007 Lyon';
+function mapsDir(adr){ let a=String(adr||'').replace(/\([^)]*\)/g,'').replace(/\s+/g,' ').trim().replace(/,\s*$/,'');
+  if(!/lyon|690\d\d/i.test(a)) a+=', 69007 Lyon';
+  return 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(HOME_ADDR)+'&destination='+encodeURIComponent(a); }
 function crmOpenParams(){ closeCRM(); const p=$('settingsPanel'); if(p.hasAttribute('hidden')) $('gearBtn').click();
   const d=$('paramsBox'); if(d) d.open=true; setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50); }
 function renderCRM(){
@@ -4796,7 +4803,7 @@ function renderCRM(){
     </div>
     <div class="crm-price">${eur(b.prix)}${a.sus?` <small>+ ${eur(a.sus)} en sus</small>`:''}</div>
     <div class="crm-meta">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''} · ${starHTML(a.stars)}</div>
-    ${adresse?`<div class="crm-pub">📍 ${esc(adresse)}</div>`:''}
+    ${adresse?`<div class="crm-pub">📍 <a class="maplink" href="${mapsDir(adresse)}" target="_blank" rel="noopener" title="Itinéraire depuis ${HOME_ADDR} dans Google Maps">${esc(adresse)} ↗</a></div>`:''}
     ${pub?`<div class="crm-pub">📅 annonce du ${dmy(new Date(pub).getTime())}${ageDays({pub})!=null?` · en ligne depuis ${ageDays({pub})} j`:''}</div>`:''}
     ${ctL.length?`<div class="crm-pub">👤 ${ctL.map(x=>esc((x.nom||x.tel||x.email)+(x.role&&x.nom?` (${x.role})`:''))).join(' · ')}</div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" style="margin-top:8px">Voir l'annonce sur ${sourceLabel(b.url)} ↗</a>`:''}
