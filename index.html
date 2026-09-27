@@ -502,6 +502,17 @@
   .crm-views button{background:var(--bg2);border:none;color:var(--mut);padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
   .crm-views button.on{background:var(--acc);color:#0f172a}
   .crm-views button.on .crm-count{color:#0f172a}
+  /* options en sus */
+  .opt-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px}
+  .opt-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 8px;
+    font-size:12.5px;font-weight:700;cursor:pointer;color:var(--mut);text-decoration:line-through}
+  .opt-chip.on{color:var(--txt);border-color:var(--acc);background:rgba(245,158,11,.1);text-decoration:none}
+  .opt-chip input{accent-color:var(--acc);margin:0}
+  .opt-note{font-size:11px;color:var(--mut)}
+  .opt-row{display:flex;gap:6px;align-items:center;margin-bottom:5px}
+  .opt-row input[type=text]{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit}
+  .opt-row input[type=text]:last-of-type{flex:0 0 90px}
+  .opt-row input[type=checkbox]{accent-color:var(--acc);width:17px;height:17px}
   /* les petits plus */
   .plus-list{display:flex;flex-wrap:wrap;gap:6px}
   .plus-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.45);
@@ -709,7 +720,8 @@
       <div class="fld"><label>Frais notaire ancien (%)</label><input id="p_notaire" type="number" step="0.1" value="7.5"></div>
       <div class="fld"><label>Loyer défaut (€/m²)</label><input id="p_loyer" type="number" step="0.5" value="16"></div>
       <div class="fld"><label>Vacance (%)</label><input id="p_vac" type="number" step="0.5" value="2"></div>
-      <div class="fld"><label>Charges non récup. (€/mois)</label><input id="p_charges" type="number" value="200"></div>
+      <div class="fld"><label>Charges non récup. (€/mois) — si charges réelles inconnues</label><input id="p_charges" type="number" value="200"></div>
+      <div class="fld"><label>Part des charges copro refacturée au locataire (%)</label><input id="p_recup" type="number" step="5" value="70"></div>
       <div class="fld"><label>Valeur garage (€)</label><input id="p_gar" type="number" value="25000"></div>
       <div class="fld"><label>Valeur cave (€)</label><input id="p_cave" type="number" value="5000"></div>
       <div class="fld"><label>Valeur terrasse (€)</label><input id="p_terr" type="number" value="15000"></div>
@@ -3790,7 +3802,7 @@ function params(){
     apportpct:+$('p_apportpct').value/100, plafond:+$('p_plafond').value,
     taux:+$('p_taux').value/100, duree:+$('p_duree').value,
     notaire:+$('p_notaire').value/100, loyer:+$('p_loyer').value, vac:+$('p_vac').value/100,
-    charges:+$('p_charges').value, vgar:+$('p_gar').value, vcave:+$('p_cave').value, vterr:+$('p_terr').value
+    charges:+$('p_charges').value, recup:(($('p_recup')&&$('p_recup').value!=='')?+$('p_recup').value:70)/100, vgar:+$('p_gar').value, vcave:+$('p_cave').value, vterr:+$('p_terr').value
   };
 }
 // apport = % du prix, plafonné par l'épargne disponible
@@ -3803,7 +3815,7 @@ function capitalMax(M, i, n){ return M*(1-Math.pow(1+i,-n))/i; }
 function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en négociation → pas de pénalité « prix trop bas / suspect »
   const n = P.duree*12, i = P.taux/12;
   const crm = tsGet(CRMD, keyOf(b)) || {};           // données réelles saisies dans le CRM (remplacent l'hypothèse)
-  const sus = +crm.sus || 0;                         // éléments vendus en sus du prix (parking, cave…)
+  const sus = susOf(b, crm);                         // options en sus du prix COCHÉES (garage, parking, cave…)
   const annexes = b.gar*P.vgar + b.cave*P.vcave + b.terr*P.vterr;
   const valAppart = b.prix - annexes;
   const pm2reel = valAppart / b.m;
@@ -3817,8 +3829,15 @@ function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en né
   const loyerM2eff = (lm2ov!=null) ? lm2ov : P.loyer;              // sinon défaut global
   const loyerMois = +crm.loyer > 0 ? +crm.loyer : loyerM2eff * b.m; // loyer réel si occupé, sinon €/m² (ajusté) × surface
   const loyerNet = loyerMois * (1-P.vac);
-  const chMois = (crm.charges!=null && crm.charges!=='') ? +crm.charges : P.charges;  // charges copro réelles
-  const tfMois = (+crm.tf || 0)/12;                  // taxe foncière connue (€/an → €/mois)
+  const ann = b.ann || {};                           // infos relevées dans l'annonce (veille) : charges, TF, lots, DPE, options
+  // charges copro : le montant connu (saisie CRM > annonce) est TOTAL ; la part récupérable est refacturée au locataire
+  // (provision sur charges, en plus du loyer HC) sauf pendant la vacance. Reste au bailleur : la part non récupérable
+  // (honoraires de syndic, gros entretien…) — saisie CRM « chnr » sinon (1 − % refacturable). Sans montant connu : hypothèse non récup.
+  const chTot = (crm.charges!=null && crm.charges!=='') ? +crm.charges : (ann.ch>0 ? +ann.ch : null);
+  const chNR = (crm.chnr!=null && crm.chnr!=='') ? +crm.chnr : (chTot!=null ? chTot*(1-P.recup) : P.charges);
+  const chRecup = chTot!=null ? Math.max(0,chTot-chNR)*(1-P.vac) : 0;     // effectivement payé par le locataire
+  const chMois = chTot!=null ? chTot - chRecup : chNR;                        // reste à la charge du bailleur
+  const tfMois = (+crm.tf || +ann.tf || 0)/12;       // taxe foncière (€/an → €/mois) : saisie CRM > annonce
   const cashflow = loyerNet - mens - chMois - tfMois;
   const rentBrute = (loyerMois*12) / coutTotal;
   const rentNette = (loyerNet - chMois - tfMois)*12 / coutTotal;
@@ -3870,7 +3889,7 @@ function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en né
   else if(score>=55){ verdict="À SURVEILLER"; vClass="v-watch"; }
   return {annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,loyerM2eff,
           cashflow,rentBrute,rentNette,prixConseille,prixPlafond,ecart,
-          sus,chMois,tfMois,apportEq,prixEq,
+          sus,chMois,chTot,chNR,chRecup,tfMois,apportEq,prixEq,
           mPm2,prixMarche,ecartMarche,stars,parts,mkClass,score,verdict,vClass};
 }
 function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
@@ -4639,16 +4658,16 @@ function crmTplLog(){ const b=crmCurB(); if(!b||!crmTpl) return; const d=crmDraf
   crmLog(b,{t:Date.now(),dir:'out',canal:d.canal||'email',who:d.who||undefined,obj:crmTpl.obj||undefined,txt:crmTpl.txt});
   crmTpl=null; renderCRM(); crmToast('Consigné comme envoyé ✓'); }
 function crmMissing(b,c){ return crmChecklist(b,c).filter(x=>!x[1]).map(x=>x[0]); }
-function crmChecklist(b,c){ const chReel=c.charges!=null&&c.charges!=='', adresse=c.adresse||b.adresse||'';
+function crmChecklist(b,c){ const chReel=c.charges!=null&&c.charges!=='', adresse=c.adresse||b.adresse||'', an=b.ann||{};
   const L=crmContacts(c).filter(x=>x.nom||x.tel||x.email);
   return [
-    ['Charges copro', chReel?`${c.charges} €/mois`:null],
-    ['Taxe foncière', c.tf?`${c.tf} €/an`:null],
+    ['Charges copro', chReel?`${c.charges} €/mois`:(an.ch?`${an.ch} €/mois (annonce)`:null)],
+    ['Taxe foncière', c.tf?`${c.tf} €/an`:(an.tf?`${an.tf} €/an (annonce)`:null)],
     ['Contact', L.length?L.map(x=>x.nom||x.tel||x.email).join(', '):null],
     ['Adresse exacte', adresse||null],
-    ['DPE', c.dpe||null],
+    ['DPE', c.dpe||(an.dpe?`${an.dpe} (annonce)`:null)],
     ['Travaux votés / prévus', c.travaux||null],
-    ['Copro : nb de lots', c.lots||null],
+    ['Copro : nb de lots', c.lots||(an.lots?`${an.lots} (annonce)`:null)],
     ['Occupé ? loyer actuel', c.loyer?`${c.loyer} €/mois`:null],
   ]; }
 function crmContactsHTML(c){ const L=crmContacts(c);
@@ -4715,7 +4734,7 @@ function crmCFHTML(b,P,c){
   const chR=c.charges!=null&&c.charges!=='';
   const rows=[
     ['Prix',b.prix,obj,1],
-    ...(A.sus?[['En sus <small>garage, cave… (fiche)</small>',A.sus,O.sus,1]]:[]),
+    ...(A.sus?[[`Options en sus <small>${esc(crmOpts(b,c).filter(x=>x.on&&x.p).map(x=>x.l||'option').join(', '))}</small>`,A.sus,O.sus,1]]:[]),
     [`Frais de notaire <small>${pct0(P.notaire)}</small>`,A.fraisNot,O.fraisNot,1],
     ['Coût total',A.coutTotal,O.coutTotal,1,'sep'],
     [`Apport <small>règle ${pct0(P.apportpct)} plafonnée à ${kEur(P.plafond)}</small>`,A.apport,O.apport,1],
@@ -4723,8 +4742,11 @@ function crmCFHTML(b,P,c){
     [`Mensualité <small>${String(+(P.taux*100).toFixed(2)).replace('.',',')} % · ${P.duree} ans</small>`,-A.mens,-O.mens,0,'sep'],
     [`Loyer <small>${String((A.loyerMois/b.m).toFixed(1)).replace('.',',')} €/m² × ${b.m} m²${+c.loyer>0?' · loyer réel':''}</small>`,A.loyerMois,O.loyerMois,0],
     [`Vacance <small>${pct0(P.vac)}</small>`,-(A.loyerMois-A.loyerNet),-(O.loyerMois-O.loyerNet),0],
-    [`Charges copro <small>${chR?'réelles (fiche)':'hypothèse'}</small>`,-A.chMois,-O.chMois,0],
-    [`Taxe foncière <small>${c.tf?'réelle ÷ 12':'inconnue → 0'}</small>`,-A.tfMois,-O.tfMois,0,'sep'],
+    ...(A.chTot!=null?[
+      [`Charges copro totales <small>${chR?'réelles (fiche)':'annonce'}</small>`,-A.chTot,-O.chTot,0],
+      [`Refacturées au locataire <small>${(c.chnr!=null&&c.chnr!=='')?`tout sauf ${c.chnr} € non récup. (fiche)`:`${pct0(P.recup)} récupérables`}, hors vacance</small>`,A.chRecup,O.chRecup,0]]
+     :[[`Charges non récupérables <small>hypothèse (charges réelles inconnues)</small>`,-A.chMois,-O.chMois,0]]),
+    [`Taxe foncière <small>${c.tf?'réelle ÷ 12':((b.ann||{}).tf?'annonce ÷ 12':'inconnue → 0')} · non refacturable (hors TEOM)</small>`,-A.tfMois,-O.tfMois,0,'sep'],
   ];
   const tr=r=>{ const [l,x,y,cap,cls]=r, isM=!cap;
     return `<tr class="${cls||''}"><td>${l}</td><td>${isM?sg(x):e(x)}</td><td>${isM?sg(y):e(y)}</td><td>${dl(x,y,cap&&true)}</td></tr>`; };
@@ -4739,11 +4761,11 @@ function crmCFHTML(b,P,c){
   const seg=(v,col,t)=>v>0.5?`<span style="width:${w(v)};background:var(${col})" title="${t} : ${eur(Math.round(v))}/mois"></span>`:'';
   const crow=(lbl,x,px)=>`<div class="cfc-row"><div class="cfc-lbl"><span><b>${lbl}</b> · ${kEur(px)}</span><span>cash-flow <span class="v" style="color:var(${x.cashflow>=0?'--good':'--bad'})">${sg(x.cashflow)}/mois</span></span></div>
     <div class="cfc-bar" title="Entrées">${seg(x.loyerNet,'--c-in','Loyer net (après vacance)')}</div>
-    <div class="cfc-bar" title="Sorties">${seg(x.mens,'--c-mens','Mensualité')}${seg(x.chMois,'--c-ch','Charges copro')}${seg(x.tfMois,'--c-tf','Taxe foncière')}<b class="mk" style="left:${w(x.loyerNet)}" title="Niveau du loyer net"></b></div></div>`;
+    <div class="cfc-bar" title="Sorties">${seg(x.mens,'--c-mens','Mensualité')}${seg(x.chMois,'--c-ch','Charges non récupérées')}${seg(x.tfMois,'--c-tf','Taxe foncière')}<b class="mk" style="left:${w(x.loyerNet)}" title="Niveau du loyer net"></b></div></div>`;
   const chart=`<div class="cfc" role="img" aria-label="Cash-flow mensuel : prix demandé ${sg(A.cashflow)}, objectif ${sg(O.cashflow)}">
-    <div class="cfc-leg"><span><i style="background:var(--c-in)"></i>Loyer net</span><span><i style="background:var(--c-mens)"></i>Mensualité</span><span><i style="background:var(--c-ch)"></i>Charges</span><span><i style="background:var(--c-tf)"></i>Taxe foncière</span><span>┆ niveau du loyer</span></div>
+    <div class="cfc-leg"><span><i style="background:var(--c-in)"></i>Loyer net</span><span><i style="background:var(--c-mens)"></i>Mensualité</span><span><i style="background:var(--c-ch)"></i>Charges non récup.</span><span><i style="background:var(--c-tf)"></i>Taxe foncière</span><span>┆ niveau du loyer</span></div>
     ${crow('Prix demandé',A,b.prix)}${crow('Objectif négo',O,obj)}</div>`;
-  return chart+`<details class="cfd" ${crmCFOpen?'open':''} ontoggle="crmCFOpen=this.open"><summary>Détail ligne à ligne et leviers d'arbitrage</summary>
+  return crmOptsHTML(b,c,false)+chart+`<details class="cfd" ${crmCFOpen?'open':''} ontoggle="crmCFOpen=this.open"><summary>Détail ligne à ligne et leviers d'arbitrage</summary>
   <table class="cfh"><thead><tr><th></th><th>Prix demandé</th><th>Objectif négo</th><th>Écart</th></tr></thead><tbody>
     ${rows.map(tr).join('')}
     <tr class="tot"><td>Cash-flow mensuel</td><td class="${A.cashflow>=0?'pos':'neg'}">${sg(A.cashflow)}</td><td class="${O.cashflow>=0?'pos':'neg'}">${sg(O.cashflow)}</td><td>${dl(A.cashflow,O.cashflow)}</td></tr>
@@ -4773,6 +4795,28 @@ const HOME_ADDR='4 rue Pauline Kergomard, 69007 Lyon';
 function mapsDir(adr){ let a=String(adr||'').replace(/\([^)]*\)/g,'').replace(/\s+/g,' ').trim().replace(/,\s*$/,'');
   if(!/lyon|690\d\d/i.test(a)) a+=', 69007 Lyon';
   return 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(HOME_ADDR)+'&destination='+encodeURIComponent(a); }
+// ----- options en sus (garage, parking, cave…) : cochées = ajoutées au coût dans toutes les hypothèses -----
+// crm.opts [{id,l,p,on}] ; sinon repris de l'ancien champ crm.sus (coché) + options relevées dans l'annonce (décochées)
+function crmOpts(b,c){ if(Array.isArray(c.opts)) return c.opts;
+  const L=[]; if(+c.sus>0) L.push({id:'sus',l:'En sus',p:+c.sus,on:true});
+  ((b.ann||{}).opts||[]).forEach((o,i)=>{ if(!(+c.sus>0&&+o.p===+c.sus)) L.push({id:'a'+i,l:o.l,p:o.p||0,on:false}); else L[0].l=o.l; });
+  return L; }
+function susOf(b,c){ return crmOpts(b,c||{}).reduce((t,o)=>t+(o.on&&+o.p>0?+o.p:0),0); }
+function crmOptsSave(b,L){ crmSet(b,{opts:L.length?L:[{id:'none',l:'',p:0,on:false}],sus:null}); renderCRM(); }
+function crmOptToggle(id){ const b=crmCurB(); if(!b) return; crmOptsSave(b,crmOpts(b,crmOf(b)).map(o=>o.id===id?{...o,on:!o.on}:o)); }
+function crmOptSet(id,f,v){ const b=crmCurB(); if(!b) return;
+  crmOptsSave(b,crmOpts(b,crmOf(b)).map(o=>o.id===id?{...o,[f]:f==='p'?(+String(v).replace(/[^\d]/g,'')||0):String(v).trim()}:o)); }
+function crmOptAdd(){ const b=crmCurB(); if(!b) return; crmOptsSave(b,crmOpts(b,crmOf(b)).filter(o=>o.id!=='none').concat([{id:crmUid(),l:'Garage',p:0,on:true}])); }
+function crmOptDel(id){ const b=crmCurB(); if(!b) return; crmOptsSave(b,crmOpts(b,crmOf(b)).filter(o=>o.id!==id)); }
+function crmOptsHTML(b,c,edit){ const L=crmOpts(b,c).filter(o=>o.id!=='none');
+  if(!edit){ if(!L.length) return '';
+    return `<div class="opt-chips">${L.map(o=>`<label class="opt-chip ${o.on?'on':''}"><input type="checkbox" ${o.on?'checked':''} onchange="crmOptToggle('${esc(o.id)}')"> ${esc(o.l||'Option')} ${o.p?kEur(o.p):'prix ?'}</label>`).join('')}
+      <span class="opt-note">${L.some(o=>o.on)?'comptées dans le coût':'aucune option comptée'}</span></div>`; }
+  return L.map(o=>`<div class="opt-row"><input type="checkbox" ${o.on?'checked':''} onchange="crmOptToggle('${esc(o.id)}')" title="Compter dans le coût">
+      <input type="text" value="${esc(o.l)}" placeholder="Garage, cave…" onchange="crmOptSet('${esc(o.id)}','l',this.value)">
+      <input type="text" inputmode="numeric" value="${o.p||''}" placeholder="€" onchange="crmOptSet('${esc(o.id)}','p',this.value)">
+      <button class="ct-del" onclick="crmOptDel('${esc(o.id)}')" title="Supprimer">🗑</button></div>`).join('')
+    +`<button class="crm-add" style="margin-top:4px" onclick="crmOptAdd()">＋ Ajouter une option</button>`; }
 function crmOpenParams(){ closeCRM(); const p=$('settingsPanel'); if(p.hasAttribute('hidden')) $('gearBtn').click();
   const d=$('paramsBox'); if(d) d.open=true; setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50); }
 function renderCRM(){
@@ -4840,7 +4884,7 @@ function renderCRM(){
           return cell('Score / verdict',`${a.score}/100`,a.verdict,`${O.score}/100`,O.verdict)
           +cell('€/m² vs marché',Math.round(a.pm2reel).toLocaleString('fr-FR'),ecm(a),Math.round(O.pm2reel).toLocaleString('fr-FR'),ecm(O))
           +cell('Rentabilité',pct(a.rentBrute),`nette ${pct(a.rentNette)}`,pct(O.rentBrute),`nette ${pct(O.rentNette)}`)
-          +cell('Cash-flow',cf(a.cashflow),`charges ${Math.round(a.chMois)} €${chReel?' (réelles)':' (hyp.)'}${a.tfMois?` + TF ${Math.round(a.tfMois)} €/m`:''}`,
+          +cell('Cash-flow',cf(a.cashflow),`charges à ta charge ${Math.round(a.chMois)} €${a.chTot!=null?` sur ${Math.round(a.chTot)} €${chReel?' (réelles)':' (annonce)'}`:' (hyp.)'}${a.tfMois?` + TF ${Math.round(a.tfMois)} €/m`:''}`,
                 cf(O.cashflow),'mêmes charges',a.cashflow>=0?'pos':'neg',O.cashflow>=0?'pos':'neg'); })()}
         <div class="crm-cell hero"><div class="k">⚖️ Apport pour un cash-flow à l'équilibre</div>
           <div class="v">${eur(a.apportEq)}</div>
@@ -4862,14 +4906,15 @@ function renderCRM(){
     </div>
 
     <div class="crm-sec"><h3>📋 Données réelles du bien <span style="text-transform:none">(remplacent les hypothèses)</span></h3>
-      <div class="crm-fld"><label>Charges copro (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${P.charges} €" value="${esc(c.charges)}" onchange="crmField(${idj(b.id)},'charges',this.value)"></div>
-      <div class="crm-fld"><label>Taxe foncière (€/an)</label><input type="number" inputmode="numeric" placeholder="inconnue" value="${esc(c.tf)}" onchange="crmField(${idj(b.id)},'tf',this.value)"></div>
-      <div class="crm-fld"><label>En sus du prix (€) — parking, cave…</label><input type="number" inputmode="numeric" placeholder="0" value="${esc(c.sus)}" onchange="crmField(${idj(b.id)},'sus',this.value)"></div>
+      <div class="crm-fld"><label>Charges copro totales (€/mois)</label><input type="number" inputmode="numeric" placeholder="${(b.ann||{}).ch?`annonce : ${b.ann.ch} €`:`hyp. ${P.charges} €`}" value="${esc(c.charges)}" onchange="crmField(${idj(b.id)},'charges',this.value)"></div>
+      <div class="crm-fld"><label>dont non récupérables (€/mois)<br><small>syndic, gros entretien… (décompte de charges)</small></label><input type="number" inputmode="numeric" placeholder="≈ ${Math.round((a.chTot??0)*(1-P.recup))||'?'} € (${pct0(1-P.recup)} estimés)" value="${esc(c.chnr)}" onchange="crmField(${idj(b.id)},'chnr',this.value)"></div>
+      <div class="crm-fld"><label>Taxe foncière (€/an)</label><input type="number" inputmode="numeric" placeholder="${(b.ann||{}).tf?`annonce : ${b.ann.tf} €`:'inconnue'}" value="${esc(c.tf)}" onchange="crmField(${idj(b.id)},'tf',this.value)"></div>
+      <div class="crm-fld" style="align-items:flex-start"><label>Options en sus du prix<br><small>cochées = comptées dans le coût</small></label><div style="flex:1">${crmOptsHTML(b,c,true)}</div></div>
       <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(P.loyer*b.m)} €" value="${esc(c.loyer)}" onchange="crmField(${idj(b.id)},'loyer',this.value)"></div>
       <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${idj(b.id)},'adresse',this.value)"></div>
-      <div class="crm-fld"><label>DPE</label><input type="text" placeholder="A → G" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
+      <div class="crm-fld"><label>DPE</label><input type="text" placeholder="${(b.ann||{}).dpe?`annonce : ${esc(b.ann.dpe)}`:'A → G'}" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
       <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${idj(b.id)},'travaux',this.value)"></div>
-      <div class="crm-fld"><label>Copro : nb de lots</label><input type="text" placeholder="?" value="${esc(c.lots)}" onchange="crmField(${idj(b.id)},'lots',this.value)"></div>
+      <div class="crm-fld"><label>Copro : nb de lots</label><input type="text" placeholder="${(b.ann||{}).lots?`annonce : ${b.ann.lots}`:'?'}" value="${esc(c.lots)}" onchange="crmField(${idj(b.id)},'lots',this.value)"></div>
       ${!b.pub?`<div class="crm-fld"><label>Date de l'annonce</label><input type="date" value="${esc(c.pub)}" onchange="crmField(${idj(b.id)},'pub',this.value)"></div>`:''}
     </div>
 
