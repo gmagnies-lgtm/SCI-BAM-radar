@@ -483,6 +483,42 @@
   .crm-chk.ok{border-style:solid;border-color:var(--good);color:var(--txt)}
   .crm-neg{font-size:13px;color:var(--mut);margin-top:9px;line-height:1.6}
   .crm-neg b{color:var(--txt)}
+  /* CRM : bascule Comparatif / Fiches + tableau comparatif */
+  .crm-views{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .crm-views button{background:var(--bg2);border:none;color:var(--mut);padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+  .crm-views button.on{background:var(--acc);color:#0f172a}
+  .crm-top .crm-navs{display:flex;gap:6px;min-width:84px;justify-content:flex-end}
+  .crm-wrap.wide{max-width:1100px}
+  .cmp-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
+  .cmp th{text-align:left;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);font-weight:700;
+    padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .cmp td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .cmp tr:last-child td{border-bottom:none}
+  .cmp tbody tr{cursor:pointer}
+  .cmp tbody tr:hover td{background:rgba(148,163,184,.06)}
+  .cmp th:first-child,.cmp td:first-child{position:sticky;left:0;background:var(--card);z-index:1}
+  .cmp-bien{display:flex;gap:9px;align-items:center;min-width:170px}
+  .cmp-th{flex:none;width:52px;height:40px;border-radius:8px;background:var(--bg2) center/cover;border:1px solid var(--line)}
+  .cmp-bien b{display:block;font-size:13px}
+  .cmp-bien small,.cmp small{color:var(--mut);font-size:11.5px;display:block}
+  .cmp .num{font-weight:800;white-space:nowrap}
+  .cmp input.obj{width:108px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;
+    padding:6px 8px;font-weight:800;font-size:13px;font-family:inherit}
+  .cmp input.obj.auto{color:var(--mut);border-style:dashed}
+  .cmp .good{color:var(--good)}.cmp .bad{color:var(--bad)}
+  .stepb{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+  .stepb.on{border-color:var(--acc);background:rgba(245,158,11,.12)}
+  .cmp .relb{color:var(--warn);font-weight:700;font-size:11.5px;display:block;margin-top:3px}
+  .cmp .rmx{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;padding:4px 8px;cursor:pointer}
+  .cmp .rmx:hover{color:var(--bad);border-color:var(--bad)}
+  .cmp-hint{color:var(--mut);font-size:12px;margin:8px 2px 0}
+  .crm-rm{width:100%;margin-top:4px;background:none;border:1px solid var(--line);color:var(--mut);border-radius:10px;
+    padding:9px;font-weight:700;cursor:pointer;font-family:inherit}
+  .crm-rm:hover{color:var(--bad);border-color:var(--bad)}
+  .gocrm.in{background:rgba(56,189,248,.1)}
+  @media (max-width:520px){ .crm-top{padding:10px;gap:6px} .crm-lbl{display:none} .crm-views button{padding:8px 9px;font-size:12.5px}
+    .crm-top .crm-navs{min-width:0} .crm-top .crm-navs .crm-icbtn{padding:8px 10px} }
   /* interlocuteurs */
   .ct-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;margin:0 0 8px}
   .ct-head{display:flex;gap:6px;align-items:center}
@@ -579,6 +615,7 @@
       <div style="display:flex;align-items:center;gap:8px;flex:none">
         <span class="pill" id="newpill" onclick="openSwipe()" title="Trier les nouveaux biens">0 nouv.</span>
         <span class="pill modpill" id="modpill" onclick="showModified()" title="Biens dont le prix a changé" hidden></span>
+        <span class="pill" id="crmpill" onclick="openCRM()" title="CRM négo : comparatif et suivi des biens">🤝 CRM</span>
         <button class="gear" id="gearBtn" title="Réglages (apport, paramètres, sources, filtres)">⚙️</button>
       </div>
     </div>
@@ -670,9 +707,9 @@
 
 <div class="crm" id="crm" aria-hidden="true">
   <div class="crm-top">
-    <button class="crm-icbtn" onclick="closeCRM()">← Radar</button>
-    <div><b>🤝 CRM négo</b><span class="crm-count" id="crmCount"></span></div>
-    <div style="display:flex;gap:6px">
+    <button class="crm-icbtn" onclick="closeCRM()">←<span class="crm-lbl"> Radar</span></button>
+    <div class="crm-views"><button id="crmVT" onclick="crmView('table')">📊 Comparatif</button><button id="crmVF" onclick="crmView('fiche')">🏠 Fiches<span class="crm-count" id="crmCount"></span></button></div>
+    <div class="crm-navs" id="crmNavs">
       <button class="crm-icbtn" onclick="crmNav(-1)" title="Bien précédent">◀</button>
       <button class="crm-icbtn" onclick="crmNav(1)" title="Bien suivant">▶</button>
     </div>
@@ -4178,7 +4215,8 @@ function card(b,a){
       : `<button class="stbtn b-contacter ${st==='contacter'?'on':''}" onclick="setStatus(byId(${idj(b.id)}),'contacter')">📞 Contacter</button>
       <button class="stbtn b-conserver ${st==='conserver'?'on':''}" onclick="setStatus(byId(${idj(b.id)}),'conserver')">⭐ Conserver</button>
       <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${idj(b.id)}),'archive')">🗑 Archiver</button>`}
-    ${(st==='contacter'&&!gone)?`<button class="gocrm" onclick="openCRM(${idj(b.id)})">🤝 Go to CRM — préparer la négo →</button>`:''}
+    ${isFav(b)?(inCRM(b)?`<button class="gocrm in" onclick="openCRM(${idj(b.id)})">🤝 Dans le CRM — ouvrir la fiche →</button>`
+      :`<button class="gocrm" onclick="goCRM(${idj(b.id)})">🤝 Go to CRM — préparer la négo →</button>`):''}
     </div>
     ${(!gone||note)?`<div class="noterow" onclick="event.stopPropagation()">
       <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${idj(b.id)}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
@@ -4213,6 +4251,7 @@ function render(){
   const nTri=buildDeck().length, nMod=modifiedList().length, pill=$('newpill');
   if(nTri){ pill.classList.remove('calm'); pill.textContent=`🔥 ${nTri} à trier`; }
   else { pill.classList.add('calm'); pill.textContent='à jour'; }
+  const nCrm=crmBiens().length; $('crmpill').textContent=`🤝 CRM${nCrm?' · '+nCrm:''}`;
   const mp=$('modpill'); if(nMod){ mp.hidden=false; mp.textContent=`✏️ ${nMod} prix modifié${nMod>1?'s':''}`; mp.classList.toggle('on',state.filt==='modif'); } else mp.hidden=true;
   renderGlance();
   const nTxt=rows.length+" bien"+(rows.length>1?'s':'');
@@ -4377,15 +4416,56 @@ const CRM_STEPS=[['contacte','✉️ Contacté'],['rdv','📅 RDV'],['visite','�
 const CRM_RELANCE_J=5;                       // relance suggérée après N jours sans passage à l'étape suivante
 let crmList=[], crmIdx=0, crmPhoto=0;
 const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-function crmBiens(){ const P=params();
-  return LISTINGS.filter(b=>getStatus(b)==='contacter' && !isGone(b))
-    .map(b=>({b})).sort((x,y)=>analyse(y.b,P).score-analyse(x.b,P).score); }
-function openCRM(id){ crmList=crmBiens();
-  const i=id!=null?crmList.findIndex(r=>String(r.b.id)===String(id)):0; crmIdx=i<0?0:i; crmPhoto=0;
-  $('crm').classList.add('show'); $('crm').setAttribute('aria-hidden','false'); renderCRM();
+// le CRM ne contient QUE les biens envoyés via « Go to CRM » (flag crm.incrm, synchronisé) ; on les en retire à la main
+function inCRM(b){ return !!crmOf(b).incrm; }
+function crmLastAct(c){ let t=0; (c.hist||[]).forEach(h=>{ if(h.t>t) t=h.t; }); (c.msgs||[]).forEach(m=>{ if(m.t>t) t=m.t; }); return t||(+c.incrm>1?+c.incrm:0); }
+function crmBiens(){ return allListings().filter(inCRM).map(b=>({b,t:crmLastAct(crmOf(b))})).sort((x,y)=>y.t-x.t); }
+// migration (une fois par appareil) : les biens déjà travaillés dans l'ancien CRM y restent
+function crmMigrate(){ try{ if(localStorage.getItem('scibam_crm_mig2')) return; localStorage.setItem('scibam_crm_mig2','1'); }catch(e){ return; }
+  allListings().forEach(b=>{ const c=crmOf(b); if(!c.incrm&&(c.step||(c.msgs||[]).length||c.contacts)) crmSet(b,{incrm:Date.now()}); }); }
+let crmMode='table';
+function goCRM(id){ const b=byId(id); if(!b) return; if(!inCRM(b)) crmSet(b,{incrm:Date.now()}); openCRM(id); }
+function openCRM(id){ crmMigrate(); crmList=crmBiens();
+  if(id!=null){ const i=crmList.findIndex(r=>String(r.b.id)===String(id)); crmIdx=i<0?0:i; crmMode='fiche'; } else crmMode='table';
+  crmPhoto=0; $('crm').classList.add('show'); $('crm').setAttribute('aria-hidden','false'); renderCRM();
   $('crm').scrollTop=0; }
 function closeCRM(){ $('crm').classList.remove('show'); $('crm').setAttribute('aria-hidden','true'); render(); }
+function crmView(m){ crmMode=m; crmList=crmBiens(); if(crmIdx>=crmList.length) crmIdx=0; crmPhoto=0; renderCRM(); $('crm').scrollTop=0; }
+function crmOpenFiche(i){ crmIdx=i; crmMode='fiche'; crmPhoto=0; renderCRM(); $('crm').scrollTop=0; }
+function crmRemove(id){ const b=byId(id); if(!b) return;
+  if(!confirm('Retirer ce bien du CRM ? (contacts, échanges et données saisies sont conservés si tu le remets)')) return;
+  crmSet(b,{incrm:null}); crmList=crmBiens(); if(crmIdx>=crmList.length) crmIdx=0; renderCRM(); crmToast('Retiré du CRM'); }
 function crmNav(d){ if(crmList.length<2) return; crmIdx=(crmIdx+d+crmList.length)%crmList.length; crmPhoto=0; renderCRM(); $('crm').scrollTop=0; }
+// objectif de négo : saisi, sinon prix d'équilibre avec l'apport plafond (arrondi au millier)
+function crmObjAuto(b,a){ return a.prixEq>=b.prix?b.prix:Math.round(a.prixEq/1000)*1000; }
+function crmObjectif(b,a,c){ return +c.objectif>0?+c.objectif:crmObjAuto(b,a); }
+function crmPrixDepart(b){ const h=PRICEHIST[keyOf(b)]||[]; let p=h.length?h[0].p:b.prix; if(b.oldPrix&&b.oldPrix>p) p=b.oldPrix; return p; }
+function crmRelanceT(c){ const lastM=crmMsgs(c).pop(), dStep=c.step?crmStepDate(c,c.step):null;
+  const t=lastM?(lastM.dir==='out'?lastM.t:null):dStep;
+  return (c.step==='contacte'&&t&&(Date.now()-t)>CRM_RELANCE_J*864e5)?t:null; }
+function crmObjSet(id,v){ const b=byId(id); if(!b) return; crmSet(b,{objectif:String(v??'').replace(/[^\d]/g,'')}); renderCRM(); }
+function crmTableHTML(){ const P=params();
+  if(!crmList.length) return `<div class="foot" style="padding:40px 10px">Le CRM est vide.<br>Dans l'onglet ⭐ Favoris, touche « 🤝 Go to CRM » sur un bien pour l'ajouter ici.</div>`;
+  const rows=crmList.map(({b},i)=>{ const a=analyse(b,P), c=crmOf(b), dep=crmPrixDepart(b), obj=crmObjectif(b,a,c), auto=!(+c.objectif>0);
+    const aObj=analyse({...b,prix:obj},P), negoPct=(b.prix-obj)/b.prix;
+    const stL=(CRM_STEPS.find(([k])=>k===c.step)||[])[1], M=crmMsgs(c), last=M[M.length-1], rel=crmRelanceT(c);
+    const ph=crmPhotos(b)[0], id=idj(b.id);
+    const lastTxt=last?`${last.dir==='out'?'➡️':'⬅️'} ${canalLbl(last.canal).split(' ')[0]} ${dmy(last.t)}${crmWhoName(c,last.who)?' · '+esc(crmWhoName(c,last.who)):''}`
+      :(c.step?`${dmy(crmStepDate(c,c.step))}`:'aucune action');
+    return `<tr onclick="crmOpenFiche(${i})">
+      <td><div class="cmp-bien"><div class="cmp-th" style="${ph?`background-image:url('${esc(ph)}')`:''}"></div>
+        <div><b>${esc(b.q||'?')}</b><small>${b.m} m² · ${b.p}p${isGone(b)?' · 🔗✖ retirée':''}</small></div></div></td>
+      <td><span class="num">${eur(dep)}</span>${b.prix!==dep?`<small>actuel ${eur(b.prix)}</small>`:''}</td>
+      <td onclick="event.stopPropagation()"><input class="obj ${auto?'auto':''}" inputmode="numeric" value="${obj}" title="${auto?'Auto : prix d\'équilibre avec ton apport max — saisis ton objectif':'Objectif saisi (vide = auto)'}"
+        onchange="crmObjSet(${id},this.value)"><small>${negoPct>0?`−${pct(negoPct)} · −${kEur(b.prix-obj)}`:'au prix'}${auto?' · auto':''}</small></td>
+      <td><span class="num">${eur(aObj.apportEq)}</span><small class="${aObj.apportEq>P.plafond?'bad':''}">${aObj.apportEq>P.plafond?'> plafond ':''}à l'objectif · ${eur(a.apportEq)} au prix actuel</small></td>
+      <td><span class="stepb ${stL?'on':''}">${stL||'— à contacter'}</span>${rel?`<span class="relb">⚠️ relance (${Math.round((Date.now()-rel)/864e5)} j)</span>`:''}</td>
+      <td><small style="color:var(--txt)">${lastTxt}</small>${M.length?`<small>${M.length} échange${M.length>1?'s':''}</small>`:''}</td>
+      <td onclick="event.stopPropagation()"><button class="rmx" title="Retirer du CRM" onclick="crmRemove(${id})">✕</button></td>
+    </tr>`; }).join('');
+  return `<div class="cmp-scroll"><table class="cmp"><thead><tr><th>Bien</th><th>Prix de départ</th><th>Objectif négo</th><th>Apport perso</th><th>Étape</th><th>Dernière action</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    <div class="cmp-hint">Trié par dernière action. Apport perso = apport pour un cash-flow à l'équilibre au prix objectif (charges + TF incluses). Touche une ligne pour ouvrir la fiche.</div>`; }
 function crmPhotos(b){ return (b.photos&&b.photos.length)?b.photos:(b.img?[b.img]:[]); }
 function crmPhotoNav(d){ const n=crmPhotos(crmList[crmIdx].b).length; if(n<2) return;
   crmPhoto=(crmPhoto+d+n)%n; renderCRM(); }
@@ -4464,7 +4544,7 @@ function crmTplBuild(k,b,a,c,missing){
   const qs=missing.filter(l=>CRM_Q[l]).map(l=>`• ${CRM_Q[l]} ;`).join('\n');
   const sig='\n\nBien cordialement,\nGuillaume Magnies';
   const lastOut=crmMsgs(c).filter(m=>m.dir==='out').pop();
-  const offre=a.prixEq>=b.prix?b.prix:Math.round(a.prixEq/1000)*1000;
+  const offre=crmObjectif(b,a,c);
   const until=new Date(Date.now()+7*864e5).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
   const T={
     premier:[`Votre annonce – ${b.m} m²${b.q?' '+b.q:''}`,
@@ -4558,13 +4638,14 @@ function crmTplHTML(){ return `<div class="tpl-btns">${CRM_TPLS.map(([k,l])=>`<b
       <span class="ct-act" onclick="crmTplLog()">✅ Consigner comme envoyé</span>
     </div></div>`:''}`; }
 function renderCRM(){
-  crmList=crmList.filter(r=>getStatus(r.b)==='contacter' && !isGone(r.b));
-  const body=$('crmBody');
-  if(!crmList.length){ $('crmCount').textContent='';
-    body.innerHTML=`<div class="foot" style="padding:40px 10px">Aucun bien en « 📞 Contacter ».<br>Classe un bien depuis le radar puis reviens ici préparer la négo.</div>`; return; }
+  crmList=crmList.filter(r=>inCRM(r.b));
+  const body=$('crmBody'), tbl=crmMode==='table'||!crmList.length;
+  $('crmVT').classList.toggle('on',tbl); $('crmVF').classList.toggle('on',!tbl);
+  $('crmNavs').style.visibility=tbl?'hidden':''; $('crmNavs').style.display=(tbl&&innerWidth<=520)?'none':''; body.classList.toggle('wide',tbl);
+  $('crmCount').textContent=crmList.length?(tbl?` ${crmList.length}`:` ${crmIdx+1}/${crmList.length}`):'';
+  if(tbl){ body.innerHTML=crmTableHTML(); return; }
   if(crmIdx>=crmList.length) crmIdx=0;
   const P=params(), b=crmList[crmIdx].b, a=analyse(b,P), c=crmOf(b);
-  $('crmCount').textContent=` · ${crmIdx+1}/${crmList.length}`;
   const ph=crmPhotos(b), img=ph.length?ph[Math.min(crmPhoto,ph.length-1)]:'';
   const adresse=c.adresse||b.adresse||'';
   const pub=b.pub||c.pub||'';
@@ -4627,6 +4708,11 @@ function renderCRM(){
       Mon équilibre, c'est <b>${eur(a.prixEq)}</b>${a.sus?` (hors ${eur(a.sus)} en sus)`:''}. »</div>`:''}
     </div>
 
+    <div class="crm-sec"><h3>🎯 Objectif de négo</h3>
+      <div class="crm-fld"><label>Mon objectif de prix (€)</label><input type="number" inputmode="numeric" placeholder="auto ${crmObjAuto(b,a)}" value="${esc(c.objectif)}" onchange="crmObjSet(${idj(b.id)},this.value)"></div>
+      ${(()=>{ const o=crmObjectif(b,a,c), ao=analyse({...b,prix:o},P); return `<div class="crm-neg">Prix de départ <b>${eur(crmPrixDepart(b))}</b> → objectif <b>${eur(o)}</b>${o<b.prix?` (−${pct((b.prix-o)/b.prix)} vs prix actuel)`:''} · apport perso à l'équilibre <b>${eur(ao.apportEq)}</b>${+c.objectif>0?'':' · <i>objectif auto = prix d\'équilibre</i>'}</div>`; })()}
+    </div>
+
     <div class="crm-sec"><h3>📋 Données réelles du bien <span style="text-transform:none">(remplacent les hypothèses)</span></h3>
       <div class="crm-fld"><label>Charges copro (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${P.charges} €" value="${esc(c.charges)}" onchange="crmField(${idj(b.id)},'charges',this.value)"></div>
       <div class="crm-fld"><label>Taxe foncière (€/an)</label><input type="number" inputmode="numeric" placeholder="inconnue" value="${esc(c.tf)}" onchange="crmField(${idj(b.id)},'tf',this.value)"></div>
@@ -4652,6 +4738,7 @@ function renderCRM(){
       </div>
       ${relance?`<div class="crm-relance">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → relancer ?</div>`:''}
     </div>
+    <button class="crm-rm" onclick="crmRemove(${idj(b.id)})">✕ Retirer ce bien du CRM</button>
 
     </div>`;
 }
