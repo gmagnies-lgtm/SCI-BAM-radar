@@ -3800,7 +3800,7 @@ function mensualite(E, i, n){ if(E<=0) return 0; return E*i/(1-Math.pow(1+i,-n))
 // capital empruntable pour une mensualité M
 function capitalMax(M, i, n){ return M*(1-Math.pow(1+i,-n))/i; }
 
-function analyse(b, P, loyerM2Override){
+function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en négociation → pas de pénalité « prix trop bas / suspect »
   const n = P.duree*12, i = P.taux/12;
   const crm = tsGet(CRMD, keyOf(b)) || {};           // données réelles saisies dans le CRM (remplacent l'hypothèse)
   const sus = +crm.sus || 0;                         // éléments vendus en sus du prix (parking, cave…)
@@ -3854,6 +3854,7 @@ function analyse(b, P, loyerM2Override){
   let sPrix;
   if(e < 0)          sPrix = clamp(0.6 + e*4, 0, 0.6);    // au-dessus du marché (surcoté)
   else if(e <= 0.10) sPrix = 0.6 + e*4;                   // 0→10% sous : 0.6 → 1.0
+  else if(opt&&opt.nego) sPrix = 1.0;                     // prix négocié : une décote obtenue n'est pas suspecte
   else if(e <= 0.25) sPrix = 1.0 - (e-0.10)*(1/0.15);     // 10→25% sous : 1.0 → 0
   else               sPrix = -(e-0.25)*4;                 // >25% sous : négatif (suspect)
   const sDec  = clamp(0.5 + ecart*2, 0, 1);               // Décote vs prix cible rendement (20)
@@ -3865,7 +3866,7 @@ function analyse(b, P, loyerM2Override){
   // couleur prix vs marché : rouge au-dessus, jaune sous le marché, orange si trop bas (>25%)
   const mkClass = e<0 ? "mk-red" : (e<=0.25 ? "mk-yellow" : "mk-orange");
   let verdict="PASSER", vClass="v-pass";
-  if(score>=70 && e>=-0.03 && e<=0.25){ verdict="ACHETER"; vClass="v-go"; }
+  if(score>=70 && e>=-0.03 && (e<=0.25 || (opt&&opt.nego))){ verdict="ACHETER"; vClass="v-go"; }
   else if(score>=55){ verdict="À SURVEILLER"; vClass="v-watch"; }
   return {annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,loyerM2eff,
           cashflow,rentBrute,rentNette,prixConseille,prixPlafond,ecart,
@@ -4831,7 +4832,7 @@ function renderCRM(){
 
     <div class="crm-sec"><h3>⚖️ Économie du projet</h3>
       <div class="crm-grid">
-        ${(()=>{ const o=crmObjectif(b,a,c), O=analyse({...b,prix:o},P), neg=o<b.prix;
+        ${(()=>{ const o=crmObjectif(b,a,c), O=analyse({...b,prix:o},P,undefined,{nego:true}), neg=o<b.prix;
           const cell=(k,v,sv,ov,osv,cls,ocls)=>`<div class="crm-cell"><div class="k">${k}</div><div class="cc2">
             <div>${neg?`<div class="cc-lab">prix demandé</div>`:''}<div class="v ${cls||''}">${v}</div><div class="s">${sv}</div></div>
             ${neg?`<div class="cc-obj"><div class="cc-lab">🎯 objectif ${kEur(o)}</div><div class="v ${ocls||''}">${ov}</div><div class="s">${osv}</div></div>`:''}</div></div>`;
