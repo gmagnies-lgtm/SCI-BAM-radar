@@ -523,6 +523,25 @@
   .crm-link{display:inline-flex;align-items:center;gap:5px;margin-top:10px;background:var(--bg);border:1px solid var(--acc2);color:var(--acc2);
     border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
   .crm-link+.crm-link{margin-left:6px}
+  /* mini-graphique cash-flow (≈ 7 lignes) : entrées vs sorties mensuelles, prix demandé / objectif */
+  .cfc{--c-in:#16a34a;--c-mens:#0284c7;--c-ch:#d97706;--c-tf:#8b5cf6}
+  .cfc-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--mut);margin-bottom:6px}
+  .cfc-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .cfc-row{margin-bottom:7px}
+  .cfc-lbl{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mut);margin-bottom:3px}
+  .cfc-lbl b{color:var(--txt)}
+  .cfc-lbl .v{font-weight:800;color:var(--txt)}
+  .cfc-bar{position:relative;display:flex;gap:2px;height:8px;margin-bottom:3px}
+  .cfc-bar span{display:block;height:100%;min-width:2px}
+  .cfc-bar span:first-child{border-radius:4px 0 0 4px}.cfc-bar span:last-child{border-radius:0 4px 4px 0}
+  .cfc-bar span:only-child{border-radius:4px}
+  .cfc-bar .mk{position:absolute;top:-2px;bottom:-2px;width:0;border-left:2px dashed var(--txt);opacity:.55}
+  details.cfd{margin-top:6px;border-top:1px solid var(--line);padding-top:8px}
+  details.cfd summary{cursor:pointer;color:var(--acc2);font-weight:800;font-size:12.5px;list-style:none}
+  details.cfd summary::-webkit-details-marker{display:none}
+  details.cfd summary::before{content:'▸ ';display:inline-block;transition:transform .15s}
+  details.cfd[open] summary::before{transform:rotate(90deg)}
+  details.cfd[open] summary{margin-bottom:10px}
   .crm-top .crm-navs{display:flex;gap:6px;min-width:84px;justify-content:flex-end}
   .crm-wrap.wide{max-width:1100px}
   .cmp-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
@@ -4705,7 +4724,17 @@ function crmCFHTML(b,P,c){
   const lApport=mensualite(10000,i,n);
   const lLoyer=b.m*(1-P.vac);
   const lTaux=O.mens-mensualite(O.emprunt,Math.max(0,P.taux-0.005)/12,n);
-  return `<table class="cfh"><thead><tr><th></th><th>Prix demandé</th><th>Objectif négo</th><th>Écart</th></tr></thead><tbody>
+  // mini-graphique : pour chaque hypothèse, barre des entrées (loyer net) au-dessus de la barre des sorties empilées, même échelle
+  const out=x=>x.mens+x.chMois+x.tfMois, mx=Math.max(A.loyerNet,out(A),O.loyerNet,out(O))||1, w=v=>(100*Math.max(0,v)/mx).toFixed(2)+'%';
+  const seg=(v,col,t)=>v>0.5?`<span style="width:${w(v)};background:var(${col})" title="${t} : ${eur(Math.round(v))}/mois"></span>`:'';
+  const crow=(lbl,x,px)=>`<div class="cfc-row"><div class="cfc-lbl"><span><b>${lbl}</b> · ${kEur(px)}</span><span>cash-flow <span class="v" style="color:var(${x.cashflow>=0?'--good':'--bad'})">${sg(x.cashflow)}/mois</span></span></div>
+    <div class="cfc-bar" title="Entrées">${seg(x.loyerNet,'--c-in','Loyer net (après vacance)')}</div>
+    <div class="cfc-bar" title="Sorties">${seg(x.mens,'--c-mens','Mensualité')}${seg(x.chMois,'--c-ch','Charges copro')}${seg(x.tfMois,'--c-tf','Taxe foncière')}<b class="mk" style="left:${w(x.loyerNet)}" title="Niveau du loyer net"></b></div></div>`;
+  const chart=`<div class="cfc" role="img" aria-label="Cash-flow mensuel : prix demandé ${sg(A.cashflow)}, objectif ${sg(O.cashflow)}">
+    <div class="cfc-leg"><span><i style="background:var(--c-in)"></i>Loyer net</span><span><i style="background:var(--c-mens)"></i>Mensualité</span><span><i style="background:var(--c-ch)"></i>Charges</span><span><i style="background:var(--c-tf)"></i>Taxe foncière</span><span>┆ niveau du loyer</span></div>
+    ${crow('Prix demandé',A,b.prix)}${crow('Objectif négo',O,obj)}</div>`;
+  return chart+`<details class="cfd" ${crmCFOpen?'open':''} ontoggle="crmCFOpen=this.open"><summary>Détail ligne à ligne et leviers d'arbitrage</summary>
+  <table class="cfh"><thead><tr><th></th><th>Prix demandé</th><th>Objectif négo</th><th>Écart</th></tr></thead><tbody>
     ${rows.map(tr).join('')}
     <tr class="tot"><td>Cash-flow mensuel</td><td class="${A.cashflow>=0?'pos':'neg'}">${sg(A.cashflow)}</td><td class="${O.cashflow>=0?'pos':'neg'}">${sg(O.cashflow)}</td><td>${dl(A.cashflow,O.cashflow)}</td></tr>
     <tr><td>Rentabilité brute / nette</td><td>${pct(A.rentBrute)} / ${pct(A.rentNette)}</td><td>${pct(O.rentBrute)} / ${pct(O.rentNette)}</td><td></td></tr>
@@ -4719,7 +4748,8 @@ function crmCFHTML(b,P,c){
     <div><b>+${Math.round(lTaux)} €/mois</b>si le taux baisse de 0,5 pt</div>
   </div>
   <button class="crm-link" onclick="openDetail(${idj(b.id)})">📈 Simulation complète (curseur loyer, 25 ans)</button>
-  <button class="crm-link" onclick="crmOpenParams()">⚙️ Modifier les hypothèses</button>`; }
+  <button class="crm-link" onclick="crmOpenParams()">⚙️ Modifier les hypothèses</button></details>`; }
+let crmCFOpen=false;
 // ----- les petits plus : atouts inédits / mis en avant dans l'annonce (crm.plus) — arguments et points à vérifier en visite -----
 function crmPlusAdd(){ const b=crmCurB(), el=$('plusIn'); if(!b||!el) return; const t=el.value.trim(); if(!t) return;
   crmSet(b,{plus:(crmOf(b).plus||[]).concat([t])}); renderCRM(); }
