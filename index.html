@@ -1235,7 +1235,7 @@ const LISTINGS = [
    url:"https://www.seloger.com/annonce/achat/auvergne-rhone-alpes/rhone-69/lyon-69000/26SFUHKJ5MF7",
    img:"https://mms.seloger.com/2/e/9/7/2e97a08a-4a4a-4d50-a83e-248eff6ff10e.jpg?ci_seal=a1099d3745e8d4f75bed32061885081a95e10fe5",
    photos:["https://mms.seloger.com/2/e/9/7/2e97a08a-4a4a-4d50-a83e-248eff6ff10e.jpg?ci_seal=a1099d3745e8d4f75bed32061885081a95e10fe5", "https://mms.seloger.com/c/c/e/b/ccebd474-0a61-4472-84cb-2eae2c86a59b.jpg?ci_seal=af80ca7afd72cce2c1ae098bd79acc59f85ff0aa", "https://mms.seloger.com/2/d/9/8/2d982f16-8b6d-40ff-967b-096a30efcbcb.jpg?ci_seal=e3c3baa9d4a993f7d07a21766d8f7b0f5832f8ed", "https://mms.seloger.com/7/e/0/a/7e0a3cd3-cac8-4c20-92bb-c7f28855c3e0.jpg?ci_seal=d49fe5b7960a1a64315cad51ebc8f90c2fc9aef8", "https://mms.seloger.com/8/1/2/e/812ea49b-5389-4d08-b66c-45625d4d8383.jpg?ci_seal=d640735bab9a386ad19de6f38d8a3a513207d1b2", "https://mms.seloger.com/2/1/a/8/21a8de87-0e20-4484-b687-b20d972ee949.jpg?ci_seal=a4d5fffeb7c53153718905bf7d45097376bf33d6", "https://mms.seloger.com/f/2/3/9/f239c656-3110-4d32-ae2b-84903f779c82.jpg?ci_seal=e719414b2d205590226329633ea3654f17f084f8", "https://mms.seloger.com/9/7/b/3/97b36e2a-3bbd-4675-9582-053207a53bce.jpg?ci_seal=f3fe8c484f74fb9839cafdac685335cfb7135611"]},
- {id:"sl275110939", prix:360000, m:87, p:3, ch:2, et:"2/4", q:"Guillotière", stLouis:false, annee:2002, pub:"2026-07-16", gar:0, cave:0, terr:0, jardin:0, asc:1, balc:0, meuble:0, new:true, pap:false,
+ {id:"sl275110939", prix:360000, m:87, p:3, ch:2, et:"2/4", q:"Saint-Louis", stLouis:true, adresse:"Place Saint-Louis · rue Montesquieu", annee:2002, pub:"2026-07-16", gar:0, cave:0, terr:0, jardin:0, asc:1, balc:0, meuble:0, new:true, pap:false,
    url:"https://www.seloger.com/annonce/achat/auvergne-rhone-alpes/rhone-69/lyon-69000/267D5JKQJIVB",
    img:"https://mms.seloger.com/8/9/6/b/896bf227-44f0-46c8-a305-33c0059e7cd5.jpg?ci_seal=ca3c55d4ce8eb940da3e8f92abdca52f7ab4d904",
    photos:["https://mms.seloger.com/8/9/6/b/896bf227-44f0-46c8-a305-33c0059e7cd5.jpg?ci_seal=ca3c55d4ce8eb940da3e8f92abdca52f7ab4d904", "https://mms.seloger.com/5/c/6/d/5c6d01c0-f028-4834-ad25-0f2237190182.jpg?ci_seal=d75380ab2944ee4e4187600e96dfa522f65f75f4", "https://mms.seloger.com/3/9/2/3/392319b1-0c0f-440f-afc0-86e5a65ca4ef.jpg?ci_seal=4b98393d1c5f83f25417f76a0f1176985215f8ba", "https://mms.seloger.com/0/9/c/f/09cf9d0a-b2de-4d03-a225-ad2fc85af68a.jpg?ci_seal=547df1e49757ed5c193f0c7d14e91c32372cf178", "https://mms.seloger.com/4/7/d/d/47dd6109-3611-4000-8f2a-f4ea04fd9485.jpg?ci_seal=c44fdea2cf9d1967894a3a0cbba0161d8b658bf3", "https://mms.seloger.com/d/d/4/0/dd40f2fd-706a-4953-b65d-9067f9c908c3.jpg?ci_seal=e8160d9367a4ab18169d7e534ed8e0618656342c", "https://mms.seloger.com/5/8/8/d/588da773-6349-4489-9166-454ff35781a1.jpg?ci_seal=cab2a8c17aba4f631a456c4617c3b9e78245ced7", "https://mms.seloger.com/e/0/1/d/e01d3d7c-44dd-4d14-b707-5bc2d3f9220d.jpg?ci_seal=4f13f94fdaccdd9791619cebf88da8852614c66f"]},
@@ -3713,7 +3713,9 @@ function setStatus(b,s){ const k=keyOf(b); tsSet(STATUS,k, tsGet(STATUS,k)===s?n
 // statut explicite (pas de bascule) — utilisé par le mode swipe et l'annulation
 function setStatusRaw(b,s){ const k=keyOf(b); tsSet(STATUS,k, s||null);
   try{ localStorage.setItem(STKEY,JSON.stringify(STATUS)); }catch(e){} pushRemote(); render(); }
-function byId(id){ return LISTINGS.find(x=>x.id===id) || GONE.find(x=>x.id===id); }
+function byId(id){ id=String(id); return LISTINGS.find(x=>String(x.id)===id) || GONE.find(x=>String(x.id)===id); }
+// id → littéral JS sûr dans un attribut onclick="…" (les ids SeLoger sont des chaînes « sl… » : sans guillemets → ReferenceError)
+function idj(id){ return typeof id==='number' ? id : "'"+String(id).replace(/[^\w-]/g,'')+"'"; }
 
 // ----- « Disparues » marquées par l'utilisateur (lien mort) — état réversible & synchronisé -----
 const GKEY='scibam_gone_v1';
@@ -4018,11 +4020,11 @@ function card(b,a){
   const gone = isGone(b);
   const goneCls = gone ? (st==='archive'?'gone-arch':'gone-other') : '';
   const drop=priceDrop(b);
-  return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''} ${goneCls}" onclick="openDetail(${b.id})">
+  return `<div class="card ${b.new?'new':''} ${st?('st-'+st):''} ${goneCls}" onclick="openDetail(${idj(b.id)})">
     ${photoHTML(b)}
     ${(st==='contacter'&&!gone&&drop)?`<div class="promostamp">🏷️ Prix en baisse de ${kEur(drop)}</div>`:''}
     ${gone?`<div class="gonetag ${st==='archive'?'g':'r'}">⚠️ Retirée du marché</div><div class="gonetag former">Était : ${formerCatLabel(b)}</div>`:''}
-    ${true?`<button class="favstar ${isFav(b)?'on':''}" onclick="event.stopPropagation();toggleFav(${b.id})" title="${isFav(b)?'Retirer des favoris':'Ajouter aux favoris'}">${isFav(b)?'★':'☆'}</button>`:''}
+    ${true?`<button class="favstar ${isFav(b)?'on':''}" onclick="event.stopPropagation();toggleFav(${idj(b.id)})" title="${isFav(b)?'Retirer des favoris':'Ajouter aux favoris'}">${isFav(b)?'★':'☆'}</button>`:''}
     ${isStLouis(b)?`<div class="stlouis">⭐ Quartier Saint-Louis</div>`:''}
     ${note?`<div class="notepeek">📝 ${note.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>`:''}
     ${b.pap?`<div class="pap">🤝 Particulier à particulier — sans frais d'agence</div>`:''}
@@ -4076,20 +4078,20 @@ function card(b,a){
     <div class="statusrow" onclick="event.stopPropagation()">
     ${gone
       ? (isGoneMarked(b)
-          ? `<button class="stbtn b-restore" onclick="setGone(byId(${b.id}),false)">↩︎ Remettre en « ${formerCatLabel(b)} »</button>`
+          ? `<button class="stbtn b-restore" onclick="setGone(byId(${idj(b.id)}),false)">↩︎ Remettre en « ${formerCatLabel(b)} »</button>`
           : (b.gone
               ? `<span class="goneauto">🔗✖ Lien mort vérifié — annonce retirée du marché</span>`
               : `<span class="goneauto">Retirée des annonces suivies — n'apparaît plus dans la veille</span>`))
-      : `<button class="stbtn b-contacter ${st==='contacter'?'on':''}" onclick="setStatus(byId(${b.id}),'contacter')">📞 Contacter</button>
-      <button class="stbtn b-conserver ${st==='conserver'?'on':''}" onclick="setStatus(byId(${b.id}),'conserver')">⭐ Conserver</button>
-      <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${b.id}),'archive')">🗑 Archiver</button>`}
-    ${(st==='contacter'&&!gone)?`<button class="gocrm" onclick="openCRM(${b.id})">🤝 Go to CRM — préparer la négo →</button>`:''}
+      : `<button class="stbtn b-contacter ${st==='contacter'?'on':''}" onclick="setStatus(byId(${idj(b.id)}),'contacter')">📞 Contacter</button>
+      <button class="stbtn b-conserver ${st==='conserver'?'on':''}" onclick="setStatus(byId(${idj(b.id)}),'conserver')">⭐ Conserver</button>
+      <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${idj(b.id)}),'archive')">🗑 Archiver</button>`}
+    ${(st==='contacter'&&!gone)?`<button class="gocrm" onclick="openCRM(${idj(b.id)})">🤝 Go to CRM — préparer la négo →</button>`:''}
     </div>
     ${(st||note)?`<div class="noterow" onclick="event.stopPropagation()">
-      <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${b.id}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
+      <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${idj(b.id)}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
     </div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Voir sur ${src} — photos ↗</a>`:''}
-    ${(b.url&&!gone)?`<div class="deadrow" onclick="event.stopPropagation()"><span class="deadlink" onclick="setGone(byId(${b.id}),true)">⚠️ Lien mort ? → marquer disparue</span></div>`:''}
+    ${(b.url&&!gone)?`<div class="deadrow" onclick="event.stopPropagation()"><span class="deadlink" onclick="setGone(byId(${idj(b.id)}),true)">⚠️ Lien mort ? → marquer disparue</span></div>`:''}
   </div>`;
 }
 
@@ -4241,10 +4243,10 @@ function openDetail(id){
       ? `<div class="sh-loyer real">💶 Loyer réel saisi (CRM) : <b>${eur(+crmOf(b).loyer)}/mois</b> · ${(+crmOf(b).loyer/b.m).toFixed(1).replace('.',',')} €/m² — c'est lui qui alimente la simulation.</div>`
       : `<div class="sh-loyer" id="shLoyer">
       <div class="shl-top"><span>Loyer retenu pour ce bien</span><b id="shlVal">${a.loyerM2eff.toFixed(1).replace('.',',')} €/m²</b></div>
-      <input id="shlRange" type="range" min="13" max="18" step="0.5" value="${a.loyerM2eff}" oninput="loyerLive(${b.id},this.value)" onchange="loyerCommit(${b.id},this.value)">
+      <input id="shlRange" type="range" min="13" max="18" step="0.5" value="${a.loyerM2eff}" oninput="loyerLive(${idj(b.id)},this.value)" onchange="loyerCommit(${idj(b.id)},this.value)">
       <div class="shl-scale"><span>13 · bas</span><span>marché ~13</span><span>18 · haut</span></div>
       <div class="shl-live" id="shlLive">${loyerStrip(a,p)}</div>
-      ${getLoyerM2(b)!=null?`<button class="shl-reset" onclick="loyerCommit(${b.id},'')">↺ Revenir au défaut (${(''+P.loyer).replace('.',',')} €/m²)</button>`:'<div class="shl-hint">Glisse pour tester un loyer plus prudent ou plus haut — tout se recalcule.</div>'}
+      ${getLoyerM2(b)!=null?`<button class="shl-reset" onclick="loyerCommit(${idj(b.id)},'')">↺ Revenir au défaut (${(''+P.loyer).replace('.',',')} €/m²)</button>`:'<div class="shl-hint">Glisse pour tester un loyer plus prudent ou plus haut — tout se recalcule.</div>'}
     </div>`}
     <div class="sh-chart-h">Cash-flow annuel <span class="lg lg-cf">■ cash-flow</span> <span class="lg lg-eq">▬ valeur nette du bien</span></div>
     <div class="sh-chart">${chartSVG(p)}</div>
@@ -4258,7 +4260,7 @@ function openDetail(id){
     </div>
     <div class="sh-note">Apport traité en <b>compte courant d'associé</b> (récupérable, pas de « valeur nette SCI »). TRI/VAN sur fonds propres, revente théorique à la <b>valeur nette du bien</b> (valeur de marché − capital restant dû) en année 25 — hors fiscalité IS et frais de cession. Indicatif.</div>
     <div class="ind-k" style="margin-bottom:5px">Ma note</div>
-    <textarea class="note" rows="3" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${b.id}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+    <textarea class="note" rows="3" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener">Voir l'annonce sur ${sourceOf(b.url)} ↗</a>`:''}`;
   $('modal').classList.add('show'); $('modal').setAttribute('aria-hidden','false');
 }
@@ -4286,7 +4288,7 @@ function crmBiens(){ const P=params();
   return LISTINGS.filter(b=>getStatus(b)==='contacter' && !isGone(b))
     .map(b=>({b})).sort((x,y)=>analyse(y.b,P).score-analyse(x.b,P).score); }
 function openCRM(id){ crmList=crmBiens();
-  const i=id!=null?crmList.findIndex(r=>r.b.id===id):0; crmIdx=i<0?0:i; crmPhoto=0;
+  const i=id!=null?crmList.findIndex(r=>String(r.b.id)===String(id)):0; crmIdx=i<0?0:i; crmPhoto=0;
   $('crm').classList.add('show'); $('crm').setAttribute('aria-hidden','false'); renderCRM();
   $('crm').scrollTop=0; }
 function closeCRM(){ $('crm').classList.remove('show'); $('crm').setAttribute('aria-hidden','true'); render(); }
@@ -4346,7 +4348,7 @@ function renderCRM(){
 
     <div class="crm-sec"><h3>📝 Notes négo</h3>
       <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
-        onchange="setNote(byId(${b.id}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+        onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
     </div>
     <div class="crm-sec"><h3>⚖️ Économie du projet</h3>
       <div class="crm-grid">
@@ -4367,16 +4369,16 @@ function renderCRM(){
     </div>
 
     <div class="crm-sec"><h3>📋 Données réelles du bien <span style="text-transform:none">(remplacent les hypothèses)</span></h3>
-      <div class="crm-fld"><label>Charges copro (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${P.charges} €" value="${esc(c.charges)}" onchange="crmField(${b.id},'charges',this.value)"></div>
-      <div class="crm-fld"><label>Taxe foncière (€/an)</label><input type="number" inputmode="numeric" placeholder="inconnue" value="${esc(c.tf)}" onchange="crmField(${b.id},'tf',this.value)"></div>
-      <div class="crm-fld"><label>En sus du prix (€) — parking, cave…</label><input type="number" inputmode="numeric" placeholder="0" value="${esc(c.sus)}" onchange="crmField(${b.id},'sus',this.value)"></div>
-      <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(P.loyer*b.m)} €" value="${esc(c.loyer)}" onchange="crmField(${b.id},'loyer',this.value)"></div>
-      <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${b.id},'adresse',this.value)"></div>
-      <div class="crm-fld"><label>Contact (agence, nom, tél.)</label><input type="text" placeholder="Mme…, 06…" value="${esc(c.contact)}" onchange="crmField(${b.id},'contact',this.value)"></div>
-      <div class="crm-fld"><label>DPE</label><input type="text" placeholder="A → G" value="${esc(c.dpe)}" onchange="crmField(${b.id},'dpe',this.value)"></div>
-      <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${b.id},'travaux',this.value)"></div>
-      <div class="crm-fld"><label>Copro : nb de lots</label><input type="text" placeholder="?" value="${esc(c.lots)}" onchange="crmField(${b.id},'lots',this.value)"></div>
-      ${!b.pub?`<div class="crm-fld"><label>Date de l'annonce</label><input type="date" value="${esc(c.pub)}" onchange="crmField(${b.id},'pub',this.value)"></div>`:''}
+      <div class="crm-fld"><label>Charges copro (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${P.charges} €" value="${esc(c.charges)}" onchange="crmField(${idj(b.id)},'charges',this.value)"></div>
+      <div class="crm-fld"><label>Taxe foncière (€/an)</label><input type="number" inputmode="numeric" placeholder="inconnue" value="${esc(c.tf)}" onchange="crmField(${idj(b.id)},'tf',this.value)"></div>
+      <div class="crm-fld"><label>En sus du prix (€) — parking, cave…</label><input type="number" inputmode="numeric" placeholder="0" value="${esc(c.sus)}" onchange="crmField(${idj(b.id)},'sus',this.value)"></div>
+      <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(P.loyer*b.m)} €" value="${esc(c.loyer)}" onchange="crmField(${idj(b.id)},'loyer',this.value)"></div>
+      <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${idj(b.id)},'adresse',this.value)"></div>
+      <div class="crm-fld"><label>Contact (agence, nom, tél.)</label><input type="text" placeholder="Mme…, 06…" value="${esc(c.contact)}" onchange="crmField(${idj(b.id)},'contact',this.value)"></div>
+      <div class="crm-fld"><label>DPE</label><input type="text" placeholder="A → G" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
+      <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${idj(b.id)},'travaux',this.value)"></div>
+      <div class="crm-fld"><label>Copro : nb de lots</label><input type="text" placeholder="?" value="${esc(c.lots)}" onchange="crmField(${idj(b.id)},'lots',this.value)"></div>
+      ${!b.pub?`<div class="crm-fld"><label>Date de l'annonce</label><input type="date" value="${esc(c.pub)}" onchange="crmField(${idj(b.id)},'pub',this.value)"></div>`:''}
     </div>
 
     <div class="crm-sec"><h3>❓ Il manque ${chk.filter(x=>!x[1]).length?`${chk.filter(x=>!x[1]).length} info${chk.filter(x=>!x[1]).length>1?'s':''} — questions à poser`:'rien — dossier complet ✓'}</h3>
@@ -4388,7 +4390,7 @@ function renderCRM(){
     <div class="crm-sec"><h3>🚀 Pipeline</h3>
       <div class="crm-steps">
         ${CRM_STEPS.map(([k,l],i)=>{const d=crmStepDate(c,k);
-          return `<button class="crm-step ${c.step===k?'on':(stepIdx>i?'done':'')}" onclick="crmStepGo(${b.id},'${k}')">${l}${d&&stepIdx>=i?`<small>${dmy(d)}</small>`:''}</button>`;}).join('')}
+          return `<button class="crm-step ${c.step===k?'on':(stepIdx>i?'done':'')}" onclick="crmStepGo(${idj(b.id)},'${k}')">${l}${d&&stepIdx>=i?`<small>${dmy(d)}</small>`:''}</button>`;}).join('')}
       </div>
       ${relance?`<div class="crm-relance">⚠️ Contacté il y a ${Math.round((Date.now()-dStep)/864e5)} j sans suite → relancer ?</div>`:''}
     </div>
