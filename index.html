@@ -27,7 +27,7 @@
   .h-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   h1{font-size:18px;margin:0;letter-spacing:.3px}
   h1 span{color:var(--acc)}
-  .sub{color:var(--mut);font-size:12px;margin-top:2px}
+  .sub{color:var(--mut);font-size:12px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* sous-titre sur une seule ligne, pleine largeur */
   .pill{display:inline-block;background:var(--acc);color:#0f172a;font-weight:700;
     font-size:12px;padding:3px 9px;border-radius:999px}
   .wrap{max-width:760px;margin:0 auto;padding:0 12px}
@@ -523,7 +523,6 @@
     <div class="h-top">
       <div>
         <h1>SCI <span>BAM</span> · Radar Immo</h1>
-        <div class="sub" id="sub">Lyon 7e · achat locatif · mise à jour —</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex:none">
         <span class="pill" id="newpill" onclick="openSwipe()" title="Trier les nouveaux biens">0 nouv.</span>
@@ -531,6 +530,7 @@
         <button class="gear" id="gearBtn" title="Réglages (apport, paramètres, sources, filtres)">⚙️</button>
       </div>
     </div>
+    <div class="sub" id="sub">Lyon 7e · achat locatif · mise à jour —</div>
   </div>
 </header>
 
@@ -4580,7 +4580,7 @@ $('papOnly').addEventListener('change',e=>setPapOnly(e.target.checked));
 $('runBtn').addEventListener('click',refreshNow);
 $('syncCode').addEventListener('change',e=>setSyncToken(e.target.value));
 
-$('sub').innerHTML="Lyon 7e · achat locatif · <b>MAJ "+new Date(DATA_UPDATED).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+"</b> · 👤 Guillaume (admin)";
+$('sub').innerHTML="Lyon 7e · achat locatif · <b>MAJ "+DATA_UPDATED.replace(/^\d\d(\d\d)-0?(\d+)-0?(\d+)$/,'$3/$2/$1')+"</b> · 👤 Guillaume (admin)";
 $('mktbar').innerHTML=`📊 <b>Marché DVF</b> (${MARKET.source}, ${MARKET.date}) — Appart Lyon 7e <b>${MARKET.pm2Moyen.toLocaleString('fr-FR')} €/m²</b> (${MARKET.pm2Min.toLocaleString('fr-FR')}–${MARKET.pm2Max.toLocaleString('fr-FR')}) · loyer ${String(MARKET.loyerObserve).replace('.',',')} €/m² · ${MARKET.evol1an} %/an`;
 healKeys();
 updatePriceHist();
