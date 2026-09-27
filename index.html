@@ -469,6 +469,13 @@
   .crm-cell .v.pos{color:var(--good)}.crm-cell .v.neg{color:var(--bad)}
   .crm-cell .s{color:var(--mut);font-size:11px;margin-top:2px}
   .crm-cell.hero{grid-column:1/-1;border-color:var(--acc);background:rgba(245,158,11,.07)}
+  .cc2{display:flex;gap:10px;align-items:flex-start}
+  .cc2>div{flex:1;min-width:0}
+  .cc-obj{border-left:1px dashed var(--line);padding-left:10px}
+  .cc-obj .v{color:var(--acc)}
+  .cc-obj .v.pos{color:var(--good)}.cc-obj .v.neg{color:var(--bad)}
+  .cc-lab{font-size:10px;letter-spacing:.3px;text-transform:uppercase;color:var(--mut);margin-top:3px}
+  .cc-obj .cc-lab{color:var(--acc)}
   .crm-cell.hero .v{font-size:18px}
   .crm-fld{display:flex;align-items:center;gap:8px;margin:7px 0}
   .crm-fld label{flex:none;width:46%;color:var(--mut);font-size:12.5px}
@@ -4824,11 +4831,16 @@ function renderCRM(){
 
     <div class="crm-sec"><h3>⚖️ Économie du projet</h3>
       <div class="crm-grid">
-        <div class="crm-cell"><div class="k">Score / verdict</div><div class="v">${a.score}/100</div><div class="s">${a.verdict}</div></div>
-        <div class="crm-cell"><div class="k">€/m² vs marché</div><div class="v">${Math.round(a.pm2reel).toLocaleString('fr-FR')}</div><div class="s">marché ${Math.round(a.mPm2).toLocaleString('fr-FR')} € (${a.ecartMarche>=0?'−':'+'}${pct0(Math.abs(a.ecartMarche))})</div></div>
-        <div class="crm-cell"><div class="k">Rentabilité</div><div class="v">${pct(a.rentBrute)}</div><div class="s">nette ${pct(a.rentNette)}</div></div>
-        <div class="crm-cell"><div class="k">Cash-flow</div><div class="v ${a.cashflow>=0?'pos':'neg'}">${a.cashflow>=0?'+':''}${Math.round(a.cashflow)} €/m</div>
-          <div class="s">charges ${Math.round(a.chMois)} €${chReel?' (réelles)':' (hyp.)'}${a.tfMois?` + TF ${Math.round(a.tfMois)} €/m`:''}</div></div>
+        ${(()=>{ const o=crmObjectif(b,a,c), O=analyse({...b,prix:o},P), neg=o<b.prix;
+          const cell=(k,v,sv,ov,osv,cls,ocls)=>`<div class="crm-cell"><div class="k">${k}</div><div class="cc2">
+            <div>${neg?`<div class="cc-lab">prix demandé</div>`:''}<div class="v ${cls||''}">${v}</div><div class="s">${sv}</div></div>
+            ${neg?`<div class="cc-obj"><div class="cc-lab">🎯 objectif ${kEur(o)}</div><div class="v ${ocls||''}">${ov}</div><div class="s">${osv}</div></div>`:''}</div></div>`;
+          const cf=x=>`${x>=0?'+':''}${Math.round(x)} €/m`, ecm=x=>`marché ${Math.round(x.mPm2).toLocaleString('fr-FR')} € (${x.ecartMarche>=0?'−':'+'}${pct0(Math.abs(x.ecartMarche))})`;
+          return cell('Score / verdict',`${a.score}/100`,a.verdict,`${O.score}/100`,O.verdict)
+          +cell('€/m² vs marché',Math.round(a.pm2reel).toLocaleString('fr-FR'),ecm(a),Math.round(O.pm2reel).toLocaleString('fr-FR'),ecm(O))
+          +cell('Rentabilité',pct(a.rentBrute),`nette ${pct(a.rentNette)}`,pct(O.rentBrute),`nette ${pct(O.rentNette)}`)
+          +cell('Cash-flow',cf(a.cashflow),`charges ${Math.round(a.chMois)} €${chReel?' (réelles)':' (hyp.)'}${a.tfMois?` + TF ${Math.round(a.tfMois)} €/m`:''}`,
+                cf(O.cashflow),'mêmes charges',a.cashflow>=0?'pos':'neg',O.cashflow>=0?'pos':'neg'); })()}
         <div class="crm-cell hero"><div class="k">⚖️ Apport pour un cash-flow à l'équilibre</div>
           <div class="v">${eur(a.apportEq)}</div>
           <div class="s">${a.apportEq>P.plafond?`dépasse ton plafond de ${eur(P.plafond)} → négocier le prix ↓`:`dans ton plafond (${eur(P.plafond)}) · apport règle actuelle : ${eur(a.apport)}`}</div></div>
