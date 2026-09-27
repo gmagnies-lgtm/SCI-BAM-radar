@@ -1,10 +1,14 @@
 name = "sci-bam-sync"
 main = "worker.js"
+account_id = "5b09267c30ab125627e4dbf4c13c4a89"   # compte Cloudflare Chat3D (guillaume.magnies@chat3d.ai) — migration du 2026-09-27, ancien compte perso abandonné
 compatibility_date = "2025-01-01"
+workers_dev = true
+preview_urls = false   # pas d'URL de préversion publique
 
 [vars]
 ALLOW_ORIGIN = "https://gmagnies-lgtm.github.io"
 
 [[kv_namespaces]]
 binding = "SCIBAM"
-id = "68e641510b4c4cb09f051b1c65824fa5"
+id = "4a02b89657234b599a20481ee36c4341"
+

@@ -3956,7 +3956,7 @@ function recommendation(a){
 function ringColor(a){ return a.verdict==='ACHETER'?'var(--good)':(a.verdict==='À SURVEILLER'?'var(--warn)':'var(--bad)'); }
 
 // ----- synchro multi-appareils (Cloudflare Worker + KV) — classements, notes, historique prix -----
-const SYNC={ url:'https://sci-bam-sync.gmagnies.workers.dev' };   // URL du Worker (non secrète). Le code de synchro N'EST PAS ici :
+const SYNC={ url:'https://sci-bam-sync.chat3d.workers.dev' };   // URL du Worker (non secrète). Le code de synchro N'EST PAS ici :
                          // il est saisi par l'utilisateur et stocké en local (jamais dans le dépôt public).
 const SYNCTOKKEY='scibam_synctoken_v1';
 const SESSKEY='scibam_session_v1';   // session multi-utilisateurs {token,name,email,admin}
