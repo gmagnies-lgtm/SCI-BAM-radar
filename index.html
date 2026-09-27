@@ -483,6 +483,58 @@
   .crm-chk.ok{border-style:solid;border-color:var(--good);color:var(--txt)}
   .crm-neg{font-size:13px;color:var(--mut);margin-top:9px;line-height:1.6}
   .crm-neg b{color:var(--txt)}
+  /* interlocuteurs */
+  .ct-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;margin:0 0 8px}
+  .ct-head{display:flex;gap:6px;align-items:center}
+  .ct-head input{flex:1;min-width:0}
+  .ct-card input,.ct-card select,.msg-new select,.msg-new input,.tpl-box input{background:var(--bg2);border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit;box-sizing:border-box}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .ct-grid input{width:100%}
+  .ct-grid .full{grid-column:1/-1}
+  .ct-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .ct-act{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);
+    border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer}
+  .ct-act:hover{border-color:var(--acc2)}
+  .ct-del{background:none;border:none;color:var(--mut);font-size:15px;cursor:pointer;padding:4px}
+  .crm-add{width:100%;background:none;border:1px dashed var(--line);color:var(--mut);border-radius:10px;padding:8px;
+    font-weight:700;cursor:pointer;font-family:inherit}
+  .crm-add:hover{border-color:var(--acc);color:var(--txt)}
+  .crm-sec h3 .h3act{float:right;text-transform:none;letter-spacing:0;background:none;border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:2px 8px;font-size:11.5px;font-weight:700;cursor:pointer;margin-top:-3px}
+  /* fil des échanges */
+  .msgs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .msg{max-width:88%;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--bg)}
+  .msg.out{align-self:flex-end;border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.08)}
+  .msg.in{align-self:flex-start;border-color:rgba(56,189,248,.4);background:rgba(56,189,248,.07)}
+  .msg-meta{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:11.5px;margin-bottom:4px}
+  .msg-meta span{flex:1}
+  .msg-meta button{background:none;border:none;color:var(--mut);cursor:pointer;font-size:13px;padding:0 2px}
+  .msg-meta button:hover{color:var(--txt)}
+  .msg-obj{font-weight:800;font-size:13px;margin-bottom:3px}
+  .msg-txt{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.45}
+  .msg-txt.clamp{display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+  .msg-more{color:var(--acc2);font-size:11.5px;cursor:pointer;margin-top:3px}
+  .msg-empty{color:var(--mut);font-size:13px;text-align:center;padding:6px 0 12px}
+  .msg-new{border-top:1px solid var(--line);padding-top:10px}
+  .msg-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .msg-row select,.msg-row input{flex:1;min-width:120px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex:none}
+  .seg button{background:var(--bg);border:none;color:var(--mut);padding:7px 11px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--acc);color:#0f172a}
+  .msg-go{width:100%;margin-top:6px;background:var(--acc);border:none;color:#0f172a;border-radius:10px;padding:9px;
+    font-weight:800;cursor:pointer;font-family:inherit;font-size:13.5px}
+  /* modèles de messages */
+  .tpl-btns{display:flex;gap:6px;flex-wrap:wrap}
+  .tpl-btns button{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:6px 11px;
+    font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .tpl-btns button.on{border-color:var(--acc);background:rgba(245,158,11,.12)}
+  .tpl-box{margin-top:10px}
+  .tpl-box input{width:100%;margin-bottom:6px}
+  .crm-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:90;background:var(--good);color:#052e16;
+    font-weight:800;font-size:13.5px;padding:9px 16px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.35);
+    opacity:0;transition:opacity .2s;pointer-events:none}
+  .crm-toast.show{opacity:1}
   .gocrm{display:block;width:100%;margin-top:8px;background:linear-gradient(90deg,rgba(245,158,11,.14),rgba(56,189,248,.14));
     border:1px solid var(--acc);color:var(--acc);border-radius:10px;padding:9px;font-size:13.5px;font-weight:800}
 </style>
@@ -4344,6 +4396,167 @@ function crmStepGo(id,s){ const b=byId(id); if(!b) return; const c=crmOf(b);
   const next=c.step===s?'':s;                                   // re-taper l'étape en cours = revenir en arrière
   const hist=(c.hist||[]).concat([{s:next||'retour',t:Date.now()}]).slice(-40);
   crmSet(b,{step:next,hist}); renderCRM(); }
+// ----- interlocuteurs & fil des échanges (rangés dans la fiche CRM → synchronisés) -----
+const CRM_ROLES=['Agence','Particulier','Notaire','Syndic','Autre'];
+const CRM_CANAUX=[['email','✉️ Email'],['lbc','🟠 Leboncoin'],['seloger','🔴 SeLoger'],['sms','💬 SMS'],
+  ['whatsapp','🟢 WhatsApp'],['tel','📞 Appel'],['visite','🏠 Visite / RDV'],['autre','📝 Autre']];
+const canalLbl=k=>(CRM_CANAUX.find(x=>x[0]===k)||['','📝 Autre'])[1];
+const crmUid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const telNorm=t=>String(t||'').replace(/[^\d+]/g,'');
+function waNum(t){ let n=telNorm(t).replace(/^\+/,'').replace(/^00/,''); if(/^0\d{9}$/.test(n)) n='33'+n.slice(1); return n; }
+function dmyhm(ts){ return new Date(ts).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function crmCurB(){ return crmList[crmIdx]&&crmList[crmIdx].b; }
+// ancien champ texte « contact » → affiché comme 1er interlocuteur, converti à la 1re modif
+function crmContacts(c){ return c.contacts||(c.contact?[{id:'c0',nom:c.contact}]:[]); }
+function crmWho(c,id){ return crmContacts(c).find(x=>x.id===id); }
+function crmWhoName(c,id){ const w=crmWho(c,id); return w?(w.nom||w.role||'?'):''; }
+function crmContactsSave(b,L){ crmSet(b,{contacts:L,contact:null}); renderCRM(); }
+function crmContactAdd(){ const b=crmCurB(); if(!b) return;
+  crmContactsSave(b,crmContacts(crmOf(b)).concat([{id:crmUid(),role:'Agence'}])); }
+function crmContactSet(cid,f,v){ const b=crmCurB(); if(!b) return;
+  crmContactsSave(b,crmContacts(crmOf(b)).map(x=>x.id===cid?{...x,[f]:String(v??'').trim()}:x)); }
+function crmContactDel(cid){ const b=crmCurB(); if(!b) return; const c=crmOf(b), w=crmWho(c,cid);
+  if(!confirm(`Supprimer l'interlocuteur ${w&&w.nom?w.nom:''} ? (les messages restent)`)) return;
+  crmContactsSave(b,crmContacts(c).filter(x=>x.id!==cid)); }
+function crmMsgs(c){ return (c.msgs||[]).slice().sort((x,y)=>x.t-y.t); }
+let crmDraft={k:null}, crmTpl=null;
+function crmDraftFor(b){ const k=keyOf(b);
+  if(crmDraft.k!==k){ const c=crmOf(b), L=crmContacts(c);
+    crmDraft={k,dir:'out',canal:'email',who:'',obj:'',txt:'',t:''}; crmTpl=null; }
+  if(!crmDraft.who||!crmWho(crmOf(b),crmDraft.who)){ const L=crmContacts(crmOf(b)); crmDraft.who=L.length?L[0].id:''; }
+  return crmDraft; }
+function crmDraftSet(f,v,re){ crmDraft[f]=v; if(re) renderCRM(); }
+function crmLog(b,m){ const c=crmOf(b); const patch={msgs:(c.msgs||[]).concat([{id:crmUid(),...m}])};
+  if(m.dir==='out'&&!c.step){ patch.step='contacte'; patch.hist=(c.hist||[]).concat([{s:'contacte',t:m.t}]).slice(-40); }
+  crmSet(b,patch); }
+function crmMsgAdd(){ const b=crmCurB(); if(!b) return; const d=crmDraft, txt=(d.txt||'').trim();
+  if(!txt){ crmToast('Colle ou écris le message d\'abord',true); return; }
+  const t=d.t?new Date(d.t).getTime():Date.now();
+  crmLog(b,{t,dir:d.dir,canal:d.canal,who:d.who||undefined,obj:(d.obj||'').trim()||undefined,txt});
+  Object.assign(crmDraft,{obj:'',txt:'',t:''}); renderCRM(); crmToast('Message ajouté au fil ✓'); }
+function crmMsgDel(mid){ const b=crmCurB(); if(!b||!confirm('Supprimer ce message du fil ?')) return;
+  crmSet(b,{msgs:(crmOf(b).msgs||[]).filter(m=>m.id!==mid)}); renderCRM(); }
+function crmMsgText(c,m){ const who=crmWhoName(c,m.who)||'interlocuteur';
+  return `— ${dmyhm(m.t)} · ${m.dir==='out'?'Moi → '+who:who+' → moi'} · ${canalLbl(m.canal)}\n`
+    +(m.obj?`Objet : ${m.obj}\n`:'')+m.txt; }
+function crmMsgCopy(mid){ const b=crmCurB(); if(!b) return; const m=(crmOf(b).msgs||[]).find(x=>x.id===mid); if(!m) return;
+  crmCopy((m.obj?`Objet : ${m.obj}\n\n`:'')+m.txt,'Message copié ✓'); }
+function crmThreadCopy(){ const b=crmCurB(); if(!b) return; const c=crmOf(b);
+  const head=`${b.q} · ${b.m} m² · ${eur(b.prix)}${b.url?`\n${b.url}`:''}`;
+  crmCopy(head+'\n\n'+crmMsgs(c).map(m=>crmMsgText(c,m)).join('\n\n'),'Fil complet copié ✓'); }
+function crmCopy(txt,ok){
+  const done=()=>crmToast(ok||'Copié ✓');
+  const fb=()=>{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){ crmToast('Copie impossible',true); } ta.remove(); };
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(txt).then(done,fb); else fb(); }
+let crmToastT=0;
+function crmToast(msg,bad){ let el=$('crmToast'); if(!el){ el=document.createElement('div'); el.id='crmToast'; el.className='crm-toast'; document.body.appendChild(el); }
+  el.textContent=msg; el.style.background=bad?'var(--warn)':''; el.classList.add('show');
+  clearTimeout(crmToastT); crmToastT=setTimeout(()=>el.classList.remove('show'),1800); }
+// ----- modèles de messages : pré-remplis avec le bien, les infos manquantes et l'interlocuteur -----
+const CRM_TPLS=[['premier','👋 Premier contact'],['questions','❓ Questions'],['visite','📅 Visite'],['relance','🔁 Relance'],['offre','💶 Offre']];
+const CRM_Q={'Charges copro':'le montant des charges de copropriété (et ce qu\'elles couvrent)','Taxe foncière':'le montant de la taxe foncière',
+  'Adresse exacte':'l\'adresse exacte du bien','DPE':'la classe énergétique (DPE)','Travaux votés / prévus':'les travaux votés ou envisagés dans la copropriété (derniers PV d\'AG)',
+  'Copro : nb de lots':'le nombre de lots de la copropriété','Occupé ? loyer actuel':'si le bien est loué actuellement et, le cas échéant, le loyer et la date du bail'};
+function crmTplBuild(k,b,a,c,missing){
+  const w=crmContacts(c)[0], nom=w&&w.nom?w.nom:'', hi=nom?`Bonjour ${nom},`:'Bonjour,';
+  const bien=`l'appartement de ${b.m} m²${b.q?` (${b.q})`:''} proposé à ${eur(b.prix)}`;
+  const qs=missing.filter(l=>CRM_Q[l]).map(l=>`• ${CRM_Q[l]} ;`).join('\n');
+  const sig='\n\nBien cordialement,\nGuillaume Magnies';
+  const lastOut=crmMsgs(c).filter(m=>m.dir==='out').pop();
+  const offre=a.prixEq>=b.prix?b.prix:Math.round(a.prixEq/1000)*1000;
+  const until=new Date(Date.now()+7*864e5).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+  const T={
+    premier:[`Votre annonce – ${b.m} m²${b.q?' '+b.q:''}`,
+      `${hi}\n\nJe suis intéressé par ${bien}${b.url?` (${b.url})`:''}.\n\nJe recherche un bien dans le 7e arrondissement dans le cadre d'un investissement locatif.`
+      +(qs?` Pourriez-vous m'indiquer :\n${qs}`:'')+`\n\nJe serais ravi de le visiter prochainement. Quelles seraient vos disponibilités ?`+sig],
+    questions:[`Questions – ${b.m} m²${b.q?' '+b.q:''}`,
+      `${hi}\n\nMerci pour votre retour concernant ${bien}.\n\nAfin d'avancer, pourriez-vous me préciser :\n${qs||'• [question]'}\n\nMerci d'avance.`+sig],
+    visite:[`Demande de visite – ${b.m} m²${b.q?' '+b.q:''}`,
+      `${hi}\n\nSuite à nos échanges, je souhaiterais visiter ${bien}.\n\nJe suis disponible [créneaux]. Cela vous conviendrait-il ?`+sig],
+    relance:[`Relance – ${b.m} m²${b.q?' '+b.q:''}`,
+      `${hi}\n\nJe me permets de revenir vers vous au sujet de ${bien}${lastOut?`, pour lequel je vous ai écrit le ${dmy(lastOut.t)}`:''}.\n\nLe bien est-il toujours disponible ? Je reste très intéressé et disponible pour une visite.`+sig],
+    offre:[`Offre d'achat – ${b.m} m²${b.q?' '+b.q:''}`,
+      `${hi}\n\nSuite à ma visite de ${bien}, j'ai le plaisir de vous faire une offre d'achat au prix de ${eur(offre)}.\n\nCette offre tient compte de [travaux à prévoir, DPE, charges…].\nElle est valable jusqu'au ${until}.`+sig],
+  };
+  return T[k]; }
+function crmTplOpen(k){ const b=crmCurB(); if(!b) return;
+  if(crmTpl&&crmTpl.k===k){ crmTpl=null; renderCRM(); return; }
+  const a=analyse(b,params()), c=crmOf(b), [obj,txt]=crmTplBuild(k,b,a,c,crmMissing(b,c));
+  crmTpl={k,obj,txt}; renderCRM(); }
+function crmTplMail(){ const b=crmCurB(); if(!b||!crmTpl) return; const w=crmContacts(crmOf(b)).find(x=>x.email);
+  location.href=`mailto:${w?encodeURIComponent(w.email):''}?subject=${encodeURIComponent(crmTpl.obj)}&body=${encodeURIComponent(crmTpl.txt)}`; }
+function crmTplLog(){ const b=crmCurB(); if(!b||!crmTpl) return; const d=crmDraft;
+  crmLog(b,{t:Date.now(),dir:'out',canal:d.canal||'email',who:d.who||undefined,obj:crmTpl.obj||undefined,txt:crmTpl.txt});
+  crmTpl=null; renderCRM(); crmToast('Consigné comme envoyé ✓'); }
+function crmMissing(b,c){ return crmChecklist(b,c).filter(x=>!x[1]).map(x=>x[0]); }
+function crmChecklist(b,c){ const chReel=c.charges!=null&&c.charges!=='', adresse=c.adresse||b.adresse||'';
+  const L=crmContacts(c).filter(x=>x.nom||x.tel||x.email);
+  return [
+    ['Charges copro', chReel?`${c.charges} €/mois`:null],
+    ['Taxe foncière', c.tf?`${c.tf} €/an`:null],
+    ['Contact', L.length?L.map(x=>x.nom||x.tel||x.email).join(', '):null],
+    ['Adresse exacte', adresse||null],
+    ['DPE', c.dpe||null],
+    ['Travaux votés / prévus', c.travaux||null],
+    ['Copro : nb de lots', c.lots||null],
+    ['Occupé ? loyer actuel', c.loyer?`${c.loyer} €/mois`:null],
+  ]; }
+function crmContactsHTML(c){ const L=crmContacts(c);
+  return L.map(x=>{ const id=esc(x.id), tel=telNorm(x.tel);
+    return `<div class="ct-card">
+      <div class="ct-head">
+        <select onchange="crmContactSet('${id}','role',this.value)">${CRM_ROLES.map(r=>`<option ${x.role===r?'selected':''}>${r}</option>`).join('')}</select>
+        <input type="text" placeholder="Nom (Mme Durand…)" value="${esc(x.nom)}" onchange="crmContactSet('${id}','nom',this.value)">
+        <button class="ct-del" title="Supprimer" onclick="crmContactDel('${id}')">🗑</button>
+      </div>
+      <div class="ct-grid">
+        <input type="tel" placeholder="Téléphone" value="${esc(x.tel)}" onchange="crmContactSet('${id}','tel',this.value)">
+        <input type="email" placeholder="Email" value="${esc(x.email)}" onchange="crmContactSet('${id}','email',this.value)">
+        <input type="text" placeholder="Agence / société" value="${esc(x.org)}" onchange="crmContactSet('${id}','org',this.value)">
+        <input type="text" placeholder="Préfère… (WhatsApp, matin…)" value="${esc(x.pref)}" onchange="crmContactSet('${id}','pref',this.value)">
+      </div>
+      ${(tel||x.email)?`<div class="ct-acts">
+        ${tel?`<a class="ct-act" href="tel:${esc(tel)}">📞 Appeler</a><a class="ct-act" href="sms:${esc(tel)}">💬 SMS</a>
+          <a class="ct-act" href="https://wa.me/${waNum(x.tel)}" target="_blank" rel="noopener">🟢 WhatsApp</a>
+          <span class="ct-act" onclick="crmCopy('${esc(x.tel).replace(/'/g,'')}','Numéro copié ✓')">📋 ${esc(x.tel)}</span>`:''}
+        ${x.email?`<a class="ct-act" href="mailto:${esc(x.email)}">✉️ Écrire</a>
+          <span class="ct-act" onclick="crmCopy('${esc(x.email).replace(/'/g,'')}','Email copié ✓')">📋 ${esc(x.email)}</span>`:''}
+      </div>`:''}
+    </div>`; }).join('')+`<button class="crm-add" onclick="crmContactAdd()">＋ Ajouter un interlocuteur</button>`; }
+function crmMsgsHTML(b,c){ const M=crmMsgs(c), d=crmDraftFor(b), L=crmContacts(c);
+  const list=M.length?`<div class="msgs">${M.map(m=>{ const who=crmWhoName(c,m.who), long=m.txt.length>420||m.txt.split('\n').length>8;
+    return `<div class="msg ${m.dir}">
+      <div class="msg-meta"><span>${m.dir==='out'?'➡️ Moi'+(who?' → '+esc(who):''):'⬅️ '+(esc(who)||'Reçu')} · ${canalLbl(m.canal)} · ${dmyhm(m.t)}</span>
+        <button title="Copier" onclick="crmMsgCopy('${esc(m.id)}')">📋</button><button title="Supprimer" onclick="crmMsgDel('${esc(m.id)}')">🗑</button></div>
+      ${m.obj?`<div class="msg-obj">${esc(m.obj)}</div>`:''}
+      <div class="msg-txt ${long?'clamp':''}" onclick="this.classList.remove('clamp');this.nextElementSibling&&this.nextElementSibling.remove()">${esc(m.txt)}</div>
+      ${long?`<div class="msg-more" onclick="this.previousElementSibling.classList.remove('clamp');this.remove()">Voir tout ▾</div>`:''}
+    </div>`; }).join('')}</div>`
+    :`<div class="msg-empty">Aucun échange consigné. Colle ci-dessous les mails / messages envoyés et reçus.</div>`;
+  return list+`<div class="msg-new">
+    <div class="msg-row">
+      <div class="seg"><button class="${d.dir==='out'?'on':''}" onclick="crmDraftSet('dir','out',1)">➡️ Envoyé</button><button class="${d.dir==='in'?'on':''}" onclick="crmDraftSet('dir','in',1)">⬅️ Reçu</button></div>
+      <select onchange="crmDraftSet('canal',this.value)">${CRM_CANAUX.map(([k,l])=>`<option value="${k}" ${d.canal===k?'selected':''}>${l}</option>`).join('')}</select>
+      ${L.length?`<select onchange="crmDraftSet('who',this.value)"><option value="">— interlocuteur —</option>${L.map(x=>`<option value="${esc(x.id)}" ${d.who===x.id?'selected':''}>${esc(x.nom||x.role||'?')}</option>`).join('')}</select>`:''}
+    </div>
+    <div class="msg-row">
+      <input type="text" placeholder="Objet (facultatif)" value="${esc(d.obj)}" oninput="crmDraftSet('obj',this.value)">
+      <input type="datetime-local" title="Date (vide = maintenant)" value="${esc(d.t)}" oninput="crmDraftSet('t',this.value)">
+    </div>
+    <textarea class="note" rows="4" placeholder="Colle ici le message ${d.dir==='out'?'envoyé':'reçu'}…" oninput="crmDraftSet('txt',this.value)">${esc(d.txt)}</textarea>
+    <button class="msg-go" onclick="crmMsgAdd()">＋ Ajouter au fil</button>
+  </div>`; }
+function crmTplHTML(){ return `<div class="tpl-btns">${CRM_TPLS.map(([k,l])=>`<button class="${crmTpl&&crmTpl.k===k?'on':''}" onclick="crmTplOpen('${k}')">${l}</button>`).join('')}</div>
+  ${crmTpl?`<div class="tpl-box">
+    <input type="text" value="${esc(crmTpl.obj)}" oninput="crmTpl.obj=this.value" placeholder="Objet">
+    <textarea class="note" rows="11" oninput="crmTpl.txt=this.value">${esc(crmTpl.txt)}</textarea>
+    <div class="ct-acts">
+      <span class="ct-act" onclick="crmCopy((crmTpl.obj?'Objet : '+crmTpl.obj+'\\n\\n':'')+crmTpl.txt,'Message copié ✓')">📋 Copier</span>
+      <span class="ct-act" onclick="crmCopy(crmTpl.txt,'Texte copié ✓')">📋 Texte seul</span>
+      <span class="ct-act" onclick="crmTplMail()">✉️ Ouvrir dans Mail</span>
+      <span class="ct-act" onclick="crmTplLog()">✅ Consigner comme envoyé</span>
+    </div></div>`:''}`; }
 function renderCRM(){
   crmList=crmList.filter(r=>getStatus(r.b)==='contacter' && !isGone(r.b));
   const body=$('crmBody');
@@ -4358,18 +4571,13 @@ function renderCRM(){
   const chReel=c.charges!=null&&c.charges!=='';
   const dStep=c.step?crmStepDate(c,c.step):null;
   const stepIdx=CRM_STEPS.findIndex(([k])=>k===c.step);
-  const relance=c.step==='contacte'&&dStep&&(Date.now()-dStep)>CRM_RELANCE_J*864e5;
+  // relance : dernier message envoyé resté sans réponse (à défaut, date de passage à « Contacté »)
+  const lastM=crmMsgs(c).pop();
+  const relanceT=lastM?(lastM.dir==='out'?lastM.t:null):dStep;
+  const relance=c.step==='contacte'&&relanceT&&(Date.now()-relanceT)>CRM_RELANCE_J*864e5;
   // checklist : chaque info manquante = une question à poser
-  const chk=[
-    ['Charges copro', chReel?`${c.charges} €/mois`:null],
-    ['Taxe foncière', c.tf?`${c.tf} €/an`:null],
-    ['Contact', c.contact||null],
-    ['Adresse exacte', adresse||null],
-    ['DPE', c.dpe||null],
-    ['Travaux votés / prévus', c.travaux||null],
-    ['Copro : nb de lots', c.lots||null],
-    ['Occupé ? loyer actuel', c.loyer?`${c.loyer} €/mois`:null],
-  ];
+  const chk=crmChecklist(b,c);
+  const nMsg=(c.msgs||[]).length, ctL=crmContacts(c).filter(x=>x.nom||x.tel||x.email);
   const negoPct=(b.prix-a.prixEq)/b.prix;
   const equil = a.prixEq>=b.prix;
   body.innerHTML=`
@@ -4384,13 +4592,23 @@ function renderCRM(){
     <div class="crm-meta">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''} · ${starHTML(a.stars)}</div>
     ${adresse?`<div class="crm-pub">📍 ${esc(adresse)}</div>`:''}
     ${pub?`<div class="crm-pub">📅 annonce du ${dmy(new Date(pub).getTime())}${ageDays({pub})!=null?` · en ligne depuis ${ageDays({pub})} j`:''}</div>`:''}
-    ${c.contact?`<div class="crm-pub">👤 ${esc(c.contact)}</div>`:''}
+    ${ctL.length?`<div class="crm-pub">👤 ${ctL.map(x=>esc((x.nom||x.tel||x.email)+(x.role&&x.nom?` (${x.role})`:''))).join(' · ')}</div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" style="margin-top:8px">Voir l'annonce sur ${sourceLabel(b.url)} ↗</a>`:''}
 
     <div class="crm-sec"><h3>📝 Notes négo</h3>
       <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
         onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
     </div>
+
+    <div class="crm-sec"><h3>👥 Interlocuteurs</h3>${crmContactsHTML(c)}</div>
+
+    <div class="crm-sec"><h3>💬 Échanges${nMsg?` · ${nMsg}`:''}${nMsg?`<button class="h3act" onclick="crmThreadCopy()">📋 Copier le fil</button>`:''}</h3>
+      ${relance?`<div class="crm-relance" style="margin:0 0 10px">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → <u style="cursor:pointer" onclick="crmTplOpen('relance')">préparer une relance</u></div>`:''}
+      ${crmMsgsHTML(b,c)}
+    </div>
+
+    <div class="crm-sec"><h3>✍️ Modèles de messages</h3>${crmTplHTML()}</div>
+
     <div class="crm-sec"><h3>⚖️ Économie du projet</h3>
       <div class="crm-grid">
         <div class="crm-cell"><div class="k">Score / verdict</div><div class="v">${a.score}/100</div><div class="s">${a.verdict}</div></div>
@@ -4415,7 +4633,6 @@ function renderCRM(){
       <div class="crm-fld"><label>En sus du prix (€) — parking, cave…</label><input type="number" inputmode="numeric" placeholder="0" value="${esc(c.sus)}" onchange="crmField(${idj(b.id)},'sus',this.value)"></div>
       <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(P.loyer*b.m)} €" value="${esc(c.loyer)}" onchange="crmField(${idj(b.id)},'loyer',this.value)"></div>
       <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${idj(b.id)},'adresse',this.value)"></div>
-      <div class="crm-fld"><label>Contact (agence, nom, tél.)</label><input type="text" placeholder="Mme…, 06…" value="${esc(c.contact)}" onchange="crmField(${idj(b.id)},'contact',this.value)"></div>
       <div class="crm-fld"><label>DPE</label><input type="text" placeholder="A → G" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
       <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${idj(b.id)},'travaux',this.value)"></div>
       <div class="crm-fld"><label>Copro : nb de lots</label><input type="text" placeholder="?" value="${esc(c.lots)}" onchange="crmField(${idj(b.id)},'lots',this.value)"></div>
@@ -4433,7 +4650,7 @@ function renderCRM(){
         ${CRM_STEPS.map(([k,l],i)=>{const d=crmStepDate(c,k);
           return `<button class="crm-step ${c.step===k?'on':(stepIdx>i?'done':'')}" onclick="crmStepGo(${idj(b.id)},'${k}')">${l}${d&&stepIdx>=i?`<small>${dmy(d)}</small>`:''}</button>`;}).join('')}
       </div>
-      ${relance?`<div class="crm-relance">⚠️ Contacté il y a ${Math.round((Date.now()-dStep)/864e5)} j sans suite → relancer ?</div>`:''}
+      ${relance?`<div class="crm-relance">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → relancer ?</div>`:''}
     </div>
 
     </div>`;
