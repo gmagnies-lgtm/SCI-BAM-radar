@@ -495,6 +495,25 @@
   .crm-views button{background:var(--bg2);border:none;color:var(--mut);padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
   .crm-views button.on{background:var(--acc);color:#0f172a}
   .crm-views button.on .crm-count{color:#0f172a}
+  /* hypothèses de cash-flow : prix demandé vs objectif */
+  table.cfh{width:100%;border-collapse:collapse;font-size:13px}
+  .cfh th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--mut);font-weight:700;text-align:right;padding:6px 6px 8px;border-bottom:1px solid var(--line)}
+  .cfh th:first-child{text-align:left}
+  .cfh td{padding:6px;text-align:right;border-bottom:1px dashed rgba(51,65,85,.6);white-space:nowrap}
+  .cfh td:first-child{text-align:left;color:var(--mut);white-space:normal}
+  .cfh td:first-child small{display:block;font-size:10.5px}
+  .cfh tr.sep td{border-bottom:1px solid var(--line)}
+  .cfh tr.tot td{font-weight:900;font-size:14.5px;color:var(--txt);border-bottom:none;padding-top:9px}
+  .cfh tr.tot td:first-child{color:var(--txt)}
+  .cfh .pos{color:var(--good)}.cfh .neg{color:var(--bad)}
+  .cfh .d{color:var(--mut);font-size:12px}
+  .cfh .d.pos{color:var(--good)}.cfh .d.neg{color:var(--bad)}
+  .cfh-lev{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+  .cfh-lev div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:12px;color:var(--mut)}
+  .cfh-lev b{color:var(--good);font-size:13.5px;display:block}
+  .crm-link{display:inline-flex;align-items:center;gap:5px;margin-top:10px;background:var(--bg);border:1px solid var(--acc2);color:var(--acc2);
+    border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
+  .crm-link+.crm-link{margin-left:6px}
   .crm-top .crm-navs{display:flex;gap:6px;min-width:84px;justify-content:flex-end}
   .crm-wrap.wide{max-width:1100px}
   .cmp-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
@@ -4649,6 +4668,51 @@ function crmTplHTML(){ return `<div class="tpl-btns">${CRM_TPLS.map(([k,l])=>`<b
       <span class="ct-act" onclick="crmTplMail()">✉️ Ouvrir dans Mail</span>
       <span class="ct-act" onclick="crmTplLog()">✅ Consigner comme envoyé</span>
     </div></div>`:''}`; }
+// ----- hypothèses de cash-flow : prix demandé vs objectif de négo, ligne à ligne + leviers d'arbitrage -----
+function crmCFHTML(b,P,c){
+  const obj=crmObjectif(b,analyse(b,P),c), A=analyse(b,P), O=analyse({...b,prix:obj},P);
+  const e=v=>eur(Math.round(v)), sg=v=>(v>=0?'+':'−')+eur(Math.abs(Math.round(v)));
+  const dl=(x,y,inv)=>{ const d=y-x; if(Math.abs(d)<1) return '<span class="d">=</span>'; const good=inv?d<0:d>0;
+    return `<span class="d ${good?'pos':'neg'}">${d>0?'+':'−'}${eur(Math.abs(Math.round(d)))}</span>`; };
+  const chR=c.charges!=null&&c.charges!=='';
+  const rows=[
+    ['Prix',b.prix,obj,1],
+    ...(A.sus?[['En sus <small>garage, cave… (fiche)</small>',A.sus,O.sus,1]]:[]),
+    [`Frais de notaire <small>${pct0(P.notaire)}</small>`,A.fraisNot,O.fraisNot,1],
+    ['Coût total',A.coutTotal,O.coutTotal,1,'sep'],
+    [`Apport <small>règle ${pct0(P.apportpct)} plafonnée à ${kEur(P.plafond)}</small>`,A.apport,O.apport,1],
+    ['Emprunt',A.emprunt,O.emprunt,1],
+    [`Mensualité <small>${String(+(P.taux*100).toFixed(2)).replace('.',',')} % · ${P.duree} ans</small>`,-A.mens,-O.mens,0,'sep'],
+    [`Loyer <small>${String((A.loyerMois/b.m).toFixed(1)).replace('.',',')} €/m² × ${b.m} m²${+c.loyer>0?' · loyer réel':''}</small>`,A.loyerMois,O.loyerMois,0],
+    [`Vacance <small>${pct0(P.vac)}</small>`,-(A.loyerMois-A.loyerNet),-(O.loyerMois-O.loyerNet),0],
+    [`Charges copro <small>${chR?'réelles (fiche)':'hypothèse'}</small>`,-A.chMois,-O.chMois,0],
+    [`Taxe foncière <small>${c.tf?'réelle ÷ 12':'inconnue → 0'}</small>`,-A.tfMois,-O.tfMois,0,'sep'],
+  ];
+  const tr=r=>{ const [l,x,y,cap,cls]=r, isM=!cap;
+    return `<tr class="${cls||''}"><td>${l}</td><td>${isM?sg(x):e(x)}</td><td>${isM?sg(y):e(y)}</td><td>${dl(x,y,cap&&true)}</td></tr>`; };
+  // leviers au prix objectif (cash-flow mensuel gagné)
+  const i=P.taux/12, n=P.duree*12, base=O.cashflow;
+  const lPrix=analyse({...b,prix:obj-10000},P).cashflow-base;
+  const lApport=mensualite(10000,i,n);
+  const lLoyer=b.m*(1-P.vac);
+  const lTaux=O.mens-mensualite(O.emprunt,Math.max(0,P.taux-0.005)/12,n);
+  return `<table class="cfh"><thead><tr><th></th><th>Prix demandé</th><th>Objectif négo</th><th>Écart</th></tr></thead><tbody>
+    ${rows.map(tr).join('')}
+    <tr class="tot"><td>Cash-flow mensuel</td><td class="${A.cashflow>=0?'pos':'neg'}">${sg(A.cashflow)}</td><td class="${O.cashflow>=0?'pos':'neg'}">${sg(O.cashflow)}</td><td>${dl(A.cashflow,O.cashflow)}</td></tr>
+    <tr><td>Rentabilité brute / nette</td><td>${pct(A.rentBrute)} / ${pct(A.rentNette)}</td><td>${pct(O.rentBrute)} / ${pct(O.rentNette)}</td><td></td></tr>
+    <tr><td>Apport pour un cash-flow à 0</td><td>${e(A.apportEq)}</td><td>${e(O.apportEq)}</td><td>${dl(A.apportEq,O.apportEq,true)}</td></tr>
+  </tbody></table>
+  <div class="crm-neg" style="margin-top:12px"><b>Leviers d'arbitrage</b> (à l'objectif ${kEur(obj)}) — gain de cash-flow mensuel :</div>
+  <div class="cfh-lev">
+    <div><b>+${Math.round(lPrix)} €/mois</b>par tranche de −10 k€ sur le prix</div>
+    <div><b>+${Math.round(lApport)} €/mois</b>par +10 k€ d'apport</div>
+    <div><b>+${Math.round(lLoyer)} €/mois</b>par +1 €/m² de loyer (curseur de la simulation)</div>
+    <div><b>+${Math.round(lTaux)} €/mois</b>si le taux baisse de 0,5 pt</div>
+  </div>
+  <button class="crm-link" onclick="openDetail(${idj(b.id)})">📈 Simulation complète (curseur loyer, 25 ans)</button>
+  <button class="crm-link" onclick="crmOpenParams()">⚙️ Modifier les hypothèses</button>`; }
+function crmOpenParams(){ closeCRM(); const p=$('settingsPanel'); if(p.hasAttribute('hidden')) $('gearBtn').click();
+  const d=$('paramsBox'); if(d) d.open=true; setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50); }
 function renderCRM(){
   crmList=crmList.filter(r=>inCRM(r.b));
   const body=$('crmBody'), tbl=crmMode==='table'||!crmList.length;
@@ -4720,7 +4784,10 @@ function renderCRM(){
       </div>
       ${!equil?`<div class="crm-neg">💬 Argument : « À ${eur(b.prix)}, il me faut <b>${eur(a.apportEq)}</b> d'apport pour équilibrer.
       Mon équilibre, c'est <b>${eur(a.prixEq)}</b>${a.sus?` (hors ${eur(a.sus)} en sus)`:''}. »</div>`:''}
+      <button class="crm-link" onclick="document.getElementById('crmCF').scrollIntoView({behavior:'smooth',block:'start'})">📉 Hypothèses de cash-flow : prix demandé vs objectif ↓</button>
     </div>
+
+    <div class="crm-sec" id="crmCF" style="scroll-margin-top:70px"><h3>📉 Hypothèses de cash-flow</h3>${crmCFHTML(b,P,c)}</div>
 
     <div class="crm-sec"><h3>🎯 Objectif de négo</h3>
       <div class="crm-fld"><label>Mon objectif de prix (€)</label><input type="number" inputmode="numeric" placeholder="auto ${crmObjAuto(b,a)}" value="${esc(c.objectif)}" onchange="crmObjSet(${idj(b.id)},this.value)"></div>
