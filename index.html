@@ -3982,8 +3982,13 @@ function applyRemote(r){
 }
 let _pushT=null;
 function pushRemote(){ if(!syncOn()) return; clearTimeout(_pushT);
-  _pushT=setTimeout(()=>{ fetch(SYNC.url+'/data',{method:'PUT',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({token:effToken(), ...snapshot()})}).catch(()=>{}); }, 1200);
+  _pushT=setTimeout(async ()=>{
+    // relire d'abord le serveur et fusionner : un appareil en retard ne doit jamais écraser des données plus récentes
+    try{ const r=await fetch(SYNC.url+'/data?token='+encodeURIComponent(effToken()),{cache:'no-store'});
+         if(!r.ok) return;                                  // serveur injoignable → on ne pousse pas à l'aveugle
+         if(applyRemote(await r.json())) render(); }catch(e){ return; }
+    fetch(SYNC.url+'/data',{method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:effToken(), ...snapshot()})}).catch(()=>{}); }, 1200);
 }
 async function pullRemote(){ if(!syncOn()) return;
   try{ const r=await fetch(SYNC.url+'/data?token='+encodeURIComponent(effToken()),{cache:'no-store'});
@@ -4123,7 +4128,7 @@ function card(b,a){
       <button class="stbtn b-archive ${st==='archive'?'on':''}" onclick="setStatus(byId(${idj(b.id)}),'archive')">🗑 Archiver</button>`}
     ${(st==='contacter'&&!gone)?`<button class="gocrm" onclick="openCRM(${idj(b.id)})">🤝 Go to CRM — préparer la négo →</button>`:''}
     </div>
-    ${(st||note)?`<div class="noterow" onclick="event.stopPropagation()">
+    ${(!gone||note)?`<div class="noterow" onclick="event.stopPropagation()">
       <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${idj(b.id)}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
     </div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Voir sur ${src} — photos ↗</a>`:''}

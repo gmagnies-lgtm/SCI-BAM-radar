@@ -11,7 +11,7 @@
  *   state          -> blob de données de Guillaume (héritage v1, inchangé)
  *   user:<email>   -> { salt, hash, iter, name, status: pending|approved|rejected, loadFrom?, createdAt, ... }
  *   sess:<token>   -> email (TTL 30 j)
- *   data:<email>   -> blob de données de l'utilisateur { status, notes, pricehist, gone, crm, updatedAt }
+ *   data:<email>   -> blob de données de l'utilisateur { status, notes, pricehist, gone, crm, loyerm2, updatedAt } — PUT = fusion datée, jamais d'écrasement
  *   reset:<email>  -> demande de réinitialisation de mot de passe (TTL 7 j, traitée par l'admin)
  *
  * Auth des routes :
@@ -182,9 +182,22 @@ export default {
     }
     if (url.pathname === '/data' && req.method === 'PUT') {
       if (!authedEmail) return json({ error: 'unauthorized' }, 401);
+      // FUSION côté serveur (plus d'écrasement) : un appareil qui renvoie une copie ancienne ou incomplète
+      // ne peut plus effacer des données. Maps datées {v,t} : l'entrée la plus récente gagne (tombstones
+      // v:null conservés) ; clé absente du PUT = inchangée. pricehist : l'historique le plus long gagne.
+      const prev = JSON.parse((await env.SCIBAM.get(dataKey(authedEmail))) || '{}');
+      const tsN = (e) => (e && typeof e === 'object' && 't' in e) ? e : { v: e, t: 0 };
+      const mergeTs = (a, b) => { const out = { ...(a || {}) };
+        for (const k in (b || {})) { const r = tsN(b[k]), l = out[k] && tsN(out[k]); if (!l || r.t >= l.t) out[k] = r; }
+        return out; };
+      const mergeHist = (a, b) => { const out = { ...(a || {}) };
+        for (const k in (b || {})) if (Array.isArray(b[k]) && b[k].length >= ((out[k] || []).length)) out[k] = b[k];
+        return out; };
       const state = {
-        status: body.status || {}, notes: body.notes || {}, pricehist: body.pricehist || {},
-        gone: body.gone || {}, crm: body.crm || {}, updatedAt: Date.now()
+        status: mergeTs(prev.status, body.status), notes: mergeTs(prev.notes, body.notes),
+        gone: mergeTs(prev.gone, body.gone), crm: mergeTs(prev.crm, body.crm),
+        loyerm2: mergeTs(prev.loyerm2, body.loyerm2),
+        pricehist: mergeHist(prev.pricehist, body.pricehist), updatedAt: Date.now()
       };
       await env.SCIBAM.put(dataKey(authedEmail), JSON.stringify(state));
       return json({ ok: true, updatedAt: state.updatedAt });
