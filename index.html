@@ -3722,6 +3722,9 @@ const GKEY='scibam_gone_v1';
 let GONEMARK=tsLoad(GKEY);
 function isGoneMarked(b){ return !!tsGet(GONEMARK,keyOf(b)); }
 function isGone(b){ return b.gone===true || b._gone===true || isGoneMarked(b); }   // lien mort vérifié (données) OU auto OU marquée manuellement
+// disparues encore affichées : seulement les favoris et les « à contacter » ; les autres restent dans les données
+// (prix, m², quartier, caractéristiques → base de référence marché) mais sortent de l'app pour la lisibilité
+function goneShown(b){ return isFav(b) || getStatus(b)==='contacter'; }
 function setGone(b,on){ if(!b) return; const k=keyOf(b);
   tsSet(GONEMARK,k, on?1:null);
   try{ localStorage.setItem(GKEY,JSON.stringify(GONEMARK)); }catch(e){}
@@ -3982,7 +3985,7 @@ function statusCounts(){ const P=params();
   const s=LISTINGS.filter(b=>!isGone(b) && !isExclQ(b,P)).map(getStatus);   // online, non marqués, hors quartiers écartés
   return { fav:allListings().filter(isFav).length, nonclasse:s.filter(x=>!x).length, contacter:s.filter(x=>x==='contacter').length,
            conserver:s.filter(x=>x==='conserver').length, archive:s.filter(x=>x==='archive').length,
-           gone:GONE.filter(b=>!isExclQ(b,P)).length + LISTINGS.filter(b=>isGone(b)&&!isExclQ(b,P)).length }; }
+           gone:allListings().filter(b=>isGone(b)&&goneShown(b)).length }; }
 function renderTabs(){ const c=statusCounts();
   $('tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${state.filt===k?'on':''}" data-filt="${k}">${l}<span>${c[k]}</span></button>`).join(''); }
 function renderSources(){
@@ -4103,12 +4106,12 @@ function render(){
   let rows=allListings().map(b=>({b,a:analyse(b,P)}));
   rows=rows.filter(({b})=>{
     if(state.filt==='fav') return isFav(b);            // onglet Favoris : tous les favoris, quel que soit le statut (y c. archivés, disparus)
-    if(state.filt==='gone') return isGone(b);          // onglet Disparues : auto-retirées + marquées manuellement
+    if(state.filt==='gone') return isGone(b) && goneShown(b);   // onglet Disparues : seulement favoris et « à contacter »
     if(isGone(b)) return false;                        // ailleurs : on masque les disparues
     if(state.filt==='modif') return isModified(b);     // pastille ✏️ : biens dont le prix a changé (tous statuts)
     if(state.filt==='rank') return getStatus(b)!=='archive';   // classement depuis une tuile : tous statuts sauf archivés
     const s=getStatus(b); return state.filt==='nonclasse' ? !s : s===state.filt; });
-  if(state.filt!=='fav'){                                    // les favoris échappent aux filtres
+  if(state.filt!=='fav' && state.filt!=='gone'){            // favoris et disparues suivies échappent aux filtres
   rows=rows.filter(({b,a})=> !(EXCL_Q.test(b.q||'') && a.cashflow<=EXCL_CF_MIN));  // quartiers écartés sauf cash-flow positif
   rows=rows.filter(({b})=> SRC[siteKeyOf(b.url)]!==false);   // filtre sources
   if(PAPONLY) rows=rows.filter(({b})=> b.pap===true);        // filtre particuliers
@@ -4126,7 +4129,7 @@ function render(){
   if(state.filt==='rank') $('count').innerHTML=`Classement <b>${RANKLBL[state.sort]||''}</b> · ${nTxt} (hors archivés et liens morts) <button class="rankx" onclick="exitRank()">✕ Fermer</button>`;
   else $('count').textContent=nTxt+" affiché"+(rows.length>1?'s':'');
   $('list').innerHTML=rows.map(({b,a})=>card(b,a)).join('')
-    || `<div class="foot">${state.filt==='fav'?'Aucun favori — touche l’étoile ☆ sur une carte pour l’ajouter ici.':state.filt==='nonclasse'?'🎉 Sas vide — tous les biens sont triés.':state.filt==='gone'?'Aucune annonce disparue pour le moment — elles apparaîtront ici quand un bien suivi sera retiré du marché.':'Aucun bien dans cette catégorie.'}</div>`;
+    || `<div class="foot">${state.filt==='fav'?'Aucun favori — touche l’étoile ☆ sur une carte pour l’ajouter ici.':state.filt==='nonclasse'?'🎉 Sas vide — tous les biens sont triés.':state.filt==='gone'?'Aucun favori ni bien « à contacter » disparu. Les autres annonces disparues ne sont plus affichées (gardées comme référence de prix).':'Aucun bien dans cette catégorie.'}</div>`;
   if($('srcnote')){
     const scrap=SOURCES.filter(s=>s.def).map(s=>s.label).join(', ');
     const shown=SOURCES.filter(s=>SRC[s.key]).map(s=>s.label).join(', ')||'aucune';
