@@ -449,6 +449,13 @@
   .ph-prev{left:8px}.ph-next{right:8px}
   .ph-count{position:absolute;bottom:8px;right:10px;background:rgba(2,6,23,.6);border-radius:999px;
     padding:2px 9px;font-size:12px;font-weight:700;color:#fff}
+  .crm-photo.xph{background-size:contain}
+  .xstamp{position:absolute;top:10px;right:10px;transform:rotate(3deg);border:2px solid #38bdf8;color:#38bdf8;
+    background:rgba(2,6,23,.72);border-radius:8px;padding:4px 10px;font-weight:900;font-size:12.5px;letter-spacing:.3px;
+    text-transform:uppercase;text-align:center;line-height:1.25}
+  .xstamp small{display:block;text-transform:none;font-weight:700;font-size:11px;letter-spacing:0;color:#bae6fd}
+  .ph-xjump{position:absolute;bottom:8px;left:10px;background:rgba(56,189,248,.85);color:#0f172a;border:none;border-radius:999px;
+    padding:3px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
   .crm-price{font-size:24px;font-weight:800;margin:12px 0 0}
   .crm-price small{font-size:13px;color:var(--warn);font-weight:700}
   .crm-meta{color:var(--mut);font-size:13px;margin:2px 0 4px}
@@ -487,6 +494,7 @@
   .crm-views{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .crm-views button{background:var(--bg2);border:none;color:var(--mut);padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
   .crm-views button.on{background:var(--acc);color:#0f172a}
+  .crm-views button.on .crm-count{color:#0f172a}
   .crm-top .crm-navs{display:flex;gap:6px;min-width:84px;justify-content:flex-end}
   .crm-wrap.wide{max-width:1100px}
   .cmp-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
@@ -4468,7 +4476,10 @@ function crmTableHTML(){ const P=params();
     <tbody>${rows}</tbody></table></div>
     <div class="cmp-hint">Trié par dernière action. Apport perso = apport pour un cash-flow à l'équilibre au prix objectif (charges + TF incluses). Touche une ligne pour ouvrir la fiche.</div>`; }
 function crmPhotos(b){ return (b.photos&&b.photos.length)?b.photos:(b.img?[b.img]:[]); }
-function crmPhotoNav(d){ const n=crmPhotos(crmList[crmIdx].b).length; if(n<2) return;
+// photos de l'annonce + photos reçues des interlocuteurs (crm.xphotos, fichiers dans assets/crm/<id>/) → tampon « envoyé suite à demande »
+function crmPhotoItems(b){ return crmPhotos(b).map(src=>({src})).concat((crmOf(b).xphotos||[]).map(p=>({...p,x:1}))); }
+function crmPhotoJump(){ const L=crmPhotoItems(crmList[crmIdx].b), i=L.findIndex(p=>p.x); if(i>=0){ crmPhoto=i; renderCRM(); } }
+function crmPhotoNav(d){ const n=crmPhotoItems(crmList[crmIdx].b).length; if(n<2) return;
   crmPhoto=(crmPhoto+d+n)%n; renderCRM(); }
 function crmField(id,f,v){ const b=byId(id); if(!b) return;
   crmSet(b,{[f]:String(v??'').trim()}); renderCRM(); }
@@ -4647,7 +4658,7 @@ function renderCRM(){
   if(tbl){ body.innerHTML=crmTableHTML(); return; }
   if(crmIdx>=crmList.length) crmIdx=0;
   const P=params(), b=crmList[crmIdx].b, a=analyse(b,P), c=crmOf(b);
-  const ph=crmPhotos(b), img=ph.length?ph[Math.min(crmPhoto,ph.length-1)]:'';
+  const ph=crmPhotoItems(b), cur=ph.length?ph[Math.min(crmPhoto,ph.length-1)]:null, img=cur?cur.src:'', nX=ph.filter(p=>p.x).length;
   const adresse=c.adresse||b.adresse||'';
   const pub=b.pub||c.pub||'';
   const chReel=c.charges!=null&&c.charges!=='';
@@ -4663,8 +4674,10 @@ function renderCRM(){
   const negoPct=(b.prix-a.prixEq)/b.prix;
   const equil = a.prixEq>=b.prix;
   body.innerHTML=`
-    <div class="crm-photo" style="${img?`background-image:url('${esc(img)}')`:''}">
+    <div class="crm-photo ${cur&&cur.x?'xph':''}" style="${img?`background-image:url('${esc(img)}')`:''}">
       ${priceDrop(b)?`<div class="promostamp crm">🏷️ Prix en baisse de ${kEur(priceDrop(b))}</div>`:''}
+      ${cur&&cur.x?`<div class="xstamp">📩 Envoyé suite à demande<small>${esc([cur.from,cur.t?dmy(cur.t):'',cur.canal?canalLbl(cur.canal).replace(/^\S+\s/,''):''].filter(Boolean).join(' · '))}</small></div>`
+        :(nX?`<button class="ph-xjump" onclick="crmPhotoJump()">📩 ${nX} photo${nX>1?'s':''} reçue${nX>1?'s':''} →</button>`:'')}
       ${!img?'<span>pas de photo</span>':''}
       ${ph.length>1?`<button class="ph-nav ph-prev" onclick="crmPhotoNav(-1)">◀</button>
       <button class="ph-nav ph-next" onclick="crmPhotoNav(1)">▶</button>
