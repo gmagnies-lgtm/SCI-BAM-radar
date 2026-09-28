@@ -4625,7 +4625,7 @@ function crmToast(msg,bad){ let el=$('crmToast'); if(!el){ el=document.createEle
 const CRM_TPLS=[['premier','👋 Premier contact'],['questions','❓ Questions'],['visite','📅 Visite'],['relance','🔁 Relance'],['offre','💶 Offre']];
 const CRM_Q={'Charges copro':'le montant des charges de copropriété (et ce qu\'elles couvrent)','Taxe foncière':'le montant de la taxe foncière',
   'Adresse exacte':'l\'adresse exacte du bien','DPE':'la classe énergétique (DPE)','Travaux votés / prévus':'les travaux votés ou envisagés dans la copropriété (derniers PV d\'AG)',
-  'Copro : nb de lots':'le nombre de lots de la copropriété','Occupé ? loyer actuel':'si le bien est loué actuellement et, le cas échéant, le loyer et la date du bail'};
+  'Copro : nb de lots':'le nombre de lots de la copropriété','Plan du logement':'un plan du logement (avec les surfaces par pièce)','Occupé ? loyer actuel':'si le bien est loué actuellement et, le cas échéant, le loyer et la date du bail'};
 function crmTplBuild(k,b,a,c,missing){
   const w=crmContacts(c)[0], nom=w&&w.nom?w.nom:'', hi=nom?`Bonjour ${nom},`:'Bonjour,';
   const bien=`l'appartement de ${b.m} m²${b.q?` (${b.q})`:''} proposé à ${eur(b.prix)}`;
@@ -4669,6 +4669,7 @@ function crmChecklist(b,c){ const chReel=c.charges!=null&&c.charges!=='', adress
     ['Travaux votés / prévus', c.travaux||null],
     ['Copro : nb de lots', c.lots||(an.lots?`${an.lots} (annonce)`:null)],
     ['Occupé ? loyer actuel', c.loyer?`${c.loyer} €/mois`:null],
+    ['Plan du logement', c.plan||null],
   ]; }
 function crmContactsHTML(c){ const L=crmContacts(c);
   return L.map(x=>{ const id=esc(x.id), tel=telNorm(x.tel);
@@ -4914,6 +4915,7 @@ function renderCRM(){
       <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${idj(b.id)},'adresse',this.value)"></div>
       <div class="crm-fld"><label>DPE</label><input type="text" placeholder="${(b.ann||{}).dpe?`annonce : ${esc(b.ann.dpe)}`:'A → G'}" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
       <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${idj(b.id)},'travaux',this.value)"></div>
+      <div class="crm-fld"><label>Plan du logement</label><input type="text" placeholder="reçu ? (date, lien…)" value="${esc(c.plan)}" onchange="crmField(${idj(b.id)},'plan',this.value)"></div>
       <div class="crm-fld"><label>Copro : nb de lots</label><input type="text" placeholder="${(b.ann||{}).lots?`annonce : ${b.ann.lots}`:'?'}" value="${esc(c.lots)}" onchange="crmField(${idj(b.id)},'lots',this.value)"></div>
       ${!b.pub?`<div class="crm-fld"><label>Date de l'annonce</label><input type="date" value="${esc(c.pub)}" onchange="crmField(${idj(b.id)},'pub',this.value)"></div>`:''}
     </div>
