@@ -513,6 +513,8 @@
   .opt-row input[type=text]{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font-size:13px;font-family:inherit}
   .opt-row input[type=text]:last-of-type{flex:0 0 90px}
   .opt-row input[type=checkbox]{accent-color:var(--acc);width:17px;height:17px}
+  .rdv-box{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+  .rdv-h{font-size:13px;color:var(--mut);margin-bottom:6px}.rdv-h b{color:var(--acc)}
   /* les petits plus */
   .plus-list{display:flex;flex-wrap:wrap;gap:6px}
   .plus-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.45);
@@ -4544,7 +4546,7 @@ function crmTableHTML(){ const P=params();
       <td onclick="event.stopPropagation()"><input class="obj ${auto?'auto':''}" inputmode="numeric" value="${obj}" title="${auto?'Auto : prix d\'équilibre avec ton apport max — saisis ton objectif':'Objectif saisi (vide = auto)'}"
         onchange="crmObjSet(${id},this.value)"><small>${negoPct>0?`−${pct(negoPct)} · −${kEur(b.prix-obj)}`:'au prix'}${auto?' · auto':''}</small></td>
       <td><span class="num">${eur(aObj.apportEq)}</span><small class="${aObj.apportEq>P.plafond?'bad':''}">${aObj.apportEq>P.plafond?'> plafond ':''}à l'objectif · ${eur(a.apportEq)} au prix actuel</small></td>
-      <td><span class="stepb ${stL?'on':''}">${stL||'— à contacter'}</span>${rel?`<span class="relb">⚠️ relance (${Math.round((Date.now()-rel)/864e5)} j)</span>`:''}</td>
+      <td><span class="stepb ${stL?'on':''}">${stL||'— à contacter'}</span>${crmRdvAt(c)?`<small style="color:var(--acc);font-weight:700">📅 ${crmRdvLbl(c)}</small>`:''}${rel?`<span class="relb">⚠️ relance (${Math.round((Date.now()-rel)/864e5)} j)</span>`:''}</td>
       <td><small style="color:var(--txt)">${lastTxt}</small>${M.length?`<small>${M.length} échange${M.length>1?'s':''}</small>`:''}</td>
       <td onclick="event.stopPropagation()"><button class="rmx" title="Retirer du CRM" onclick="crmRemove(${id})">✕</button></td>
     </tr>`; }).join('');
@@ -4818,6 +4820,18 @@ function crmOptsHTML(b,c,edit){ const L=crmOpts(b,c).filter(o=>o.id!=='none');
       <input type="text" inputmode="numeric" value="${o.p||''}" placeholder="€" onchange="crmOptSet('${esc(o.id)}','p',this.value)">
       <button class="ct-del" onclick="crmOptDel('${esc(o.id)}')" title="Supprimer">🗑</button></div>`).join('')
     +`<button class="crm-add" style="margin-top:4px" onclick="crmOptAdd()">＋ Ajouter une option</button>`; }
+// ----- rendez-vous daté (crm.rdvAt = "AAAA-MM-JJTHH:MM", heure de Paris ; ancien champ crm.visite repris) -----
+function crmRdvAt(c){ return c.rdvAt||c.visite||''; }
+function crmRdvLbl(c){ const v=crmRdvAt(c); if(!v) return ''; const d=new Date(v);
+  return d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h'); }
+function crmRdvSet(id,f,v){ const b=byId(id); if(!b) return; const c=crmOf(b), patch={[f]:String(v||'').trim()};
+  if(f==='rdvAt'){ patch.visite=null;
+    if(v && !['rdv','visite','offre'].includes(c.step)){ patch.step='rdv'; patch.hist=(c.hist||[]).concat([{s:'rdv',t:Date.now()}]).slice(-40); } }
+  crmSet(b,patch); renderCRM(); }
+function crmRdvGcal(b,c){ const d=new Date(crmRdvAt(c)), e=new Date(d.getTime()+3600e3), f=x=>x.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const adr=c.adresse||b.adresse||b.q||'';
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(`Visite ${b.m} m² ${b.q||''} (${kEur(b.prix)})`)
+    +'&dates='+f(d)+'/'+f(e)+'&location='+encodeURIComponent(String(adr).replace(/\([^)]*\)/g,''))+'&details='+encodeURIComponent((c.rdvLieu?c.rdvLieu+'\n':'')+(b.url||'')); }
 function crmOpenParams(){ closeCRM(); const p=$('settingsPanel'); if(p.hasAttribute('hidden')) $('gearBtn').click();
   const d=$('paramsBox'); if(d) d.open=true; setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50); }
 function renderCRM(){
@@ -4934,6 +4948,14 @@ function renderCRM(){
           return `<button class="crm-step ${c.step===k?'on':(stepIdx>i?'done':'')}" onclick="crmStepGo(${idj(b.id)},'${k}')">${l}${d&&stepIdx>=i?`<small>${dmy(d)}</small>`:''}</button>`;}).join('')}
       </div>
       ${relance?`<div class="crm-relance">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → relancer ?</div>`:''}
+      <div class="rdv-box">
+        <div class="rdv-h">📅 Rendez-vous / visite${crmRdvAt(c)?` · <b>${crmRdvLbl(c)}</b>`:''}</div>
+        <div class="msg-row">
+          <input type="datetime-local" value="${esc(crmRdvAt(c))}" onchange="crmRdvSet(${idj(b.id)},'rdvAt',this.value)" title="Date et heure du rendez-vous">
+          <input type="text" placeholder="Lieu / avec qui (ex. sur place avec l'agente)" value="${esc(c.rdvLieu)}" onchange="crmRdvSet(${idj(b.id)},'rdvLieu',this.value)">
+        </div>
+        ${crmRdvAt(c)?`<div class="ct-acts"><a class="ct-act" href="${crmRdvGcal(b,c)}" target="_blank" rel="noopener">🗓 Ajouter à Google Agenda</a><span class="ct-act" onclick="crmRdvSet(${idj(b.id)},'rdvAt','')">✕ Effacer</span></div>`:''}
+      </div>
     </div>
     <button class="crm-rm" onclick="crmRemove(${idj(b.id)})">✕ Retirer ce bien du CRM</button>
 
