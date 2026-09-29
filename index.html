@@ -3282,6 +3282,20 @@ function setLoyerM2Raw(b,val){ const k=keyOf(b); tsSet(LOYERM2,k,(val==null||val
 const CRMKEY='scibam_crm_v1';
 let CRMD=tsLoad(CRMKEY);
 function crmOf(b){ return tsGet(CRMD,keyOf(b))||{}; }
+// fusion CRM (29/09) : la fiche la plus récente gagne, MAIS les échanges et interlocuteurs saisis sur cet appareil
+// et absents de la version distante sont conservés (un autre appareil resté sur une vieille copie ne peut plus les écraser).
+// Les suppressions volontaires sont mémorisées (msgDel / ctDel) pour ne pas faire revenir un message effacé.
+function crmUnion(lv,rv){ const del=new Set([...(lv.msgDel||[]),...(rv.msgDel||[])]), cdel=new Set([...(lv.ctDel||[]),...(rv.ctDel||[])]);
+  const rm=new Set((rv.msgs||[]).map(m=>m.id)), rc=new Set((rv.contacts||[]).map(c=>c.id));
+  const addM=(lv.msgs||[]).filter(m=>!rm.has(m.id)&&!del.has(m.id)), addC=(lv.contacts||[]).filter(c=>!rc.has(c.id)&&!cdel.has(c.id));
+  if(!addM.length&&!addC.length) return null;
+  const v={...rv}; if(addM.length) v.msgs=(rv.msgs||[]).concat(addM); if(addC.length) v.contacts=(rv.contacts||[]).concat(addC);
+  if(del.size) v.msgDel=[...del].slice(-200); if(cdel.size) v.ctDel=[...cdel].slice(-100); return v; }
+function crmMergeRemote(remote){ let ch=false;
+  for(const k in remote){ const r=tsNorm(remote[k]), l=CRMD[k]&&tsNorm(CRMD[k]);
+    if(l&&r.t>l.t&&l.v&&r.v){ const v=crmUnion(l.v,r.v); if(v){ CRMD[k]={v,t:Date.now()}; ch=true; continue; } }
+    if(!l||r.t>l.t){ CRMD[k]=r; ch=true; } }
+  return ch; }
 function crmSet(b,patch){ const k=keyOf(b); const cur={...(tsGet(CRMD,k)||{})};
   for(const f in patch){ const v=patch[f]; if(v==null||v===''||(Array.isArray(v)&&!v.length)) delete cur[f]; else cur[f]=v; }
   tsSet(CRMD,k, Object.keys(cur).length?cur:null);
@@ -3482,7 +3496,7 @@ function applyRemote(r){
   if(r.status&&typeof r.status==='object'){ if(tsMerge(STATUS,r.status)){ ch=true; try{localStorage.setItem(STKEY,JSON.stringify(STATUS));}catch(e){} } }
   if(r.notes&&typeof r.notes==='object'){ if(tsMerge(NOTES,r.notes)){ ch=true; try{localStorage.setItem(NTKEY,JSON.stringify(NOTES));}catch(e){} } }
   if(r.gone&&typeof r.gone==='object'){ if(tsMerge(GONEMARK,r.gone)){ ch=true; try{localStorage.setItem(GKEY,JSON.stringify(GONEMARK));}catch(e){} } }
-  if(r.crm&&typeof r.crm==='object'){ if(tsMerge(CRMD,r.crm)){ ch=true; try{localStorage.setItem(CRMKEY,JSON.stringify(CRMD));}catch(e){} } }
+  if(r.crm&&typeof r.crm==='object'){ if(crmMergeRemote(r.crm)){ ch=true; try{localStorage.setItem(CRMKEY,JSON.stringify(CRMD));}catch(e){} } }
   if(r.loyerm2&&typeof r.loyerm2==='object'){ if(tsMerge(LOYERM2,r.loyerm2)){ ch=true; try{localStorage.setItem(LMKEY,JSON.stringify(LOYERM2));}catch(e){} } }
   if(r.pricehist&&typeof r.pricehist==='object'){ for(const k in r.pricehist){ const a=PRICEHIST[k]||[],b=r.pricehist[k]||[]; if(b.length>a.length) PRICEHIST[k]=b; } savePriceHist(); ch=true; }
   return ch;
@@ -3988,7 +4002,7 @@ function crmContactSet(cid,f,v){ const b=crmCurB(); if(!b) return;
   crmContactsSave(b,crmContacts(crmOf(b)).map(x=>x.id===cid?{...x,[f]:String(v??'').trim()}:x)); }
 function crmContactDel(cid){ const b=crmCurB(); if(!b) return; const c=crmOf(b), w=crmWho(c,cid);
   if(!confirm(`Supprimer l'interlocuteur ${w&&w.nom?w.nom:''} ? (les messages restent)`)) return;
-  crmContactsSave(b,crmContacts(c).filter(x=>x.id!==cid)); }
+  crmSet(b,{ctDel:(c.ctDel||[]).concat([cid]).slice(-100)}); crmContactsSave(b,crmContacts(c).filter(x=>x.id!==cid)); }
 function crmMsgs(c){ return (c.msgs||[]).slice().sort((x,y)=>x.t-y.t); }
 let crmDraft={k:null}, crmTpl=null;
 function crmDraftFor(b){ const k=keyOf(b);
@@ -4013,7 +4027,7 @@ function crmMsgAdd(){ const b=crmCurB(); if(!b) return; const d=crmDraft, txt=(d
   crmLog(b,{t,dir:d.dir,canal:d.canal,who:d.who||undefined,obj:(d.obj||'').trim()||undefined,txt});
   Object.assign(crmDraft,{obj:'',txt:'',t:''}); crmDraftSave(); renderCRM(); crmToast('Message ajouté au fil ✓'); }
 function crmMsgDel(mid){ const b=crmCurB(); if(!b||!confirm('Supprimer ce message du fil ?')) return;
-  crmSet(b,{msgs:(crmOf(b).msgs||[]).filter(m=>m.id!==mid)}); renderCRM(); }
+  const c=crmOf(b); crmSet(b,{msgs:(c.msgs||[]).filter(m=>m.id!==mid),msgDel:(c.msgDel||[]).concat([mid]).slice(-200)}); renderCRM(); }
 function crmMsgText(c,m){ const who=crmWhoName(c,m.who)||'interlocuteur';
   return `— ${dmyhm(m.t)} · ${m.dir==='out'?'Moi → '+who:who+' → moi'} · ${canalLbl(m.canal)}\n`
     +(m.obj?`Objet : ${m.obj}\n`:'')+m.txt; }
