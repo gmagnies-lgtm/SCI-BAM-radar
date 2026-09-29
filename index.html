@@ -3267,8 +3267,11 @@ function setGone(b,on){ if(!b) return; const k=keyOf(b);
 const NTKEY='scibam_notes_v1';
 let NOTES=tsLoad(NTKEY);
 function getNote(b){ return tsGet(NOTES,keyOf(b))||''; }
-function setNote(b,t){ const k=keyOf(b); tsSet(NOTES,k, (t&&t.trim())?t:null);
+function setNote(b,t){ const k=keyOf(b); clearTimeout(_noteT[k]); tsSet(NOTES,k, (t&&t.trim())?t:null);
   try{ localStorage.setItem(NTKEY,JSON.stringify(NOTES)); }catch(e){} pushRemote(); }
+// enregistrement au fil de la frappe (≈1 s) : une note n'est plus perdue si l'app se recharge avant la sortie du champ
+const _noteT={};
+function noteLive(id,t){ const b=byId(id); if(!b) return; const k=keyOf(b); clearTimeout(_noteT[k]); _noteT[k]=setTimeout(()=>setNote(b,t),900); }
 // ----- loyer €/m² ajusté par bien (curseur dans la simulation) — synchronisé -----
 const LMKEY='scibam_loyerm2_v1';
 let LOYERM2=tsLoad(LMKEY);
@@ -3635,7 +3638,7 @@ function card(b,a){
       :`<button class="gocrm" onclick="goCRM(${idj(b.id)})">🤝 Go to CRM — préparer la négo →</button>`):''}
     </div>
     ${(!gone||note)?`<div class="noterow" onclick="event.stopPropagation()">
-      <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${idj(b.id)}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
+      <textarea class="note" rows="2" placeholder="Note (RDV, agent, remarques…)" oninput="noteLive(${idj(b.id)},this.value)" onchange="setNote(byId(${idj(b.id)}),this.value)">${note?note.replace(/</g,'&lt;'):''}</textarea>
     </div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Voir sur ${src} — photos ↗</a>`:''}
     ${(b.url&&!gone)?`<div class="deadrow" onclick="event.stopPropagation()"><span class="deadlink" onclick="setGone(byId(${idj(b.id)}),true)">⚠️ Lien mort ? → marquer disparue</span></div>`:''}
@@ -3815,7 +3818,7 @@ function openDetail(id){
     </div>
     <div class="sh-note">Apport traité en <b>compte courant d'associé</b> (récupérable, pas de « valeur nette SCI »). TRI/VAN sur fonds propres, revente théorique à la <b>valeur nette du bien</b> (valeur de marché − capital restant dû) en année 25 — hors fiscalité IS et frais de cession. Indicatif.</div>
     <div class="ind-k" style="margin-bottom:5px">Ma note</div>
-    <textarea class="note" rows="3" placeholder="Note (RDV, agent, remarques…)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+    <textarea class="note" rows="3" placeholder="Note (RDV, agent, remarques…)" oninput="noteLive(${idj(b.id)},this.value)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener">Voir l'annonce sur ${sourceOf(b.url)} ↗</a>`:''}`;
   $('modal').classList.add('show'); $('modal').setAttribute('aria-hidden','false');
 }
@@ -3990,10 +3993,17 @@ function crmMsgs(c){ return (c.msgs||[]).slice().sort((x,y)=>x.t-y.t); }
 let crmDraft={k:null}, crmTpl=null;
 function crmDraftFor(b){ const k=keyOf(b);
   if(crmDraft.k!==k){ const c=crmOf(b), L=crmContacts(c);
-    crmDraft={k,dir:'out',canal:'email',who:'',obj:'',txt:'',t:''}; crmTpl=null; }
+    crmDraft={k,dir:'out',canal:'email',who:'',obj:'',txt:'',t:'',...(crmDraftsLoad()[k]||{})}; crmTpl=null; }
   if(!crmDraft.who||!crmWho(crmOf(b),crmDraft.who)){ const L=crmContacts(crmOf(b)); crmDraft.who=L.length?L[0].id:''; }
   return crmDraft; }
-function crmDraftSet(f,v,re){ crmDraft[f]=v; if(re) renderCRM(); }
+// brouillon de message gardé sur l'appareil (par bien) : survit à un rechargement de l'app
+const CRM_DRAFTKEY='scibam_crm_drafts_v1';
+function crmDraftsLoad(){ try{ return JSON.parse(localStorage.getItem(CRM_DRAFTKEY)||'{}'); }catch(e){ return {}; } }
+function crmDraftSave(){ if(!crmDraft.k) return; try{ const D=crmDraftsLoad(), d=crmDraft;
+  if((d.txt||'').trim()||(d.obj||'').trim()) D[d.k]={dir:d.dir,canal:d.canal,who:d.who,obj:d.obj,txt:d.txt,t:d.t}; else delete D[d.k];
+  localStorage.setItem(CRM_DRAFTKEY,JSON.stringify(D)); }catch(e){} }
+function crmDraftDirty(){ return Object.values(crmDraftsLoad()).some(d=>(d.txt||'').trim()); }
+function crmDraftSet(f,v,re){ crmDraft[f]=v; crmDraftSave(); if(re) renderCRM(); }
 function crmLog(b,m){ const c=crmOf(b); const patch={msgs:(c.msgs||[]).concat([{id:crmUid(),...m}])};
   if(m.dir==='out'&&!c.step){ patch.step='contacte'; patch.hist=(c.hist||[]).concat([{s:'contacte',t:m.t}]).slice(-40); }
   crmSet(b,patch); }
@@ -4001,7 +4011,7 @@ function crmMsgAdd(){ const b=crmCurB(); if(!b) return; const d=crmDraft, txt=(d
   if(!txt){ crmToast('Colle ou écris le message d\'abord',true); return; }
   const t=d.t?new Date(d.t).getTime():Date.now();
   crmLog(b,{t,dir:d.dir,canal:d.canal,who:d.who||undefined,obj:(d.obj||'').trim()||undefined,txt});
-  Object.assign(crmDraft,{obj:'',txt:'',t:''}); renderCRM(); crmToast('Message ajouté au fil ✓'); }
+  Object.assign(crmDraft,{obj:'',txt:'',t:''}); crmDraftSave(); renderCRM(); crmToast('Message ajouté au fil ✓'); }
 function crmMsgDel(mid){ const b=crmCurB(); if(!b||!confirm('Supprimer ce message du fil ?')) return;
   crmSet(b,{msgs:(crmOf(b).msgs||[]).filter(m=>m.id!==mid)}); renderCRM(); }
 function crmMsgText(c,m){ const who=crmWhoName(c,m.who)||'interlocuteur';
@@ -4278,7 +4288,7 @@ function renderCRM(){
 
     <div class="crm-sec"><h3>📝 Notes négo</h3>
       <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
-        onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+        oninput="noteLive(${idj(b.id)},this.value)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
     </div>
 
     <div class="crm-sec"><h3>👥 Interlocuteurs</h3>${crmContactsHTML(c)}</div>
@@ -4687,7 +4697,9 @@ function onWake(){ if(document.hidden||document.body.classList.contains('locked'
 document.addEventListener('visibilitychange',onWake); window.addEventListener('focus',onWake);
 document.addEventListener('keydown',e=>{ if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='r'){ e.preventDefault(); refreshNow(); } });
 setInterval(()=>{ if(!document.hidden) pullRemote(); }, 5*60*1000);
-function newVersionReady(){ if(!isEditing()){ location.reload(); return; }
+function newVersionReady(){   // pas de rechargement auto pendant une saisie, CRM ou fiche ouverts, ou brouillon non ajouté au fil
+  const busy=isEditing()||($('crm')&&$('crm').classList.contains('show'))||$('modal').classList.contains('show')||crmDraftDirty();
+  if(!busy){ location.reload(); return; }
   crmToast('Nouvelle version disponible — touche 🔄 pour l\'afficher'); }
 
 // ----- PWA : service worker (offline + MAJ auto de la veille) -----
