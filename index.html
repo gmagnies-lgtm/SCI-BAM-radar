@@ -514,6 +514,18 @@
   .opt-row input[type=text]:last-of-type{flex:0 0 90px}
   .opt-row input[type=checkbox]{accent-color:var(--acc);width:17px;height:17px}
   .rdv-box{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+  .vis-card{background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:12px;padding:10px;margin:0 0 10px}
+  .vis-card.st-faite{border-left-color:var(--good)}.vis-card.st-annulee{border-left-color:var(--bad);opacity:.7}
+  .vis-h{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+  .vis-h b{margin-right:auto}
+  .vis-h select,.vis-h input{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font-family:inherit;font-size:13px}
+  .vis-lbl{color:var(--mut);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 5px}
+  .vis-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .vis-chips button{background:var(--bg2);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:5px 10px;font-size:12px;font-family:inherit;cursor:pointer}
+  .vis-chips button.on{border-color:var(--good);color:var(--txt);background:rgba(34,197,94,.12)}
+  .vis-chips.imp button.on{border-color:var(--acc);background:rgba(245,158,11,.14)}
+  textarea.vis-cr{width:100%;line-height:1.45}
+  .vis-card .msg-row{display:flex;gap:6px;flex-wrap:wrap}.vis-card .msg-row input{flex:1;min-width:140px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:13px}
   .rdv-h{font-size:13px;color:var(--mut);margin-bottom:6px}.rdv-h b{color:var(--acc)}
   /* les petits plus */
   .plus-list{display:flex;flex-wrap:wrap;gap:6px}
@@ -3331,12 +3343,13 @@ function crmOf(b){ return tsGet(CRMD,keyOf(b))||{}; }
 // fusion CRM (29/09) : la fiche la plus récente gagne, MAIS les échanges et interlocuteurs saisis sur cet appareil
 // et absents de la version distante sont conservés (un autre appareil resté sur une vieille copie ne peut plus les écraser).
 // Les suppressions volontaires sont mémorisées (msgDel / ctDel) pour ne pas faire revenir un message effacé.
-function crmUnion(lv,rv){ const del=new Set([...(lv.msgDel||[]),...(rv.msgDel||[])]), cdel=new Set([...(lv.ctDel||[]),...(rv.ctDel||[])]);
-  const rm=new Set((rv.msgs||[]).map(m=>m.id)), rc=new Set((rv.contacts||[]).map(c=>c.id));
-  const addM=(lv.msgs||[]).filter(m=>!rm.has(m.id)&&!del.has(m.id)), addC=(lv.contacts||[]).filter(c=>!rc.has(c.id)&&!cdel.has(c.id));
-  if(!addM.length&&!addC.length) return null;
-  const v={...rv}; if(addM.length) v.msgs=(rv.msgs||[]).concat(addM); if(addC.length) v.contacts=(rv.contacts||[]).concat(addC);
-  if(del.size) v.msgDel=[...del].slice(-200); if(cdel.size) v.ctDel=[...cdel].slice(-100); return v; }
+function crmUnion(lv,rv){ const v={...rv}; let add=false;
+  for(const [f,df,max] of [['msgs','msgDel',200],['contacts','ctDel',100],['visites','visDel',100]]){
+    const del=new Set([...(lv[df]||[]),...(rv[df]||[])]), have=new Set((rv[f]||[]).map(x=>x.id));
+    const extra=(lv[f]||[]).filter(x=>!have.has(x.id)&&!del.has(x.id));
+    if(extra.length){ v[f]=(rv[f]||[]).concat(extra); add=true; }
+    if(del.size) v[df]=[...del].slice(-max); }
+  return add?v:null; }
 function crmMergeRemote(remote){ let ch=false;
   for(const k in remote){ const r=tsNorm(remote[k]), l=CRMD[k]&&tsNorm(CRMD[k]);
     if(l&&r.t>l.t&&l.v&&r.v){ const v=crmUnion(l.v,r.v); if(v){ CRMD[k]={v,t:Date.now()}; ch=true; continue; } }
@@ -4066,6 +4079,7 @@ function crmField(id,f,v){ const b=byId(id); if(!b) return;
 function crmStepDate(c,s){ const h=(c.hist||[]).filter(x=>x.s===s); return h.length?h[h.length-1].t:null; }
 function crmStepGo(id,s){ const b=byId(id); if(!b) return; const c=crmOf(b);
   const next=c.step===s?'':s;                                   // re-taper l'étape en cours = revenir en arrière
+  if(!next&&!confirm('Décocher cette étape et revenir en arrière ?')) return;
   const hist=(c.hist||[]).concat([{s:next||'retour',t:Date.now()}]).slice(-40);
   crmSet(b,{step:next,hist}); renderCRM(); }
 // ----- interlocuteurs & fil des échanges (rangés dans la fiche CRM → synchronisés) -----
@@ -4330,7 +4344,55 @@ function crmOptsHTML(b,c,edit){ const L=crmOpts(b,c).filter(o=>o.id!=='none');
       <button class="ct-del" onclick="crmOptDel('${esc(o.id)}')" title="Supprimer">🗑</button></div>`).join('')
     +`<button class="crm-add" style="margin-top:4px" onclick="crmOptAdd()">＋ Ajouter une option</button>`; }
 // ----- rendez-vous daté (crm.rdvAt = "AAAA-MM-JJTHH:MM", heure de Paris ; ancien champ crm.visite repris) -----
-function crmRdvAt(c){ return c.rdvAt||c.visite||''; }
+function crmRdvAt(c){ const V=c.visites; if(!V) return c.rdvAt||c.visite||'';
+  const now=Date.now()-3*3600e3, L=V.filter(x=>x.st!=='annulee'&&x.at).sort((x,y)=>x.at<y.at?-1:1);
+  const next=L.find(x=>x.st==='prevue'&&new Date(x.at).getTime()>=now); return next?next.at:(L.length?L[L.length-1].at:''); }
+// ----- visites & comptes rendus (29/09) : plusieurs visites datées par bien, ce qu'on a vu, impression, compte rendu -----
+const CRM_VIS_ST=[['prevue','📅 Prévue'],['faite','✅ Faite'],['annulee','❌ Annulée']];
+const CRM_VIS_CHK=['Parties communes','Façade / toiture','Cave / grenier','Compteurs / tableau élec.','Chauffage / eau chaude','Salle d\'eau / plomberie','Fenêtres / isolation','Luminosité / exposition','Bruit / vis-à-vis','Conforme au plan','Documents copro demandés'];
+const CRM_VIS_IMP=[['coeur','😍 Coup de cœur'],['pos','🙂 Positif'],['mitige','😐 Mitigé'],['non','👎 Non']];
+function crmVisites(c){ if(c.visites) return c.visites.slice().sort((x,y)=>(x.at||'')<(y.at||'')?-1:1);
+  const at=c.rdvAt||c.visite; if(!at) return [];
+  const past=new Date(at).getTime()<Date.now(), done=['visite','offre'].includes(c.step);
+  return [{id:'v0',at,st:past&&done?'faite':'prevue',avec:c.rdvLieu||''}]; }
+function crmVisSave(b,L,re){ const c=crmOf(b), patch={visites:L};
+  if(L.some(x=>x.st==='faite')&&!['visite','offre'].includes(c.step)){ patch.step='visite'; patch.hist=(c.hist||[]).concat([{s:'visite',t:Date.now()}]).slice(-40); }
+  else if(L.some(x=>x.st==='prevue')&&!c.step){ patch.step='rdv'; patch.hist=(c.hist||[]).concat([{s:'rdv',t:Date.now()}]).slice(-40); }
+  crmSet(b,patch); if(re!==false) renderCRM(); }
+function crmVisAdd(){ const b=crmCurB(); if(!b) return; const d=new Date(Date.now()+864e5); d.setMinutes(0,0,0);
+  const at=new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,16);
+  crmVisSave(b,crmVisites(crmOf(b)).concat([{id:crmUid(),at,st:'prevue'}])); }
+function crmVisSet(vid,f,v,re){ const b=crmCurB(); if(!b) return;
+  crmVisSave(b,crmVisites(crmOf(b)).map(x=>x.id===vid?{...x,[f]:v}:x),re); }
+const _visT={};
+function crmVisLive(vid,f,v){ clearTimeout(_visT[vid+f]); _visT[vid+f]=setTimeout(()=>crmVisSet(vid,f,v,false),900); }
+function crmVisChk(vid,lbl){ const b=crmCurB(); if(!b) return; const x=crmVisites(crmOf(b)).find(y=>y.id===vid); if(!x) return;
+  const vu=new Set(x.vu||[]); vu.has(lbl)?vu.delete(lbl):vu.add(lbl); crmVisSet(vid,'vu',[...vu]); }
+function crmVisDel(vid){ const b=crmCurB(); if(!b||!confirm('Supprimer cette visite et son compte rendu ?')) return; const c=crmOf(b);
+  crmSet(b,{visDel:(c.visDel||[]).concat([vid]).slice(-100)}); crmVisSave(b,crmVisites(crmOf(b)).filter(x=>x.id!==vid)); }
+function crmVisCopy(vid){ const b=crmCurB(); if(!b) return; const x=crmVisites(crmOf(b)).find(y=>y.id===vid); if(!x) return;
+  const imp=(CRM_VIS_IMP.find(([k])=>k===x.imp)||[])[1];
+  crmCopy(`Compte rendu de visite — ${crmTitle(b)} — ${x.at?dmyhm(new Date(x.at).getTime()):''}`+(x.qui?`\nPrésents : ${x.qui}`:'')+(x.avec?`\nAvec : ${x.avec}`:'')
+    +(imp?`\nImpression : ${imp}`:'')+((x.vu||[]).length?`\nVu : ${x.vu.join(', ')}`:'')+(x.cr?`\n\n${x.cr}`:''),'Compte rendu copié ✓'); }
+function crmVisitesHTML(b,c){ const L=crmVisites(c), id=idj(b.id);
+  const cards=L.map((x,i)=>{ const v=`'${esc(x.id)}'`;
+    return `<div class="vis-card st-${x.st||'prevue'}">
+      <div class="vis-h"><b>Visite ${i+1}</b>
+        <select onchange="crmVisSet(${v},'st',this.value)">${CRM_VIS_ST.map(([k,l])=>`<option value="${k}" ${x.st===k?'selected':''}>${l}</option>`).join('')}</select>
+        <input type="datetime-local" value="${esc(x.at||'')}" onchange="crmVisSet(${v},'at',this.value)">
+        <button class="ct-del" onclick="crmVisDel(${v})" title="Supprimer">🗑</button></div>
+      <div class="msg-row"><input type="text" placeholder="Avec qui (agent, vendeur)" value="${esc(x.avec||'')}" onchange="crmVisSet(${v},'avec',this.value)">
+        <input type="text" placeholder="Présents de notre côté (ex. Guillaume, Julie)" value="${esc(x.qui||'')}" onchange="crmVisSet(${v},'qui',this.value)"></div>
+      ${x.st==='prevue'&&x.at?`<div class="ct-acts"><a class="ct-act" href="${crmRdvGcal(b,{...c,rdvAt:x.at,rdvLieu:x.avec})}" target="_blank" rel="noopener">🗓 Ajouter à Google Agenda</a></div>`:''}
+      ${x.st!=='annulee'?`<div class="vis-lbl">Ce qu'on a vu / vérifié</div>
+      <div class="vis-chips">${CRM_VIS_CHK.map(l=>`<button class="${(x.vu||[]).includes(l)?'on':''}" onclick="crmVisChk(${v},'${l.replace(/'/g,"\\'")}')">${(x.vu||[]).includes(l)?'✓ ':''}${l}</button>`).join('')}</div>
+      <div class="vis-lbl">Impression</div>
+      <div class="vis-chips imp">${CRM_VIS_IMP.map(([k,l])=>`<button class="${x.imp===k?'on':''}" onclick="crmVisSet(${v},'imp','${x.imp===k?'':k}')">${l}</button>`).join('')}</div>`:''}
+      <div class="vis-lbl">Compte rendu${x.cr?` <span class="ct-act" onclick="crmVisCopy(${v})">📋 Copier</span>`:''}</div>
+      <textarea class="note vis-cr" rows="${x.cr?Math.min(18,Math.max(5,Math.ceil(x.cr.length/70)+x.cr.split('\n').length)):4}" placeholder="Ce qu'on a vu, ce qui a été dit, points forts, points faibles, suite à donner…"
+        oninput="crmVisLive(${v},'cr',this.value)" onchange="crmVisSet(${v},'cr',this.value,false)">${esc(x.cr||'')}</textarea>
+    </div>`; }).join('');
+  return (cards||'<div class="ct-empty">Aucune visite. Ajoute la première avec sa date.</div>')+`<button class="crm-add" onclick="crmVisAdd()">＋ Ajouter une visite</button>`; }
 function crmRdvLbl(c){ const v=crmRdvAt(c); if(!v) return ''; const d=new Date(v);
   return d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h'); }
 function crmRdvSet(id,f,v){ const b=byId(id); if(!b) return; const c=crmOf(b), patch={[f]:String(v||'').trim()};
@@ -4462,15 +4524,10 @@ function renderCRM(){
           return `<button class="crm-step ${c.step===k?'on':(stepIdx>i?'done':'')}" onclick="crmStepGo(${idj(b.id)},'${k}')">${l}${d&&stepIdx>=i?`<small>${dmy(d)}</small>`:''}</button>`;}).join('')}
       </div>
       ${relance?`<div class="crm-relance">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → relancer ?</div>`:''}
-      <div class="rdv-box">
-        <div class="rdv-h">📅 Rendez-vous / visite${crmRdvAt(c)?` · <b>${crmRdvLbl(c)}</b>`:''}</div>
-        <div class="msg-row">
-          <input type="datetime-local" value="${esc(crmRdvAt(c))}" onchange="crmRdvSet(${idj(b.id)},'rdvAt',this.value)" title="Date et heure du rendez-vous">
-          <input type="text" placeholder="Lieu / avec qui (ex. sur place avec l'agente)" value="${esc(c.rdvLieu)}" onchange="crmRdvSet(${idj(b.id)},'rdvLieu',this.value)">
-        </div>
-        ${crmRdvAt(c)?`<div class="ct-acts"><a class="ct-act" href="${crmRdvGcal(b,c)}" target="_blank" rel="noopener">🗓 Ajouter à Google Agenda</a><span class="ct-act" onclick="crmRdvSet(${idj(b.id)},'rdvAt','')">✕ Effacer</span></div>`:''}
-      </div>
+      ${crmRdvAt(c)?`<div class="rdv-box"><div class="rdv-h">📅 ${crmVisites(c).some(x=>x.st==='prevue'&&new Date(x.at).getTime()>=Date.now()-3*3600e3)?'Prochaine visite':'Dernière visite'} · <b>${crmRdvLbl(c)}</b> <span class="ct-act" onclick="document.getElementById('crmVisSec').scrollIntoView({behavior:'smooth'})">voir les visites ↓</span></div></div>`:''}
     </div>
+
+    <div class="crm-sec" id="crmVisSec"><h3>🏠 Visites & comptes rendus${crmVisites(c).length?` · ${crmVisites(c).length}`:''}</h3>${crmVisitesHTML(b,c)}</div>
     <button class="crm-rm" onclick="crmRemove(${idj(b.id)})">✕ Retirer ce bien du CRM</button>
 
     </div>`;
