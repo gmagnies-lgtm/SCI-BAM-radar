@@ -665,6 +665,7 @@
     padding:9px;font-weight:700;cursor:pointer;font-family:inherit}
   .crm-rm:hover{color:var(--bad);border-color:var(--bad)}
   .gocrm.in{background:rgba(56,189,248,.1)}
+  .seelink.alt{background:var(--bg2);color:var(--txt);border:1px solid var(--line);margin-top:6px}
   @media (max-width:520px){ .crm-top{padding:10px;gap:6px} .crm-lbl{display:none} .crm-views button{padding:8px 9px;font-size:12.5px}
     .crm-top .crm-navs{min-width:0} .crm-top .crm-navs .crm-icbtn{padding:8px 10px} }
   /* interlocuteurs */
@@ -919,7 +920,8 @@ const LISTINGS = [
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3278173560",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/a6/51/d8/a651d829cf6f54940f060c55f7a4b269a2ad1d3b.jpg?rule=ad-large",
    photos:["https://img.leboncoin.fr/api/v1/lbcpb1/images/a6/51/d8/a651d829cf6f54940f060c55f7a4b269a2ad1d3b.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/02/50/db/0250dbd0a0288564144676a92f17ddd92aeaf23f.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/cc/5f/da/cc5fdaec86a1fd5ec0dfe0aca644f235468b443e.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/b4/79/18/b4791812c282ca5e9f180dbcbad89fb7970c56a6.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/8f/01/c8/8f01c87d38d1d77f1d46a964a2144daa4c71863d.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/c7/f1/fa/c7f1fa8e56f56f841f4cfe048a000d8a1ae5730c.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/1e/3c/ce/1e3cce4438c5d49c488fdb8ffc6ac0e002d243a2.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/64/97/15/6497159aa6ef8d3225a5df1f8326a6f3bbea8759.jpg?rule=ad-large"]},
- {id:3271185868, ann:{"lots":10,"dpe":"C (GES C)","opts":[{"l":"Place de parking","p":null}]}, prix:340000, m:82, p:3, ch:2, et:"2/4", q:"Parc Blandan", stLouis:false, annee:1969, pub:"2026-09-17", gar:0, cave:1, terr:0, jardin:0, asc:0, balc:1, meuble:0, new:false, pap:false,
+ {id:3271185868, ann:{"ch":150,"tf":1180,"lots":10,"dpe":"C (GES C)","opts":[{"l":"Place de parking (sous-sol)","p":null}]}, prix:340000, oldPrix:350000, prixSrc:"agence César & Brutus (exclusivité, 17/09) — le même bien était à 350 000 puis 342 000 € chez le particulier (annonce en pause)", m:82, p:3, ch:2, et:"2/4", q:"Saint-Louis", stLouis:true,
+   alt:[{url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3209023988", lbl:"Leboncoin · particulier (annonce en pause)"}], annee:1969, pub:"2026-09-17", gar:0, cave:1, terr:0, jardin:0, asc:0, balc:1, meuble:0, new:false, pap:false,
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3271185868",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/60/bb/9e/60bb9e7a199dabe7d1ce4f8f7ac0cd91d0c3f353.jpg?rule=ad-large",
    photos:["https://img.leboncoin.fr/api/v1/lbcpb1/images/60/bb/9e/60bb9e7a199dabe7d1ce4f8f7ac0cd91d0c3f353.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/10/53/4e/10534e46c4b74ad116f9b147d62efa4b6e8aefb3.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/2f/05/85/2f05859b63c185cc3a8004af56cef95fac2edbd9.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/fd/8c/c6/fd8cc6cf60024b651dd4da6da7a08fa802965230.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/51/25/fc/5125fcc551942a53694f71b6149e91957eed119c.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/ed/b5/bf/edb5bf43ea44630e59dd0c5ac7e72e5fbd847f8d.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/57/00/ff/5700ff67a00208ea3172d3116d99b31164fe4e26.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/73/a1/e4/73a1e4a9cb9bc3e6e1e860bc8c7946c8cfb52ece.jpg?rule=ad-large"]},
@@ -2314,9 +2316,6 @@ const LISTINGS = [
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3143478576",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/d7/5f/2e/d75f2e87ffddb1779ae81421a5ab8b67ca2960bd.jpg?rule=ad-large",
    photos:["https://img.leboncoin.fr/api/v1/lbcpb1/images/d7/5f/2e/d75f2e87ffddb1779ae81421a5ab8b67ca2960bd.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/bc/c0/17/bcc017ec72f25c41dc535a77617235a02b7a0890.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/80/d6/97/80d6975033eb4cda880eef7710a2f0d0e607754a.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/70/2e/21/702e212d95aa08869aeb8fd665ae4d72001430f5.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/31/8a/b3/318ab3f20fd5513f63ec3895f77ae366daee758e.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/44/b2/85/44b2854c98ff598fa28e36444a89f31e0793bf1b.jpg?rule=ad-large", "https://img.leboncoin.fr/api/v1/lbcpb1/images/c9/a4/e0/c9a4e0e270db3a59ae75ba8185a3c7fc45866233.jpg?rule=ad-large"]},
- {id:3209023988, ann:{"ch":150,"tf":1180,"lots":10,"dpe":"C (GES C)"}, prix:342000, oldPrix:350000, m:82, p:3, ch:2, et:"2/4", q:"Saint-Louis", stLouis:true, annee:1969, pub:"2026-06-02", gar:1, cave:1, terr:0, jardin:0, asc:0, balc:1, meuble:0, new:false, pap:true,
-   url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3209023988",
-   img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/fe/80/65/fe80651bd2abf39ee8f743bba7b294efb5739455.jpg?rule=ad-large"},
  {id:3208236091, gone:true, prix:440000, m:90, p:3, ch:2, et:"5/6", q:"Préfecture", stLouis:false, pub:"2026-05-31", gar:0, cave:0, terr:0, jardin:0, asc:0, balc:0, meuble:0, new:false, pap:true,
    url:"https://www.leboncoin.fr/ad/ventes_immobilieres/3208236091",
    img:"https://img.leboncoin.fr/api/v1/lbcpb1/images/88/1e/27/881e278828b5933d2ab5c9da3d78cbe4d820446d.jpg?rule=ad-large"},
@@ -3892,7 +3891,8 @@ function openDetail(id){
     <div class="sh-note">Apport traité en <b>compte courant d'associé</b> (récupérable, pas de « valeur nette SCI »). TRI/VAN sur fonds propres, revente théorique à la <b>valeur nette du bien</b> (valeur de marché − capital restant dû) en année 25 — hors fiscalité IS et frais de cession. Indicatif.</div>
     <div class="ind-k" style="margin-bottom:5px">Ma note</div>
     <textarea class="note" rows="3" placeholder="Note (RDV, agent, remarques…)" oninput="noteLive(${idj(b.id)},this.value)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
-    ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener">Voir l'annonce sur ${sourceOf(b.url)} ↗</a>`:''}`;
+    ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener">Voir l'annonce sur ${sourceOf(b.url)} ↗</a>`:''}
+    ${(b.alt||[]).map(x=>`<a class="seelink alt" href="${esc(x.url)}" target="_blank" rel="noopener">Autre annonce du même bien : ${esc(x.lbl||sourceOf(x.url))} ↗</a>`).join('')}`;
   $('modal').classList.add('show'); $('modal').setAttribute('aria-hidden','false');
 }
 function closeDetail(){ $('modal').classList.remove('show'); $('modal').setAttribute('aria-hidden','true'); }
@@ -4450,6 +4450,7 @@ function renderCRM(){
     ${pub?`<div class="crm-pub">📅 annonce du ${dmy(new Date(pub).getTime())}${ageDays({pub})!=null?` · en ligne depuis ${ageDays({pub})} j`:''}</div>`:''}
     ${ctL.length?`<div class="crm-pub">👤 ${ctL.map(x=>esc((x.nom||x.tel||x.email)+(x.role&&x.nom?` (${x.role})`:''))).join(' · ')}</div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" style="margin-top:8px">Voir l'annonce sur ${sourceLabel(b.url)} ↗</a>`:''}
+    ${(b.alt||[]).map(x=>`<a class="seelink alt" href="${esc(x.url)}" target="_blank" rel="noopener">Autre annonce du même bien : ${esc(x.lbl||sourceLabel(x.url))} ↗</a>`).join('')}
 
     <div class="crm-sec"><h3>📝 Notes négo</h3>
       <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
