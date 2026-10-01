@@ -665,6 +665,8 @@
     padding:9px;font-weight:700;cursor:pointer;font-family:inherit}
   .crm-rm:hover{color:var(--bad);border-color:var(--bad)}
   .gocrm.in{background:rgba(56,189,248,.1)}
+  .opt-chip .nfb{margin-left:5px;color:var(--mut);font-size:10.5px}
+  .nfchk{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--mut);white-space:nowrap}
   .seelink.alt{background:var(--bg2);color:var(--txt);border:1px solid var(--line);margin-top:6px}
   @media (max-width:520px){ .crm-top{padding:10px;gap:6px} .crm-lbl{display:none} .crm-views button{padding:8px 9px;font-size:12.5px}
     .crm-top .crm-navs{min-width:0} .crm-top .crm-navs .crm-icbtn{padding:8px 10px} }
@@ -792,7 +794,8 @@
       <div class="fld"><label>Taux crédit + assur. (%)</label><input id="p_taux" type="number" step="0.1" value="3.3"></div>
       <div class="fld"><label>Durée (ans)</label><input id="p_duree" type="number" value="20"></div>
       <div class="fld"><label>Frais notaire ancien (%)</label><input id="p_notaire" type="number" step="0.1" value="7.5"></div>
-      <div class="fld"><label>Loyer défaut (€/m²)</label><input id="p_loyer" type="number" step="0.5" value="16"></div>
+      <div class="fld"><label>Loyer par défaut des simulations</label><select id="p_loyermode"><option value="nu">Plafond encadré — location nue</option><option value="meuble">Plafond encadré — meublé</option><option value="libre">Libre (€/m² ci-dessous)</option></select></div>
+      <div class="fld"><label>Loyer défaut (€/m²) — si plafond inconnu ou mode libre</label><input id="p_loyer" type="number" step="0.5" value="16"></div>
       <div class="fld"><label>Vacance (%)</label><input id="p_vac" type="number" step="0.5" value="2"></div>
       <div class="fld"><label>Charges non récup. (€/mois) — si charges réelles inconnues</label><input id="p_charges" type="number" value="200"></div>
       <div class="fld"><label>Part des charges copro refacturée au locataire (%)</label><input id="p_recup" type="number" step="5" value="70"></div>
@@ -3183,7 +3186,7 @@ function params(){
   return {
     apportpct:+$('p_apportpct').value/100, plafond:+$('p_plafond').value,
     taux:+$('p_taux').value/100, duree:+$('p_duree').value,
-    notaire:+$('p_notaire').value/100, loyer:+$('p_loyer').value, vac:+$('p_vac').value/100,
+    notaire:+$('p_notaire').value/100, loyer:+$('p_loyer').value, loyerMode:($('p_loyermode')&&$('p_loyermode').value)||'nu', vac:+$('p_vac').value/100,
     charges:+$('p_charges').value, recup:(($('p_recup')&&$('p_recup').value!=='')?+$('p_recup').value:70)/100, vgar:+$('p_gar').value, vcave:+$('p_cave').value, vterr:+$('p_terr').value
   };
 }
@@ -3197,19 +3200,24 @@ function capitalMax(M, i, n){ return M*(1-Math.pow(1+i,-n))/i; }
 function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en négociation → pas de pénalité « prix trop bas / suspect »
   const n = P.duree*12, i = P.taux/12;
   const crm = tsGet(CRMD, keyOf(b)) || {};           // données réelles saisies dans le CRM (remplacent l'hypothèse)
-  const sus = susOf(b, crm);                         // options en sus du prix COCHÉES (garage, parking, cave…)
+  const sus = susOf(b, crm);                         // options en sus du prix COCHÉES (garage, parking, cave, meubles, travaux…)
+  const susNot = susOf(b, crm, true), susHors = sus - susNot;   // garage/parking : dans l'acte → frais de notaire ; meubles/travaux : hors acte
   const annexes = b.gar*P.vgar + b.cave*P.vcave + b.terr*P.vterr;
   const valAppart = b.prix - annexes;
   const pm2reel = valAppart / b.m;
-  const base = b.prix + sus;                         // coût d'acquisition réel (annonce + en sus)
+  const base = b.prix + susNot;                      // prix d'acquisition dans l'acte (annonce + options soumises aux frais de notaire)
   const fraisNot = base * P.notaire;
-  const coutTotal = base + fraisNot;
-  const apport = apportPour(base, P);
+  const coutTotal = base + fraisNot + susHors;       // + meubles / travaux payés à part (sans frais de notaire)
+  const apport = apportPour(base + susHors, P);
   const emprunt = Math.max(0, coutTotal - apport);
   const mens = mensualite(emprunt, i, n);
   const lm2ov = (loyerM2Override!=null && loyerM2Override!=='') ? +loyerM2Override : getLoyerM2(b);  // aperçu live > curseur enregistré
-  const loyerM2eff = (lm2ov!=null) ? lm2ov : P.loyer;              // sinon défaut global
-  const loyerMois = +crm.loyer > 0 ? +crm.loyer : loyerM2eff * b.m; // loyer réel si occupé, sinon €/m² (ajusté) × surface
+  // loyer par défaut (01/10) : plafond de l'encadrement (nu par défaut, ou meublé) à l'adresse ; sinon €/m² des paramètres
+  const enc = (lm2ov==null && P.loyerMode!=='libre' && typeof encOf==='function') ? encOf(b) : null;
+  const encR = enc && !enc.pending ? (P.loyerMode==='meuble' ? enc.rM : enc.rN) : null;
+  const loyerSrc = +crm.loyer > 0 ? 'crm' : lm2ov!=null ? 'curseur' : encR ? (P.loyerMode==='meuble'?'plafond meublé':'plafond nu') : 'défaut';
+  const loyerM2eff = (lm2ov!=null) ? lm2ov : (encR || P.loyer);    // curseur > plafond encadré > défaut global
+  const loyerMois = +crm.loyer > 0 ? +crm.loyer : loyerM2eff * b.m; // loyer réel si saisi, sinon €/m² × surface
   const loyerNet = loyerMois * (1-P.vac);
   const ann = b.ann || {};                           // infos relevées dans l'annonce (veille) : charges, TF, lots, DPE, options
   // charges copro : le montant connu (saisie CRM > annonce) est TOTAL ; la part récupérable est refacturée au locataire
@@ -3239,7 +3247,7 @@ function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en né
   const empruntEq = capitalMax(mensEq, i, n);
   const apportEq = Math.max(0, coutTotal - empruntEq);         // apport pour être à l'équilibre à CE prix
   // ancre de négo : prix d'ANNONCE max auquel l'équilibre reste atteignable avec l'apport PLAFOND
-  const prixEq = (empruntEq + P.plafond) / (1 + P.notaire) - sus;   // (le « en sus » reste dû)
+  const prixEq = (empruntEq + P.plafond - susHors) / (1 + P.notaire) - susNot;   // (les options cochées restent dues)
   // PRIX DE MARCHÉ (DVF) : €/m² du secteur × surface appart + annexes
   const mPm2 = marchePm2(b.q);
   const prixMarche = mPm2*b.m + annexes;
@@ -3269,7 +3277,7 @@ function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en né
   let verdict="PASSER", vClass="v-pass";
   if(score>=70 && e>=-0.03 && (e<=0.25 || (opt&&opt.nego))){ verdict="ACHETER"; vClass="v-go"; }
   else if(score>=55){ verdict="À SURVEILLER"; vClass="v-watch"; }
-  return {annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,loyerM2eff,
+  return {susNot,susHors,loyerSrc,annexes,valAppart,pm2reel,fraisNot,coutTotal,apport,emprunt,mens,loyerMois,loyerNet,loyerM2eff,
           cashflow,rentBrute,rentNette,prixConseille,prixPlafond,ecart,
           sus,chMois,chTot,chNR,chRecup,tfMois,apportEq,prixEq,
           mPm2,prixMarche,ecartMarche,stars,parts,mkClass,score,verdict,vClass};
@@ -3994,7 +4002,8 @@ function encGeocode(q){ if(_geoAsk[q]) return; _geoAsk[q]=1;
   fetch('https://api-adresse.data.gouv.fr/search/?limit=1&q='+encodeURIComponent(q)).then(r=>r.json()).then(d=>{ const f=d.features&&d.features[0];
     GEO[q]=f?{x:f.geometry.coordinates[0],y:f.geometry.coordinates[1],s:f.properties.score}:{none:1};
     try{ localStorage.setItem(GEOKEY,JSON.stringify(GEO)); }catch(e){}
-    if($('crm')&&$('crm').classList.contains('show')) crmRefreshIfIdle(); }).catch(()=>{ _geoAsk[q]=0; }); }
+    clearTimeout(_geoRT); _geoRT=setTimeout(()=>{ if(isEditing()) return; render(); if($('crm')&&$('crm').classList.contains('show')) crmRefreshIfIdle(); },600); }).catch(()=>{ _geoAsk[q]=0; }); }
+let _geoRT=0;
 // plafond légal d'un bien : {maxM, maxN, rM, rN, zone, pc, ep, approx} | {pending} | null
 function encOf(b){ const A=encAddr(b); if(!A||!b.m) return null; const g=GEO[A.q];
   if(!g){ encGeocode(A.q); return {pending:1}; } if(g.none) return null;
@@ -4327,7 +4336,10 @@ function crmOpts(b,c){ if(Array.isArray(c.opts)) return c.opts;
   const L=[]; if(+c.sus>0) L.push({id:'sus',l:'En sus',p:+c.sus,on:true});
   ((b.ann||{}).opts||[]).forEach((o,i)=>{ if(!(+c.sus>0&&+o.p===+c.sus)) L.push({id:'a'+i,l:o.l,p:o.p||0,on:false}); else L[0].l=o.l; });
   return L; }
-function susOf(b,c){ return crmOpts(b,c||{}).reduce((t,o)=>t+(o.on&&+o.p>0?+o.p:0),0); }
+// option dans l'acte de vente (frais de notaire) ? saisie o.nf, sinon déduit du libellé : garage/parking/box/cave → oui ; meubles/travaux → non
+function optNf(o){ if(o.nf!=null) return !!o.nf; return !/meubl|mobilier|travaux|r[ée]nov|rafra[iî]ch|cuisine|peinture|[ée]lectri|plomb|cloison|sol/i.test(o.l||''); }
+function susOf(b,c,notOnly){ return crmOpts(b,c||{}).reduce((t,o)=>t+(o.on&&+o.p>0&&(!notOnly||optNf(o))?+o.p:0),0); }
+function crmOptNf(id){ const b=crmCurB(); if(!b) return; crmOptsSave(b,crmOpts(b,crmOf(b)).map(o=>o.id===id?{...o,nf:!optNf(o)}:o)); }
 function crmOptsSave(b,L){ crmSet(b,{opts:L.length?L:[{id:'none',l:'',p:0,on:false}],sus:null}); renderCRM(); }
 function crmOptToggle(id){ const b=crmCurB(); if(!b) return; crmOptsSave(b,crmOpts(b,crmOf(b)).map(o=>o.id===id?{...o,on:!o.on}:o)); }
 function crmOptSet(id,f,v){ const b=crmCurB(); if(!b) return;
@@ -4336,11 +4348,12 @@ function crmOptAdd(){ const b=crmCurB(); if(!b) return; crmOptsSave(b,crmOpts(b,
 function crmOptDel(id){ const b=crmCurB(); if(!b) return; crmOptsSave(b,crmOpts(b,crmOf(b)).filter(o=>o.id!==id)); }
 function crmOptsHTML(b,c,edit){ const L=crmOpts(b,c).filter(o=>o.id!=='none');
   if(!edit){ if(!L.length) return '';
-    return `<div class="opt-chips">${L.map(o=>`<label class="opt-chip ${o.on?'on':''}"><input type="checkbox" ${o.on?'checked':''} onchange="crmOptToggle('${esc(o.id)}')"> ${esc(o.l||'Option')} ${o.p?kEur(o.p):'prix ?'}</label>`).join('')}
+    return `<div class="opt-chips">${L.map(o=>`<label class="opt-chip ${o.on?'on':''}"><input type="checkbox" ${o.on?'checked':''} onchange="crmOptToggle('${esc(o.id)}')"> ${esc(o.l||'Option')} ${o.p?kEur(o.p):'prix ?'}<small class="nfb">${optNf(o)?'+ notaire':'hors notaire'}</small></label>`).join('')}
       <span class="opt-note">${L.some(o=>o.on)?'comptées dans le coût':'aucune option comptée'}</span></div>`; }
   return L.map(o=>`<div class="opt-row"><input type="checkbox" ${o.on?'checked':''} onchange="crmOptToggle('${esc(o.id)}')" title="Compter dans le coût">
       <input type="text" value="${esc(o.l)}" placeholder="Garage, cave…" onchange="crmOptSet('${esc(o.id)}','l',this.value)">
       <input type="text" inputmode="numeric" value="${o.p||''}" placeholder="€" onchange="crmOptSet('${esc(o.id)}','p',this.value)">
+      <label class="nfchk" title="Inclus dans l'acte de vente : frais de notaire appliqués (garage oui, meubles/travaux non)"><input type="checkbox" ${optNf(o)?'checked':''} onchange="crmOptNf('${esc(o.id)}')">frais de notaire</label>
       <button class="ct-del" onclick="crmOptDel('${esc(o.id)}')" title="Supprimer">🗑</button></div>`).join('')
     +`<button class="crm-add" style="margin-top:4px" onclick="crmOptAdd()">＋ Ajouter une option</button>`; }
 // ----- rendez-vous daté (crm.rdvAt = "AAAA-MM-JJTHH:MM", heure de Paris ; ancien champ crm.visite repris) -----
@@ -4447,6 +4460,7 @@ function renderCRM(){
     ${(()=>{ const e=encOf(b); if(!e||e.pending) return ''; const w=encWarn(b,e);
       return `<div class="crm-pub enc ${w?'warn':''}">⚖️ Loyer encadré : <b>≈ ${eur(e.maxM)} HC en meublé</b> · ${eur(e.maxN)} en nu <small>(${e.rM} €/m² · ${encLbl(e)})</small>${w?`<br>⚠️ Le loyer saisi (${eur(w)}) dépasse le plafond légal de ${eur(w-e.maxM)}.`:''}</div>`; })()}
     ${adresse?`<div class="crm-pub">📍 <a class="maplink" href="${mapsDir(adresse)}" target="_blank" rel="noopener" title="Itinéraire depuis ${HOME_ADDR} dans Google Maps">${esc(adresse)} ↗</a></div>`:''}
+    ${c.lienAgence?`<div class="crm-pub">🏢 <a class="maplink" href="${esc(c.lienAgence)}" target="_blank" rel="noopener">Annonce sur le site de l'agence${(()=>{ try{ return ' ('+new URL(c.lienAgence).hostname.replace(/^www\./,'')+')'; }catch(e){ return ''; } })()} ↗</a></div>`:''}
     ${pub?`<div class="crm-pub">📅 annonce du ${dmy(new Date(pub).getTime())}${ageDays({pub})!=null?` · en ligne depuis ${ageDays({pub})} j`:''}</div>`:''}
     ${ctL.length?`<div class="crm-pub">👤 ${ctL.map(x=>esc((x.nom||x.tel||x.email)+(x.role&&x.nom?` (${x.role})`:''))).join(' · ')}</div>`:''}
     ${b.url?`<a class="seelink" href="${b.url}" target="_blank" rel="noopener" style="margin-top:8px">Voir l'annonce sur ${sourceLabel(b.url)} ↗</a>`:''}
@@ -4502,7 +4516,8 @@ function renderCRM(){
       <div class="crm-fld"><label>dont non récupérables (€/mois)<br><small>syndic, gros entretien… (décompte de charges)</small></label><input type="number" inputmode="numeric" placeholder="≈ ${Math.round((a.chTot??0)*(1-P.recup))||'?'} € (${pct0(1-P.recup)} estimés)" value="${esc(c.chnr)}" onchange="crmField(${idj(b.id)},'chnr',this.value)"></div>
       <div class="crm-fld"><label>Taxe foncière (€/an)</label><input type="number" inputmode="numeric" placeholder="${(b.ann||{}).tf?`annonce : ${b.ann.tf} €`:'inconnue'}" value="${esc(c.tf)}" onchange="crmField(${idj(b.id)},'tf',this.value)"></div>
       <div class="crm-fld" style="align-items:flex-start"><label>Options en sus du prix<br><small>cochées = comptées dans le coût</small></label><div style="flex:1">${crmOptsHTML(b,c,true)}</div></div>
-      <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(P.loyer*b.m)} €" value="${esc(c.loyer)}" onchange="crmField(${idj(b.id)},'loyer',this.value)"></div>
+      <div class="crm-fld"><label>Lien de l'annonce sur le site de l'agence</label><input type="url" placeholder="https://… (affiché sous l'adresse)" value="${esc(c.lienAgence)}" onchange="crmField(${idj(b.id)},'lienAgence',this.value)"></div>
+      <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(a.loyerMois)} € (${a.loyerSrc})" value="${esc(c.loyer)}" onchange="crmField(${idj(b.id)},'loyer',this.value)"></div>
       <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${idj(b.id)},'adresse',this.value)"></div>
       <div class="crm-fld"><label>DPE</label><input type="text" placeholder="${(b.ann||{}).dpe?`annonce : ${esc(b.ann.dpe)}`:'A → G'}" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
       <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${idj(b.id)},'travaux',this.value)"></div>
@@ -4713,6 +4728,9 @@ $('gearBtn').addEventListener('click',()=>{ const p=$('settingsPanel'), g=$('gea
 $('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeDetail(); });
 // seuls les champs numériques du modèle déclenchent un recalcul ; les filtres ont leurs propres handlers
 document.querySelectorAll('#paramsBox input').forEach(inp=>inp.addEventListener('input',render));
+// mode de loyer par défaut (01/10) : plafond encadré en NU par défaut — mémorisé sur l'appareil
+try{ const m=localStorage.getItem('scibam_loyermode'); if(m&&$('p_loyermode')) $('p_loyermode').value=m; }catch(e){}
+if($('p_loyermode')) $('p_loyermode').addEventListener('change',e=>{ try{ localStorage.setItem('scibam_loyermode',e.target.value); }catch(_){} render(); if($('crm').classList.contains('show')) renderCRM(); });
 $('papOnly').addEventListener('change',e=>setPapOnly(e.target.checked));
 $('runBtn').addEventListener('click',refreshNow);
 $('syncCode').addEventListener('change',e=>setSyncToken(e.target.value));
