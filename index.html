@@ -791,7 +791,7 @@
     <div class="grid">
       <div class="fld"><label>Apport (% du prix)</label><input id="p_apportpct" type="number" step="1" value="40"></div>
       <div class="fld"><label>Plafond épargne (€)</label><input id="p_plafond" type="number" value="170000"></div>
-      <div class="fld"><label>Taux crédit + assur. (%)</label><input id="p_taux" type="number" step="0.1" value="3.3"></div>
+      <div class="fld"><label>Taux crédit + assur. (%)</label><input id="p_taux" type="number" step="0.1" value="3.3"><label class="nfchk" style="margin-top:6px"><input type="checkbox" id="p_tauxprudent"> Taux prudent 3,6 % (remplace le taux ci-dessus)</label></div>
       <div class="fld"><label>Durée (ans)</label><input id="p_duree" type="number" value="20"></div>
       <div class="fld"><label>Frais notaire ancien (%)</label><input id="p_notaire" type="number" step="0.1" value="7.5"></div>
       <div class="fld"><label>Loyer par défaut des simulations</label><select id="p_loyermode"><option value="nu">Plafond encadré — location nue</option><option value="meuble">Plafond encadré — meublé</option><option value="libre">Libre (€/m² ci-dessous)</option></select></div>
@@ -3182,10 +3182,14 @@ function starHTML(s, showNum=true){ // s sur 5
   return `<span class="stars">${out}${showNum?`<b>${s.toFixed(1).replace('.',',')}/5</b>`:''}</span>`;
 }
 
+// taux prudent (01/10) : case à cocher → 3,6 % au lieu du taux saisi (3,3 %) ; mémorisé sur l'appareil
+const TAUX_PRUDENT_V=3.6; let TAUX_PRUDENT=(()=>{ try{ return localStorage.getItem('scibam_tauxprudent')==='1'; }catch(e){ return false; } })();
+function setTauxPrudent(v){ TAUX_PRUDENT=!!v; try{ localStorage.setItem('scibam_tauxprudent',v?'1':'0'); }catch(e){} if($('p_tauxprudent')) $('p_tauxprudent').checked=TAUX_PRUDENT;
+  render(); if($('crm').classList.contains('show')) renderCRM(); }
 function params(){
   return {
     apportpct:+$('p_apportpct').value/100, plafond:+$('p_plafond').value,
-    taux:+$('p_taux').value/100, duree:+$('p_duree').value,
+    taux:(TAUX_PRUDENT?TAUX_PRUDENT_V:+$('p_taux').value)/100, duree:+$('p_duree').value,
     notaire:+$('p_notaire').value/100, loyer:+$('p_loyer').value, loyerMode:($('p_loyermode')&&$('p_loyermode').value)||'nu', vac:+$('p_vac').value/100,
     charges:+$('p_charges').value, recup:(($('p_recup')&&$('p_recup').value!=='')?+$('p_recup').value:70)/100, vgar:+$('p_gar').value, vcave:+$('p_cave').value, vterr:+$('p_terr').value
   };
@@ -3729,7 +3733,7 @@ function render(){
   renderTabs();
   const P=params();
   $('ah_apport').textContent=eur(P.plafond);
-  $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String($('p_taux').value).replace('.',',')} %`;
+  $('ah_sub').textContent=`${Math.round(P.apportpct*100)} % du prix · au-delà : emprunt SCI sur ${P.duree} ans à ${String(+(P.taux*100).toFixed(2)).replace('.',',')} %${TAUX_PRUDENT?' (prudent)':''}`;
   let rows=allListings().map(b=>({b,a:analyse(b,P)}));
   rows=rows.filter(({b})=>{
     if(state.filt==='fav') return isFav(b);            // onglet Favoris : tous les favoris, quel que soit le statut (y c. archivés, disparus)
@@ -4300,7 +4304,8 @@ function crmCFHTML(b,P,c){
   const chart=`<div class="cfc" role="img" aria-label="Cash-flow mensuel : prix demandé ${sg(A.cashflow)}, objectif ${sg(O.cashflow)}">
     <div class="cfc-leg"><span><i style="background:var(--c-in)"></i>Loyer net</span><span><i style="background:var(--c-mens)"></i>Mensualité</span><span><i style="background:var(--c-ch)"></i>Charges non récup.</span><span><i style="background:var(--c-tf)"></i>Taxe foncière</span><span>┆ niveau du loyer</span></div>
     ${crow('Prix demandé',A,b.prix)}${crow('Objectif négo',O,obj)}</div>`;
-  return crmOptsHTML(b,c,false)+chart+`<details class="cfd" ${crmCFOpen?'open':''} ontoggle="crmCFOpen=this.open"><summary>Détail ligne à ligne et leviers d'arbitrage</summary>
+  const tx=`<div class="opt-chips"><label class="opt-chip ${TAUX_PRUDENT?'on':''}"><input type="checkbox" ${TAUX_PRUDENT?'checked':''} onchange="setTauxPrudent(this.checked)"> Taux prudent 3,6 %</label><span class="opt-note">emprunt à ${String(+(P.taux*100).toFixed(2)).replace('.',',')} % sur ${P.duree} ans</span></div>`;
+  return crmOptsHTML(b,c,false)+tx+chart+`<details class="cfd" ${crmCFOpen?'open':''} ontoggle="crmCFOpen=this.open"><summary>Détail ligne à ligne et leviers d'arbitrage</summary>
   <table class="cfh"><thead><tr><th></th><th>Prix demandé</th><th>Objectif négo</th><th>Écart</th></tr></thead><tbody>
     ${rows.map(tr).join('')}
     <tr class="tot"><td>Cash-flow mensuel</td><td class="${A.cashflow>=0?'pos':'neg'}">${sg(A.cashflow)}</td><td class="${O.cashflow>=0?'pos':'neg'}">${sg(O.cashflow)}</td><td>${dl(A.cashflow,O.cashflow)}</td></tr>
@@ -4730,6 +4735,7 @@ $('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeDetail()
 document.querySelectorAll('#paramsBox input').forEach(inp=>inp.addEventListener('input',render));
 // mode de loyer par défaut (01/10) : plafond encadré en NU par défaut — mémorisé sur l'appareil
 try{ const m=localStorage.getItem('scibam_loyermode'); if(m&&$('p_loyermode')) $('p_loyermode').value=m; }catch(e){}
+if($('p_tauxprudent')){ $('p_tauxprudent').checked=TAUX_PRUDENT; $('p_tauxprudent').addEventListener('change',e=>setTauxPrudent(e.target.checked)); }
 if($('p_loyermode')) $('p_loyermode').addEventListener('change',e=>{ try{ localStorage.setItem('scibam_loyermode',e.target.value); }catch(_){} render(); if($('crm').classList.contains('show')) renderCRM(); });
 $('papOnly').addEventListener('change',e=>setPapOnly(e.target.checked));
 $('runBtn').addEventListener('click',refreshNow);
