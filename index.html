@@ -680,6 +680,8 @@
   .crm-pub.dpe .dpe-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-size:12px;color:var(--mut)}
   .crm-pub.dpe .dpe-ctl input[type=text]{width:90px;padding:4px 6px;font-size:12px}
   .crm-pub.alerte{border-color:var(--bad);color:var(--txt)}
+  .crm-pub.t4.warn{border-color:var(--warn)}
+  .cmp th small{display:block;font-weight:500;opacity:.7}
   .cmc-dpe{font-size:12px;color:var(--mut);margin-top:4px}
   @media (max-width:520px){ .crm-top{padding:10px;gap:6px} .crm-lbl{display:none} .crm-views button{padding:8px 9px;font-size:12.5px}
     .crm-top .crm-navs{min-width:0} .crm-top .crm-navs .crm-icbtn{padding:8px 10px} }
@@ -4101,6 +4103,21 @@ function crmDpeNoteHTML(){ return `<div class="encnote"><h3>🌡️ DPE et inter
   <li><b>Copropriété</b> : si l'AG refuse les travaux sur parties communes, le bailleur qui le prouve (PV) n'est pas sanctionné. Demander DPE collectif et PPPT.</li></ul>
   <div class="encnote-f">Colonne « DPE » : classe connue (fiche > annonce), date d'interdiction, travaux estimés pour passer en D (E 120 €/m², F 250, G 400) ajoutés au coût du projet et financés par le prêt : ils pèsent sur la mensualité et le cash-flow. Montant modifiable ou excluable dans chaque fiche.
   <a href="${DPE_DOC}" target="_blank" rel="noopener">📄 Note de synthèse DPE ↗</a></div></div>`; }
+// ===== SCÉNARIO TAUX 4 % hors assurance (05/10) : emprunt max à cash-flow ≥ 0, apport nécessaire, couverture du loyer =====
+const T4_DOC='https://claude.ai/code/artifact/a7157c12-c7ca-4cb1-83e7-1337fe63c3ae', T4_TAUX=0.04;
+function t4Of(b,P){ P={...(P||params()),taux:T4_TAUX}; const a=analyse(b,P), n=P.duree*12, i=T4_TAUX/12;
+  const E=capitalMax(Math.max(0,a.loyerNet-a.chMois-a.tfMois),i,n), M=mensualite(a.coutTotal,i,n);
+  return {emp:E, apport:Math.max(0,a.coutTotal-E), couv:M?a.loyerNet/M:0, mens:M, prixEq:a.prixEq, cout:a.coutTotal, plafond:P.plafond}; }
+function t4CellHTML(t){ return `<span class="num">${kEur(t.emp)}</span><small class="${t.apport>t.plafond?'bad':''}">apport ${kEur(t.apport)}</small><small>loyer = ${Math.round(t.couv*100)} % mens.</small>`; }
+function crmT4HTML(b){ const t=t4Of(b), ok=t.apport<=t.plafond;
+  return `<div class="crm-pub t4 ${ok?'':'warn'}">🏦 Taux 4 % hors assurance : le loyer rembourse au plus <b>${eur(Math.round(t.emp))}</b> d'emprunt (cash-flow ≥ 0). Au prix affiché, <b>apport nécessaire ${eur(Math.round(t.apport))}</b>${ok?'':` (> plafond ${kEur(t.plafond)})`} · tout emprunté, le loyer couvre <b>${Math.round(t.couv*100)} %</b> de la mensualité (${eur(Math.round(t.mens))}) · prix soutenable avec ${kEur(t.plafond)} d'apport : <b>${eur(Math.round(t.prixEq/1000)*1000)}</b>. <a href="${T4_DOC}" target="_blank" rel="noopener">Note taux 4 % ↗</a></div>`; }
+function crmT4NoteHTML(){ return `<div class="encnote"><h3>🏦 Taux à 4 % : ce que nos biens peuvent supporter</h3>
+  <ul><li><b>Scénario</b> : les courtiers attendent 3,70 à 4 % de taux moyen fin 2026 (3,51 % sur 20 ans début octobre). On teste 4 % hors assurance, 20 ans.</li>
+  <li><b>Emprunt max</b> = ce que le loyer net (plafond encadré, vacance, charges non récup., taxe foncière) rembourse sans cash-flow négatif.</li>
+  <li><b>Apport nécessaire</b> = coût total du projet − emprunt max. En rouge s'il dépasse notre plafond.</li>
+  <li><b>Message aux vendeurs</b> : le prix n'est pas une opinion, c'est ce que le loyer légal finance ; chaque +0,25 pt retire 3 000 à 4 500 € de capacité.</li></ul>
+  <div class="encnote-f">Colonne « À 4 % » : emprunt max · apport nécessaire au prix affiché · part de la mensualité couverte par le loyer si tout est emprunté.
+  <a href="${T4_DOC}" target="_blank" rel="noopener">📄 Note de synthèse taux 4 % ↗</a></div></div>`; }
 // ===== liens d'annonce : une rangée de boutons, un par annonce du même bien (04/10) =====
 function annLinks(b,c){ const L=[], seen=new Set(), add=(url,lbl,ag)=>{ if(!url) return; const k=String(url).replace(/[?#].*$/,'').replace(/\/$/,'');
     if(seen.has(k)) return; seen.add(k); L.push({url,lbl,ag}); };
@@ -4165,7 +4182,7 @@ function crmKillHTML(d){ return `<label class="killchk ${d.kill?'on':''}" onclic
 function crmTableHTML(){ const P=params();
   if(!crmList.length) return `<div class="foot" style="padding:40px 10px">Le CRM est vide.<br>Dans l'onglet ⭐ Favoris, touche « 🤝 Go to CRM » sur un bien pour l'ajouter ici.</div>`;
   const nLive=crmList.filter(r=>!crmOf(r.b).kill).length, nKill=crmList.length-nLive, mob=crmMobile();
-  const sep=`${mob?'<div class="killsep">':'<tr class="killsep"><td colspan="10">'}☠️ Kill · ${nKill} bien${nKill>1?'s':''} écarté${nKill>1?'s':''}${mob?'</div>':'</td></tr>'}`;
+  const sep=`${mob?'<div class="killsep">':'<tr class="killsep"><td colspan="11">'}☠️ Kill · ${nKill} bien${nKill>1?'s':''} écarté${nKill>1?'s':''}${mob?'</div>':'</td></tr>'}`;
   const items=crmList.map(({b},i)=>{ const d=crmRowData(b,i,P);
     const title=`<b>${esc(crmTitle(b,d.c))}</b><button class="ren" onclick="event.stopPropagation();crmRename(${d.id})" title="Renommer">✏️</button>`;
     const sub=`${d.nom?esc(b.q||'?')+' · '+b.m+' m² · ':''}${b.p}p/${b.ch}ch${b.m?' · '+Math.round(b.prix/b.m).toLocaleString('fr-FR')+' €/m²':''}${isGone(b)?' · 🔗✖ retirée':''}`;
@@ -4182,6 +4199,7 @@ function crmTableHTML(){ const P=params();
             <div><small>Apport</small><span class="num ${d.aObj.apportEq>P.plafond?'bad':''}">${kEur(d.aObj.apportEq)}</span></div>
           </div>
           <div class="cmc-enc">⚖️ Loyer encadré ${d.enc&&d.enc.maxM?`<b>≈ ${eur(d.enc.maxM)}</b> meublé HC · nu ${eur(d.enc.maxN)}${d.encW?` <span class="bad">· ⚠️ loyer saisi ${eur(d.encW)} au-dessus</span>`:''}`:(d.enc&&d.enc.pending?'calcul…':'<i>adresse manquante</i>')}</div>
+          ${(()=>{ const t=t4Of(b,P); return `<div class="cmc-dpe">🏦 À 4 % : emprunt max <b>${kEur(t.emp)}</b> · <span class="${t.apport>t.plafond?'bad':''}">apport ${kEur(t.apport)}</span> · loyer = ${Math.round(t.couv*100)} % de la mensualité</div>`; })()}
           <div class="cmc-dpe">🌡️ DPE ${dpeBadge(dpeOf(b,d.c))} ${dpeShort(b,d.c)}${(b.ann||{}).alerte?' · <span class="bad">⚠️ '+esc([].concat(b.ann.alerte).join(' · '))+'</span>':''}</div></div>`
       : `<tr class="${d.kill?'killed':''}" onclick="crmOpenFiche(${i})">
       <td><div class="cmp-bien">${crmMoveHTML(d,i,nLive)}<div class="cmp-th" style="${d.ph?`background-image:url('${esc(d.ph)}')`:''}"></div>
@@ -4191,6 +4209,7 @@ function crmTableHTML(){ const P=params();
       <td><span class="num">${eur(d.aObj.apportEq)}</span><small class="${d.aObj.apportEq>P.plafond?'bad':''}">${d.aObj.apportEq>P.plafond?'> plafond ':''}à l'objectif · ${eur(d.a.apportEq)} au prix actuel</small></td>
       <td>${encCellHTML(d)}</td>
       <td>${dpeCellHTML(b,d.c)}</td>
+      <td>${t4CellHTML(t4Of(b,P))}</td>
       <td>${step}</td>
       <td><small style="color:var(--txt)">${d.lastTxt}</small>${d.M.length?`<small>${d.M.length} échange${d.M.length>1?'s':''}</small>`:''}</td>
       <td>${crmKillHTML(d)}</td>
@@ -4199,9 +4218,9 @@ function crmTableHTML(){ const P=params();
     return (d.kill&&i===nLive?sep:'')+html; }).join('');
   const lbl=(CRM_SORTS.find(([k])=>k===crmSortK)||CRM_SORTS[0])[1].replace(/^\S+\s/,'').toLowerCase();
   const hint=`<div class="cmp-hint">Classé par ${lbl}${crmSortK==='ord'?' (▲▼ pour déplacer)':''}. ✏️ pour renommer, ☠️ Kill pour descendre un bien sous la ligne rouge. Apport perso = apport pour un cash-flow à l'équilibre au prix objectif. ${mob?'Touche une carte':'Touche une ligne'} pour ouvrir la fiche.</div>`;
-  if(mob) return crmSortbarHTML()+`<div class="cmc-list">${items}</div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML();
-  return crmSortbarHTML()+`<div class="cmp-scroll"><table class="cmp"><thead><tr><th>Bien</th><th>Prix de départ</th><th>Objectif négo</th><th>Apport perso</th><th>Loyer encadré</th><th>DPE</th><th>Étape</th><th>Dernière action</th><th>Kill</th><th></th></tr></thead>
-    <tbody>${items}</tbody></table></div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML(); }
+  if(mob) return crmSortbarHTML()+`<div class="cmc-list">${items}</div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML();
+  return crmSortbarHTML()+`<div class="cmp-scroll"><table class="cmp"><thead><tr><th>Bien</th><th>Prix de départ</th><th>Objectif négo</th><th>Apport perso</th><th>Loyer encadré</th><th>DPE</th><th>À 4 %<small>emprunt max</small></th><th>Étape</th><th>Dernière action</th><th>Kill</th><th></th></tr></thead>
+    <tbody>${items}</tbody></table></div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML(); }
 function crmPhotos(b){ return (b.photos&&b.photos.length)?b.photos:(b.img?[b.img]:[]); }
 // photos de l'annonce + photos reçues des interlocuteurs (crm.xphotos, fichiers dans assets/crm/<id>/) → tampon « envoyé suite à demande »
 function crmPhotoItems(b){ return crmPhotos(b).map(src=>({src})).concat((crmOf(b).xphotos||[]).map(p=>({...p,x:1}))); }
@@ -4587,6 +4606,7 @@ function renderCRM(){
     ${(()=>{ const e=encOf(b); if(!e||e.pending) return ''; const w=encWarn(b,e);
       return `<div class="crm-pub enc ${w?'warn':''}">⚖️ Loyer encadré : <b>≈ ${eur(e.maxM)} HC en meublé</b> · ${eur(e.maxN)} en nu <small>(${e.rM} €/m² · ${encLbl(e)})</small>${w?`<br>⚠️ Le loyer saisi (${eur(w)}) dépasse le plafond légal de ${eur(w-e.maxM)}.`:''}</div>`; })()}
     ${crmDpeHTML(b,c)}
+    ${crmT4HTML(b)}
     ${(b.ann||{}).alerte?`<div class="crm-pub alerte">⚠️ <b>Point d'attention</b> : ${esc([].concat(b.ann.alerte).join(' · '))}</div>`:''}
     ${adresse?`<div class="crm-pub">📍 <a class="maplink" href="${mapsDir(adresse)}" target="_blank" rel="noopener" title="Itinéraire depuis ${HOME_ADDR} dans Google Maps">${esc(adresse)} ↗</a></div>`:''}
     ${c.lienAgence?`<div class="crm-pub">🏢 <a class="maplink" href="${esc(c.lienAgence)}" target="_blank" rel="noopener">Annonce sur le site de l'agence${(()=>{ try{ return ' ('+new URL(c.lienAgence).hostname.replace(/^www\./,'')+')'; }catch(e){ return ''; } })()} ↗</a></div>`:''}
