@@ -4155,8 +4155,9 @@ function crmT4NoteHTML(){ return `<div class="encnote"><h3>🏦 Taux à 4 % : ce
   <a href="${T4_DOC}" target="_blank" rel="noopener">📄 Note de synthèse taux 4 % ↗</a></div></div>`; }
 // ===== simulateur cash-flow interactif (artifact Claude, 06/10) =====
 const SIM_DOC='https://claude.ai/artifact/1JWAeijZVoUEFboxUoK5Fi';
-function crmSimNoteHTML(){ return `<div class="encnote"><h3>🎛️ Simulateur de cash-flow : Montesquieu</h3>
-  <ul><li><b>Hypothèses de départ</b> : 325 000 € garage compris, 15 000 € de travaux, prêt à 4 % sur 15 ans renégocié à 3 % en année 5, loyer encadré nu, plafond d'effort de 800 €/mois.</li>
+function crmSimNoteHTML(){ return `<div class="encnote"><h3>🎛️ Simulateur de cash-flow : Montesquieu et 40 av. Jean-Jaurès</h3>
+  <ul><li><b>Deux onglets</b> : Montesquieu (325 000 € garage compris) et le T3 bis du 40 av. Jean-Jaurès (360 000 €, honoraires 4,24 % acquéreur, notaire sur le net vendeur).</li>
+  <li><b>Hypothèses Montesquieu</b> : 325 000 € garage compris, 15 000 € de travaux, prêt à 4 % sur 15 ans renégocié à 3 % en année 5, loyer encadré nu, plafond d'effort de 800 €/mois.</li>
   <li><b>Ce qu'il montre</b> : la courbe d'équilibre (loyer disponible face à la mensualité), ton effort mensuel année par année, l'apport minimum pour rester sous le plafond, le compte courant d'associé à 4 %.</li>
   <li><b>Résultat de départ</b> : apport ≈ 106 k€ pour un effort de 794 €/mois en année 1, 557 € après la renégociation, équilibre en année 16.</li></ul>
   <div class="encnote-f">Tous les paramètres se règlent au curseur (prix, apport, taux, durée, loyer nu ou meublé, gestion déléguée…).
