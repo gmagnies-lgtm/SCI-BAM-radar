@@ -4144,6 +4144,14 @@ function crmT4NoteHTML(){ return `<div class="encnote"><h3>🏦 Taux à 4 % : ce
   <li><b>Message aux vendeurs</b> : le prix n'est pas une opinion, c'est ce que le loyer légal finance ; chaque +0,25 pt retire 3 000 à 4 500 € de capacité.</li></ul>
   <div class="encnote-f">Colonne « À 4 % » : emprunt max · apport nécessaire au prix affiché · part de la mensualité couverte par le loyer si tout est emprunté.
   <a href="${T4_DOC}" target="_blank" rel="noopener">📄 Note de synthèse taux 4 % ↗</a></div></div>`; }
+// ===== simulateur cash-flow interactif (artifact Claude, 06/10) =====
+const SIM_DOC='https://claude.ai/artifact/1JWAeijZVoUEFboxUoK5Fi';
+function crmSimNoteHTML(){ return `<div class="encnote"><h3>🎛️ Simulateur de cash-flow : Montesquieu</h3>
+  <ul><li><b>Hypothèses de départ</b> : 325 000 € garage compris, 15 000 € de travaux, prêt à 4 % sur 15 ans renégocié à 3 % en année 5, loyer encadré nu, plafond d'effort de 800 €/mois.</li>
+  <li><b>Ce qu'il montre</b> : la courbe d'équilibre (loyer disponible face à la mensualité), ton effort mensuel année par année, l'apport minimum pour rester sous le plafond, le compte courant d'associé à 4 %.</li>
+  <li><b>Résultat de départ</b> : apport ≈ 106 k€ pour un effort de 794 €/mois en année 1, 557 € après la renégociation, équilibre en année 16.</li></ul>
+  <div class="encnote-f">Tous les paramètres se règlent au curseur (prix, apport, taux, durée, loyer nu ou meublé, gestion déléguée…).
+  <a href="${SIM_DOC}" target="_blank" rel="noopener">🎛️ Ouvrir le simulateur ↗</a></div></div>`; }
 // ===== liens d'annonce : une rangée de boutons, un par annonce du même bien (04/10) =====
 function annLinks(b,c){ const L=[], seen=new Set(), add=(url,lbl,ag)=>{ if(!url) return; const k=String(url).replace(/[?#].*$/,'').replace(/\/$/,'');
     if(seen.has(k)) return; seen.add(k); L.push({url,lbl,ag}); };
@@ -4244,9 +4252,9 @@ function crmTableHTML(){ const P=params();
     return (d.kill&&i===nLive?sep:'')+html; }).join('');
   const lbl=(CRM_SORTS.find(([k])=>k===crmSortK)||CRM_SORTS[0])[1].replace(/^\S+\s/,'').toLowerCase();
   const hint=`<div class="cmp-hint">Classé par ${lbl}${crmSortK==='ord'?' (▲▼ pour déplacer)':''}. ✏️ pour renommer, ☠️ Kill pour descendre un bien sous la ligne rouge. Apport perso = apport pour un cash-flow à l'équilibre au prix objectif. ${mob?'Touche une carte':'Touche une ligne'} pour ouvrir la fiche.</div>`;
-  if(mob) return crmSortbarHTML()+`<div class="cmc-list">${items}</div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML();
+  if(mob) return crmSortbarHTML()+`<div class="cmc-list">${items}</div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML()+crmSimNoteHTML();
   return crmSortbarHTML()+`<div class="cmp-scroll"><table class="cmp"><thead><tr><th>Bien</th><th>Prix de départ</th><th>Objectif négo</th><th>Apport perso</th><th>Loyer encadré</th><th>DPE</th><th>À 4 %<small>emprunt max</small></th><th>Étape</th><th>Dernière action</th><th>Kill</th><th></th></tr></thead>
-    <tbody>${items}</tbody></table></div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML(); }
+    <tbody>${items}</tbody></table></div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML()+crmSimNoteHTML(); }
 function crmPhotos(b){ return (b.photos&&b.photos.length)?b.photos:(b.img?[b.img]:[]); }
 // photos de l'annonce + photos reçues des interlocuteurs (crm.xphotos, fichiers dans assets/crm/<id>/) → tampon « envoyé suite à demande »
 function crmPhotoItems(b){ return crmPhotos(b).map(src=>({src})).concat((crmOf(b).xphotos||[]).map(p=>({...p,x:1}))); }
