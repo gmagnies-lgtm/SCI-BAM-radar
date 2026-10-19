@@ -3185,7 +3185,7 @@ function render(){
   const nTri=buildDeck().length, nMod=modifiedList().length, pill=$('newpill');
   if(nTri){ pill.classList.remove('calm'); pill.innerHTML=`🔥 ${nTri}<span class="hlbl"> à trier</span>`; }
   else { pill.classList.add('calm'); pill.textContent='à jour'; }
-  const nCrm=crmBiens().length; $('crmpill').innerHTML=`🤝<span class="hlbl"> CRM</span>${nCrm?' '+nCrm:''}`;
+  const nCrm=crmBiens().filter(r=>!r.c.kill).length; $('crmpill').innerHTML=`🤝<span class="hlbl"> CRM</span>${nCrm?' '+nCrm:''}`;
   const mp=$('modpill'); if(nMod){ mp.hidden=false; mp.innerHTML=`✏️ ${nMod}<span class="hlbl"> prix modifié${nMod>1?'s':''}</span>`; mp.classList.toggle('on',state.filt==='modif'); } else mp.hidden=true;
   renderGlance();
   const nTxt=rows.length+" bien"+(rows.length>1?'s':'');
@@ -3944,7 +3944,8 @@ function renderCRM(){
   const body=$('crmBody'), tbl=crmMode==='table'||!crmList.length;
   $('crmVT').classList.toggle('on',tbl); $('crmVF').classList.toggle('on',!tbl);
   $('crmNavs').style.visibility=tbl?'hidden':''; $('crmNavs').style.display=(tbl&&innerWidth<=520)?'none':''; body.classList.toggle('wide',tbl);
-  $('crmCount').textContent=crmList.length?(tbl?` ${crmList.length}`:` ${crmIdx+1}/${crmList.length}`):'';
+  const nAct=crmList.filter(r=>!crmOf(r.b).kill).length, curK=!tbl&&crmList[crmIdx]&&crmOf(crmList[crmIdx].b).kill;   // compteur = fiches actives (hors kill)
+  $('crmCount').textContent=crmList.length?(tbl?` ${nAct}`:(curK?' ☠️':` ${Math.min(crmIdx+1,nAct)}/${nAct}`)):'';
   if(tbl){ body.innerHTML=crmTableHTML(); return; }
   if(crmIdx>=crmList.length) crmIdx=0;
   const P=params(), b=crmList[crmIdx].b, a=analyse(b,P), c=crmOf(b);
