@@ -467,6 +467,11 @@
   .ph-xjump{position:absolute;bottom:8px;left:10px;background:rgba(56,189,248,.85);color:#0f172a;border:none;border-radius:999px;
     padding:3px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
   .crm-price{font-size:24px;font-weight:800;margin:12px 0 0}
+  .crm-mkt{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;line-height:1.45}
+  .crm-mkt small{display:block;color:var(--mut);font-size:12px}
+  .crm-mkt .tag{display:inline-block;margin-top:4px;border-radius:999px;padding:2px 9px;font-weight:800;font-size:12.5px;background:rgba(127,127,127,.12)}
+  .crm-mkt.warn{border-color:var(--bad)}.crm-mkt.warn .tag{background:rgba(239,68,68,.12);color:var(--bad)}
+  .crm-mkt.ok{border-color:var(--good,#16a34a)}.crm-mkt.ok .tag{background:rgba(22,163,74,.12);color:var(--good,#16a34a)}
   .crm-price small{font-size:13px;color:var(--warn);font-weight:700}
   .crm-meta{color:var(--mut);font-size:13px;margin:2px 0 4px}
   .crm-pub{color:var(--mut);font-size:12.5px}
@@ -605,7 +610,7 @@
   .cmp input.obj{width:108px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;
     padding:6px 8px;font-weight:800;font-size:13px;font-family:inherit}
   .cmp input.obj.auto{color:var(--mut);border-style:dashed}
-  .cmp .good{color:var(--good)}.cmp .bad{color:var(--bad)}
+  .cmp .good{color:var(--good)}.cmp .bad{color:var(--bad)}.cmc .good{color:var(--good)}.cmc .bad{color:var(--bad)}
   .stepb{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap}
   .stepb.on{border-color:var(--acc);background:rgba(245,158,11,.12)}
   .cmp .relb{color:var(--warn);font-weight:700;font-size:11.5px;display:block;margin-top:3px}
@@ -656,7 +661,7 @@
   .cmc-s .lt{color:var(--mut)}
   .cmc-s small,.cmc-s .relb{display:inline;font-size:11.5px}
   .cmc-s .relb{color:var(--warn);font-weight:700}
-  .cmc-g{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:4px 8px;border-top:1px solid var(--line);padding-top:6px;align-items:start}
+  .cmc-g{display:grid;grid-template-columns:1fr 1fr 1.15fr 1fr;gap:4px 8px;border-top:1px solid var(--line);padding-top:6px;align-items:start}
   .cmc-g small{display:block;color:var(--mut);font-size:11px}
   .cmc-g .num{font-weight:800;font-size:14px;line-height:28px}.cmc-g .num.bad{color:var(--bad)}
   .cmc-g .lt{color:var(--txt);font-size:11.5px}
@@ -3539,10 +3544,11 @@ function crmMoveHTML(d,i,nLive){ return (crmSortK==='ord'&&!d.kill)?`<span class
   <button ${i===0?'disabled':''} onclick="crmMove(${d.id},-1)" title="Monter">▲</button><button ${i>=nLive-1?'disabled':''} onclick="crmMove(${d.id},1)" title="Descendre">▼</button></span>`:''; }
 function crmKillHTML(d){ return `<label class="killchk ${d.kill?'on':''}" onclick="event.stopPropagation()" title="Kill : je ne garde pas ce bien (il descend en bas)">
   <input type="checkbox" ${d.kill?'checked':''} onchange="crmKill(${d.id},this.checked)">☠️<span> Kill</span></label>`; }
+function crmMktCell(b,a){ const e=a.ecartMarche; return `<span class="num">${kEur(a.prixMarche)}</span><small class="${e<-0.03?'bad':(e>0.03?'good':'')}">${Math.abs(e)<0.03?'≈ marché':(e<0?`prix +${pct0(-e)}`:`prix −${pct0(e)}`)}</small>`; }
 function crmTableHTML(){ const P=params();
   if(!crmList.length) return `<div class="foot" style="padding:40px 10px">Le CRM est vide.<br>Dans l'onglet ⭐ Favoris, touche « 🤝 Go to CRM » sur un bien pour l'ajouter ici.</div>`;
   const nLive=crmList.filter(r=>!crmOf(r.b).kill).length, nKill=crmList.length-nLive, mob=crmMobile();
-  const sep=`${mob?'<div class="killsep">':'<tr class="killsep"><td colspan="11">'}☠️ Kill · ${nKill} bien${nKill>1?'s':''} écarté${nKill>1?'s':''}${mob?'</div>':'</td></tr>'}`;
+  const sep=`${mob?'<div class="killsep">':'<tr class="killsep"><td colspan="12">'}☠️ Kill · ${nKill} bien${nKill>1?'s':''} écarté${nKill>1?'s':''}${mob?'</div>':'</td></tr>'}`;
   const items=crmList.map(({b},i)=>{ const d=crmRowData(b,i,P);
     const title=`<b>${esc(crmTitle(b,d.c))}</b><button class="ren" onclick="event.stopPropagation();crmRename(${d.id})" title="Renommer">✏️</button>`;
     const sub=`${d.nom?esc(b.q||'?')+' · '+b.m+' m² · ':''}${b.p}p/${b.ch}ch${b.m?' · '+Math.round(b.prix/b.m).toLocaleString('fr-FR')+' €/m²':''}${isGone(b)?' · 🔗✖ retirée':''}`;
@@ -3555,6 +3561,7 @@ function crmTableHTML(){ const P=params();
           <div class="cmc-s">${step}<small class="lt">${d.lastTxt}</small></div>
           <div class="cmc-g">
             <div><small>Départ</small><span class="num">${kEur(d.dep)}</span>${b.prix!==d.dep?`<small>act. ${kEur(b.prix)}</small>`:''}</div>
+            <div><small>Marché</small>${crmMktCell(b,d.a)}</div>
             <div><small>Objectif</small>${crmObjInput(d)}<small>${d.negoPct>0?`−${pct(d.negoPct)}`:'au prix'}${d.auto?' · auto':''}</small></div>
             <div><small>Apport</small><span class="num ${d.aObj.apportEq>P.plafond?'bad':''}">${kEur(d.aObj.apportEq)}</span></div>
           </div>
@@ -3565,6 +3572,7 @@ function crmTableHTML(){ const P=params();
       <td><div class="cmp-bien">${crmMoveHTML(d,i,nLive)}<div class="cmp-th" style="${d.ph?`background-image:url('${esc(d.ph)}')`:''}"></div>
         <div>${title}<small>${sub}</small></div></div></td>
       <td><span class="num">${eur(d.dep)}</span>${b.prix!==d.dep?`<small>actuel ${eur(b.prix)}</small>`:''}</td>
+      <td>${crmMktCell(b,d.a)}</td>
       <td>${crmObjInput(d)}<small>${nego}</small></td>
       <td><span class="num">${eur(d.aObj.apportEq)}</span><small class="${d.aObj.apportEq>P.plafond?'bad':''}">${d.aObj.apportEq>P.plafond?'> plafond ':''}à l'objectif · ${eur(d.a.apportEq)} au prix actuel</small></td>
       <td>${encCellHTML(d)}</td>
@@ -3579,7 +3587,7 @@ function crmTableHTML(){ const P=params();
   const lbl=(CRM_SORTS.find(([k])=>k===crmSortK)||CRM_SORTS[0])[1].replace(/^\S+\s/,'').toLowerCase();
   const hint=`<div class="cmp-hint">Classé par ${lbl}${crmSortK==='ord'?' (▲▼ pour déplacer)':''}. ✏️ pour renommer, ☠️ Kill pour descendre un bien sous la ligne rouge. Apport perso = apport pour un cash-flow à l'équilibre au prix objectif. ${mob?'Touche une carte':'Touche une ligne'} pour ouvrir la fiche.</div>`;
   if(mob) return crmSortbarHTML()+`<div class="cmc-list">${items}</div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML()+crmSimNoteHTML();
-  return crmSortbarHTML()+`<div class="cmp-scroll"><table class="cmp"><thead><tr><th>Bien</th><th>Prix de départ</th><th>Objectif négo</th><th>Apport perso</th><th>Loyer encadré</th><th>DPE</th><th>À 4 %<small>emprunt max</small></th><th>Étape</th><th>Dernière action</th><th>Kill</th><th></th></tr></thead>
+  return crmSortbarHTML()+`<div class="cmp-scroll"><table class="cmp"><thead><tr><th>Bien</th><th>Prix de départ</th><th>Marché<small>€/m² quartier × m²</small></th><th>Objectif négo</th><th>Apport perso</th><th>Loyer encadré</th><th>DPE</th><th>À 4 %<small>emprunt max</small></th><th>Étape</th><th>Dernière action</th><th>Kill</th><th></th></tr></thead>
     <tbody>${items}</tbody></table></div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML()+crmSimNoteHTML(); }
 function crmPhotos(b){ return (b.photos&&b.photos.length)?b.photos:(b.img?[b.img]:[]); }
 // photos de l'annonce + photos reçues des interlocuteurs (crm.xphotos, fichiers dans assets/crm/<id>/) → tampon « envoyé suite à demande »
@@ -3924,6 +3932,13 @@ function crmRdvGcal(b,c){ const d=new Date(crmRdvAt(c)), e=new Date(d.getTime()+
     +'&dates='+f(d)+'/'+f(e)+'&location='+encodeURIComponent(String(adr).replace(/\([^)]*\)/g,''))+'&details='+encodeURIComponent((c.rdvLieu?c.rdvLieu+'\n':'')+(b.url||'')); }
 function crmOpenParams(){ closeCRM(); const p=$('settingsPanel'); if(p.hasAttribute('hidden')) $('gearBtn').click();
   const d=$('paramsBox'); if(d) d.open=true; setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50); }
+// prix de marché (19/10) : €/m² du quartier (MARKET.parQuartier) × surface (+ annexes) → le bien est-il au-dessus ou en dessous du marché ?
+function crmMarcheHTML(b,a){ if(!a.prixMarche) return '';
+  const known=!!MARKET.parQuartier[quartierKey(b.q)], e=a.ecartMarche, au=e<0, d=Math.abs(b.prix-a.prixMarche);
+  const lvl=Math.abs(e)<0.03?'':(au?'warn':'ok');
+  return `<div class="crm-mkt ${lvl}">📊 Prix du marché ≈ <b>${eur(Math.round(a.prixMarche/1000)*1000)}</b>
+    <small>${Math.round(a.mPm2).toLocaleString('fr-FR')} €/m² × ${b.m} m²${a.prixMarche-a.mPm2*b.m>0?' + annexes':''} · ${known?`moyenne ${esc(b.q)}`:'moyenne Lyon 7e (quartier non reconnu)'}</small>
+    <span class="tag">${Math.abs(e)<0.03?'≈ au prix du marché':(au?`${pct0(-e)} au-dessus (+${kEur(d)})`:`${pct0(e)} en dessous (−${kEur(d)})`)}</span></div>`; }
 function renderCRM(){
   crmList=crmList.filter(r=>inCRM(r.b));
   const body=$('crmBody'), tbl=crmMode==='table'||!crmList.length;
@@ -3963,6 +3978,7 @@ function renderCRM(){
       onchange="crmField(${idj(b.id)},'nom',this.value)">${crmKillHTML({id:idj(b.id),kill:!!c.kill})}</div>
     <div class="crm-price">${eur(b.prix)}${a.sus?` <small>+ ${eur(a.sus)} en sus</small>`:''}</div>
     <div class="crm-meta">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''} · ${starHTML(a.stars)}</div>
+    ${crmMarcheHTML(b,a)}
     ${(()=>{ const e=encOf(b); if(!e||e.pending) return ''; const w=encWarn(b,e);
       return `<div class="crm-pub enc ${w?'warn':''}">⚖️ Loyer encadré : <b>≈ ${eur(e.maxM)} HC en meublé</b> · ${eur(e.maxN)} en nu <small>(${e.rM} €/m² · ${encLbl(e)})</small>${w?`<br>⚠️ Le loyer saisi (${eur(w)}) dépasse le plafond légal de ${eur(w-e.maxM)}.`:''}</div>`; })()}
     ${crmDpeHTML(b,c)}
@@ -3974,21 +3990,7 @@ function renderCRM(){
     ${ctL.length?`<div class="crm-pub">👤 ${ctL.map(x=>esc((x.nom||x.tel||x.email)+(x.role&&x.nom?` (${x.role})`:''))).join(' · ')}</div>`:''}
     ${annLinksHTML(b,c)}
 
-    <div class="crm-sec"><h3>📝 Notes négo</h3>
-      <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
-        oninput="noteLive(${idj(b.id)},this.value)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
-    </div>
-
-    <div class="crm-sec"><h3>👥 Interlocuteurs</h3>${crmContactsHTML(c)}</div>
-
-    <div class="crm-sec"><h3>💬 Échanges${nMsg?` · ${nMsg}`:''}${nMsg?`<button class="h3act" onclick="crmThreadCopy()">📋 Copier le fil</button>`:''}</h3>
-      ${relance?`<div class="crm-relance" style="margin:0 0 10px">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → <u style="cursor:pointer" onclick="crmTplOpen('relance')">préparer une relance</u></div>`:''}
-      ${crmMsgsHTML(b,c)}
-    </div>
-
-    <div class="crm-sec"><h3>✍️ Modèles de messages</h3>${crmTplHTML()}</div>
-
-    <div class="crm-sec"><h3>⚖️ Économie du projet</h3>
+    <div class="crm-sec"><h3>⚖️ Indicateurs clés du bien</h3>
       <div class="crm-grid">
         ${(()=>{ const o=crmObjectif(b,a,c), O=analyse({...b,prix:o},P,undefined,{nego:true}), neg=o<b.prix;
           const cell=(k,v,sv,ov,osv,cls,ocls)=>`<div class="crm-cell"><div class="k">${k}</div><div class="cc2">
@@ -4011,6 +4013,20 @@ function renderCRM(){
       Mon équilibre, c'est <b>${eur(a.prixEq)}</b>${a.sus?` (hors ${eur(a.sus)} en sus)`:''}. »</div>`:''}
       <button class="crm-link" onclick="document.getElementById('crmCF').scrollIntoView({behavior:'smooth',block:'start'})">📉 Hypothèses de cash-flow : prix demandé vs objectif ↓</button>
     </div>
+
+    <div class="crm-sec"><h3>📝 Notes négo</h3>
+      <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
+        oninput="noteLive(${idj(b.id)},this.value)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
+    </div>
+
+    <div class="crm-sec"><h3>👥 Interlocuteurs</h3>${crmContactsHTML(c)}</div>
+
+    <div class="crm-sec"><h3>💬 Échanges${nMsg?` · ${nMsg}`:''}${nMsg?`<button class="h3act" onclick="crmThreadCopy()">📋 Copier le fil</button>`:''}</h3>
+      ${relance?`<div class="crm-relance" style="margin:0 0 10px">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → <u style="cursor:pointer" onclick="crmTplOpen('relance')">préparer une relance</u></div>`:''}
+      ${crmMsgsHTML(b,c)}
+    </div>
+
+    <div class="crm-sec"><h3>✍️ Modèles de messages</h3>${crmTplHTML()}</div>
 
     <div class="crm-sec" id="crmCF" style="scroll-margin-top:70px"><h3>📉 Hypothèses de cash-flow</h3>${crmCFHTML(b,P,c)}</div>
 
