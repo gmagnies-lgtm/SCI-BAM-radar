@@ -467,6 +467,10 @@
   .ph-xjump{position:absolute;bottom:8px;left:10px;background:rgba(56,189,248,.85);color:#0f172a;border:none;border-radius:999px;
     padding:3px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
   .crm-price{font-size:24px;font-weight:800;margin:12px 0 0}
+  .crm-plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .crm-plan{display:block;border:1px solid var(--line);border-radius:10px;overflow:hidden;text-decoration:none;color:var(--txt);background:var(--card)}
+  .crm-plan img{display:block;width:100%;height:170px;object-fit:contain;background:#fff}
+  .crm-plan span{display:block;padding:6px 9px;font-size:13px;font-weight:700}.crm-plan small{display:block;font-weight:400;color:var(--mut);font-size:11.5px}
   .crm-mkt{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;line-height:1.45}
   .crm-mkt small{display:block;color:var(--mut);font-size:12px}
   .crm-mkt .tag{display:inline-block;margin-top:4px;border-radius:999px;padding:2px 9px;font-weight:800;font-size:12.5px;background:rgba(127,127,127,.12)}
@@ -3719,7 +3723,7 @@ function crmChecklist(b,c){ const chReel=c.charges!=null&&c.charges!=='', adress
     ['Travaux votés / prévus', c.travaux||null],
     ['Copro : nb de lots', c.lots||(an.lots?`${an.lots} (annonce)`:null)],
     ['Occupé ? loyer actuel', c.loyer?`${c.loyer} €/mois`:null],
-    ['Plan du logement', c.plan||null],
+    ['Plan du logement', c.plan||((c.plans||[]).length?'reçu':null)],
   ]; }
 function crmContactsHTML(c){ const L=crmContacts(c);
   return L.map(x=>{ const id=esc(x.id), tel=telNorm(x.tel);
@@ -3943,6 +3947,10 @@ function crmMarcheHTML(b,a){ if(!a.prixMarche) return '';
   return `<div class="crm-mkt ${lvl}">📊 Prix du marché ≈ <b>${eur(Math.round(a.prixMarche/1000)*1000)}</b>
     <small>${Math.round(a.mPm2).toLocaleString('fr-FR')} €/m² × ${b.m} m²${a.prixMarche-a.mPm2*b.m>0?' + annexes':''} · ${known?`moyenne ${esc(b.q)}`:'moyenne Lyon 7e (quartier non reconnu)'}</small>
     <span class="tag">${Math.abs(e)<0.03?'≈ au prix du marché':(au?`${pct0(-e)} au-dessus (+${kEur(d)})`:`${pct0(e)} en dessous (−${kEur(d)})`)}</span></div>`; }
+// plans transmis par les agences (20/10) : crm.plans=[{src,t,from,canal,lbl}], images dans assets/crm/<id>/ (sans données personnelles : dépôt public)
+function crmPlansHTML(c){ const L=c.plans||[]; if(!L.length) return '';
+  return `<div class="crm-sec"><h3>📐 Plan${L.length>1?'s':''} du bien · ${L.length}</h3><div class="crm-plans">${L.map(p=>`<a class="crm-plan" href="${esc(p.src)}" target="_blank" rel="noopener" title="Ouvrir le plan en grand">
+    <img src="${esc(p.src)}" alt="${esc(p.lbl||'Plan du bien')}" loading="lazy"><span>${esc(p.lbl||'Plan')}<small>${esc([p.from,p.t?dmy(p.t):''].filter(Boolean).join(' · '))}</small></span></a>`).join('')}</div></div>`; }
 function renderCRM(){
   crmList=crmList.filter(r=>inCRM(r.b));
   const body=$('crmBody'), tbl=crmMode==='table'||!crmList.length;
@@ -4019,6 +4027,7 @@ function renderCRM(){
       <button class="crm-link" onclick="document.getElementById('crmCF').scrollIntoView({behavior:'smooth',block:'start'})">📉 Hypothèses de cash-flow : prix demandé vs objectif ↓</button>
     </div>
 
+    ${crmPlansHTML(c)}
     <div class="crm-sec"><h3>📝 Notes négo</h3>
       <textarea class="note" rows="3" placeholder="Ce qui s'est dit, marges perçues, prochaine action…"
         oninput="noteLive(${idj(b.id)},this.value)" onchange="setNote(byId(${idj(b.id)}),this.value)">${getNote(b)?getNote(b).replace(/</g,'&lt;'):''}</textarea>
