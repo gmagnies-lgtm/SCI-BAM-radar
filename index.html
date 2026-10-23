@@ -555,6 +555,13 @@
   .plus-add{display:flex;gap:6px;margin-top:9px}
   .plus-add input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit}
   .plus-add button{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:0 12px;font-weight:800;cursor:pointer}
+  .q-list{display:flex;flex-direction:column;gap:6px}
+  .q-item{display:flex;align-items:flex-start;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;line-height:1.4}
+  .q-item input{margin-top:3px;flex:none;cursor:pointer}
+  .q-item span{flex:1}
+  .q-item.ok span{color:var(--mut);text-decoration:line-through}
+  .q-item button{background:none;border:none;color:var(--mut);cursor:pointer;font-size:12px;padding:0 3px;flex:none}
+  .q-item button:hover{color:var(--bad)}
   /* hypothèses de cash-flow : prix demandé vs objectif */
   table.cfh{width:100%;border-collapse:collapse;font-size:13px}
   .cfh th{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--mut);font-weight:700;text-align:right;padding:6px 6px 8px;border-bottom:1px solid var(--line)}
@@ -3855,6 +3862,15 @@ let crmCFOpen=false;
 function crmPlusAdd(){ const b=crmCurB(), el=$('plusIn'); if(!b||!el) return; const t=el.value.trim(); if(!t) return;
   crmSet(b,{plus:(crmOf(b).plus||[]).concat([t])}); renderCRM(); }
 function crmPlusDel(i){ const b=crmCurB(); if(!b) return; const L=(crmOf(b).plus||[]).slice(); L.splice(i,1); crmSet(b,{plus:L}); renderCRM(); }
+// ----- questions à poser à l'entretien / la visite (23/10) : crm.qs [{id,t,ok}] -----
+function crmQAdd(){ const b=crmCurB(), el=$('qIn'); if(!b||!el) return; const t=el.value.trim(); if(!t) return;
+  crmSet(b,{qs:(crmOf(b).qs||[]).concat([{id:crmUid(),t,ok:false}])}); renderCRM(); }
+function crmQToggle(id){ const b=crmCurB(); if(!b) return; crmSet(b,{qs:(crmOf(b).qs||[]).map(q=>q.id===id?{...q,ok:!q.ok}:q)}); renderCRM(); }
+function crmQDel(id){ const b=crmCurB(); if(!b) return; crmSet(b,{qs:(crmOf(b).qs||[]).filter(q=>q.id!==id)}); renderCRM(); }
+function crmQsHTML(c){ const L=c.qs||[];
+  return `${L.length?`<div class="q-list">${L.map(q=>`<label class="q-item ${q.ok?'ok':''}"><input type="checkbox" ${q.ok?'checked':''} onchange="crmQToggle('${q.id}')"><span>${esc(q.t)}</span><button title="Retirer" onclick="event.preventDefault();crmQDel('${q.id}')">✕</button></label>`).join('')}</div>`
+    :`<div class="msg-empty" style="padding:0 0 4px;text-align:left">Aucune question préparée pour l'entretien.</div>`}
+    <div class="plus-add"><input id="qIn" type="text" placeholder="Ajouter une question…" onkeydown="if(event.key==='Enter')crmQAdd()"><button onclick="crmQAdd()">＋</button></div>`; }
 function crmPlusHTML(c){ const L=c.plus||[];
   return `${L.length?`<div class="plus-list">${L.map((t,i)=>`<span class="plus-chip">✨ ${esc(t)}<button title="Retirer" onclick="crmPlusDel(${i})">✕</button></span>`).join('')}</div>`
     :`<div class="msg-empty" style="padding:0 0 4px;text-align:left">Rien de noté. Relève dans l'annonce ce qui sort de l'ordinaire (local vélo, vue, rangements…).</div>`}
@@ -4082,6 +4098,8 @@ function renderCRM(){
         ${chk.map(([l,v])=>`<div class="crm-chk ${v?'ok':''}">${v?'☑':'☐'} <span><b>${l}</b>${v?`<br>${esc(v)}`:' ?'}</span></div>`).join('')}
       </div>
     </div>
+
+    <div class="crm-sec"><h3>🎤 Questions pour l'entretien${(c.qs||[]).length?` · ${(c.qs||[]).filter(q=>!q.ok).length} à poser`:''}</h3>${crmQsHTML(c)}</div>
 
     <div class="crm-sec"><h3>✨ Les petits plus${(c.plus||[]).length?` · ${c.plus.length}`:''}</h3>${crmPlusHTML(c)}</div>
 
