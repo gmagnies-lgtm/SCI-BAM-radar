@@ -743,6 +743,16 @@
   .msg-txt{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.45}
   .msg-txt.clamp{display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
   .msg-more{color:var(--acc2);font-size:11.5px;cursor:pointer;margin-top:3px}
+  .msgs-c{gap:4px}
+  .msg-day{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 2px}
+  .msg-line{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:9px;border:1px solid var(--line);background:var(--bg);cursor:pointer;font-size:12.5px;min-width:0}
+  .msg-line:hover{border-color:var(--acc2)}
+  .msg-line.out{border-color:rgba(245,158,11,.35)}
+  .msg-line.in{border-color:rgba(56,189,248,.35)}
+  .msg-line .ml-who{font-weight:700;white-space:nowrap;max-width:9em;overflow:hidden;text-overflow:ellipsis}
+  .msg-line .ml-meta{color:var(--mut);font-size:11px;white-space:nowrap}
+  .msg-line .ml-txt{flex:1;min-width:0;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .msg-older{align-self:center;background:none;border:1px dashed var(--line);color:var(--mut);border-radius:9px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:4px}
   .msg-empty{color:var(--mut);font-size:13px;text-align:center;padding:6px 0 12px}
   .msg-new{border-top:1px solid var(--line);padding-top:10px}
   .msg-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
@@ -3437,7 +3447,7 @@ function openCRM(id){ crmMigrate(); crmList=crmBiens();
 function closeCRM(){ $('crm').classList.remove('show'); $('crm').setAttribute('aria-hidden','true'); render(); }
 function crmView(m){ crmMode=m; crmList=crmBiens(); if(crmIdx>=crmList.length) crmIdx=0; crmPhoto=0; renderCRM(); $('crm').scrollTop=0; }
 let crmMobPrev=null; addEventListener('resize',()=>{ const m=innerWidth<=640; if(m!==crmMobPrev){ crmMobPrev=m; if($('crm').classList.contains('show')&&crmMode==='table') renderCRM(); } });
-function crmOpenFiche(i){ crmIdx=i; crmMode='fiche'; crmPhoto=0; renderCRM(); $('crm').scrollTop=0; }
+function crmOpenFiche(i){ crmIdx=i; crmMode='fiche'; crmPhoto=0; crmMsgAll=false; crmMsgOpen.clear(); renderCRM(); $('crm').scrollTop=0; }
 function crmRemove(id){ const b=byId(id); if(!b) return;
   if(!confirm('Retirer ce bien du CRM ? (contacts, échanges et données saisies sont conservés si tu le remets)')) return;
   crmSet(b,{incrm:null}); crmList=crmBiens(); if(crmIdx>=crmList.length) crmIdx=0; renderCRM(); crmToast('Retiré du CRM'); }
@@ -3772,16 +3782,34 @@ function crmContactsHTML(c){ const L=crmContacts(c);
           <span class="ct-act" onclick="crmCopy('${esc(x.email).replace(/'/g,'')}','Email copié ✓')">📋 ${esc(x.email)}</span>`:''}
       </div>`:''}
     </div>`; }).join('')+`<button class="crm-add" onclick="crmContactAdd()">＋ Ajouter un interlocuteur</button>`; }
-function crmMsgsHTML(b,c){ const M=crmMsgs(c), d=crmDraftFor(b), L=crmContacts(c);
-  const list=M.length?`<div class="msgs">${M.map(m=>{ const who=crmWhoName(c,m.who), long=m.txt.length>420||m.txt.split('\n').length>8;
-    return `<div class="msg ${m.dir}">
+let crmMsgCompact=localStorage.getItem('crmMsgCompact')!=='0', crmMsgAll=false, crmMsgOpen=new Set();
+const CRM_MSG_KEEP=3;
+function crmMsgToggleMode(){ crmMsgCompact=!crmMsgCompact; localStorage.setItem('crmMsgCompact',crmMsgCompact?'1':'0'); crmMsgOpen.clear(); crmMsgAll=false; renderCRM(); }
+function crmMsgOpenOne(mid){ if(crmMsgOpen.has(mid)) crmMsgOpen.delete(mid); else crmMsgOpen.add(mid); renderCRM(); }
+function crmMsgMore(){ crmMsgAll=true; renderCRM(); }
+function crmMsgFull(m,c){ const who=crmWhoName(c,m.who), long=m.txt.length>420||m.txt.split('\n').length>8;
+  return `<div class="msg ${m.dir}">
       <div class="msg-meta"><span>${m.dir==='out'?'➡️ Moi'+(who?' → '+esc(who):''):'⬅️ '+(esc(who)||'Reçu')} · ${canalLbl(m.canal)} · ${dmyhm(m.t)}</span>
         <button title="Copier" onclick="crmMsgCopy('${esc(m.id)}')">📋</button><button title="Supprimer" onclick="crmMsgDel('${esc(m.id)}')">🗑</button></div>
       ${m.obj?`<div class="msg-obj">${esc(m.obj)}</div>`:''}
       <div class="msg-txt ${long?'clamp':''}" onclick="this.classList.remove('clamp');this.nextElementSibling&&this.nextElementSibling.remove()">${esc(m.txt)}</div>
       ${long?`<div class="msg-more" onclick="this.previousElementSibling.classList.remove('clamp');this.remove()">Voir tout ▾</div>`:''}
-    </div>`; }).join('')}</div>`
-    :`<div class="msg-empty">Aucun échange consigné. Colle ci-dessous les mails / messages envoyés et reçus.</div>`;
+      ${crmMsgCompact?`<div class="msg-more" onclick="crmMsgOpenOne('${esc(m.id)}')">▴ Réduire</div>`:''}
+    </div>`; }
+function crmMsgLine(m,c){ const who=crmWhoName(c,m.who)||(m.dir==='out'?'Moi':'Reçu');
+  const txt=(m.obj?m.obj+' — ':'')+(m.txt||'').replace(/\s+/g,' ').slice(0,160);
+  return `<div class="msg-line ${m.dir}" title="Ouvrir ce message" onclick="crmMsgOpenOne('${esc(m.id)}')">
+    <span>${m.dir==='out'?'➡️':'⬅️'}</span><span class="ml-who">${esc(who)}</span>
+    <span class="ml-meta">${canalLbl(m.canal)} · ${dmyhm(m.t)}</span><span class="ml-txt">${esc(txt)}</span></div>`; }
+function crmMsgsHTML(b,c){ const M=crmMsgs(c), d=crmDraftFor(b), L=crmContacts(c);
+  let list;
+  if(!M.length) list=`<div class="msg-empty">Aucun échange consigné. Colle ci-dessous les mails / messages envoyés et reçus.</div>`;
+  else if(!crmMsgCompact) list=`<div class="msgs">${M.map(m=>crmMsgFull(m,c)).join('')}</div>`;
+  else { const hidden=crmMsgAll?0:Math.max(0,M.length-CRM_MSG_KEEP), shown=M.slice(hidden);
+    let html='', lastDay='';
+    shown.forEach(m=>{ const day=new Date(m.t).toDateString(); if(day!==lastDay){ lastDay=day; html+=`<div class="msg-day">${dmy(m.t)}</div>`; }
+      html+=crmMsgOpen.has(m.id)?crmMsgFull(m,c):crmMsgLine(m,c); });
+    list=`<div class="msgs msgs-c">${hidden?`<button class="msg-older" onclick="crmMsgMore()">＋ ${hidden} message${hidden>1?'s':''} plus ancien${hidden>1?'s':''}</button>`:''}${html}</div>`; }
   return list+`<div class="msg-new">
     <div class="msg-row">
       <div class="seg"><button class="${d.dir==='out'?'on':''}" onclick="crmDraftSet('dir','out',1)">➡️ Envoyé</button><button class="${d.dir==='in'?'on':''}" onclick="crmDraftSet('dir','in',1)">⬅️ Reçu</button></div>
@@ -4069,7 +4097,7 @@ function renderCRM(){
 
     <div class="crm-sec"><h3>👥 Interlocuteurs</h3>${crmContactsHTML(c)}</div>
 
-    <div class="crm-sec"><h3>💬 Échanges${nMsg?` · ${nMsg}`:''}${nMsg?`<button class="h3act" onclick="crmThreadCopy()">📋 Copier le fil</button>`:''}</h3>
+    <div class="crm-sec"><h3>💬 Échanges${nMsg?` · ${nMsg}`:''}${nMsg?`<button class="h3act" onclick="crmThreadCopy()">📋 Copier le fil</button><button class="h3act" onclick="crmMsgToggleMode()">${crmMsgCompact?'▾ Tout déplier':'▴ Réduire le fil'}</button>`:''}</h3>
       ${relance?`<div class="crm-relance" style="margin:0 0 10px">⚠️ Sans réponse depuis ${Math.round((Date.now()-relanceT)/864e5)} j → <u style="cursor:pointer" onclick="crmTplOpen('relance')">préparer une relance</u></div>`:''}
       ${crmMsgsHTML(b,c)}
     </div>
