@@ -655,6 +655,12 @@
   .cmc-enc{margin-top:6px;font-size:12px;color:var(--mut)}.cmc-enc b{color:var(--txt)}.cmc-enc .bad,.cmp small.bad{color:var(--bad)}
   .crm-pub.enc{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.35);border-radius:10px;padding:7px 10px;margin-top:8px}
   .crm-pub.enc small{color:var(--mut)}.crm-pub.enc.warn{border-color:var(--bad);background:rgba(239,68,68,.08)}
+  .loy-opts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}
+  .loy-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--txt);font-family:inherit;cursor:pointer;min-width:120px}
+  .loy-opt small{color:var(--mut);font-size:11px}.loy-opt b{font-size:15px}
+  .loy-opt.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc);background:rgba(245,158,11,.1)}
+  .loy-opt:disabled{opacity:.45;cursor:default}
+  .loy-opt input{width:80px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-weight:700;font-size:14px}
   /* simulateur de cash-flow (24/10) */
   .sim-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:thin}
   .sim-tabs button{flex:none;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap}
@@ -2734,9 +2740,12 @@ function analyse(b, P, loyerM2Override, opt){   // opt.nego : prix obtenu en né
   // loyer par défaut (01/10) : plafond de l'encadrement (nu par défaut, ou meublé) à l'adresse ; sinon €/m² des paramètres
   const enc = (lm2ov==null && P.loyerMode!=='libre' && typeof encOf==='function') ? encOf(b) : null;
   const encR = enc && !enc.pending ? (P.loyerMode==='meuble' ? enc.rM : enc.rN) : null;
-  const loyerSrc = +crm.loyer > 0 ? 'crm' : lm2ov!=null ? 'curseur' : encR ? (P.loyerMode==='meuble'?'plafond meublé':'plafond nu') : 'défaut';
+  // option de loyer choisie dans la fiche (24/10) : nu / meublé plafonné → plafond recalculé à l'adresse (zone, pièces, époque) ; libre → montant saisi
+  const encF = (crm.loyerMode==='nu'||crm.loyerMode==='meuble') && typeof encOf==='function' ? encOf(b) : null;
+  const loyerCap = encF && !encF.pending ? (crm.loyerMode==='meuble' ? encF.maxM : encF.maxN) : 0;
+  const loyerSrc = loyerCap ? (crm.loyerMode==='meuble'?'meublé plafonné':'nu plafonné') : +crm.loyer > 0 ? 'crm' : lm2ov!=null ? 'curseur' : encR ? (P.loyerMode==='meuble'?'plafond meublé':'plafond nu') : 'défaut';
   const loyerM2eff = (lm2ov!=null) ? lm2ov : (encR || P.loyer);    // curseur > plafond encadré > défaut global
-  const loyerMois = +crm.loyer > 0 ? +crm.loyer : loyerM2eff * b.m; // loyer réel si saisi, sinon €/m² × surface
+  const loyerMois = loyerCap || (+crm.loyer > 0 ? +crm.loyer : loyerM2eff * b.m); // loyer réel si saisi, sinon €/m² × surface
   const loyerNet = loyerMois * (1-P.vac);
   const ann = b.ann || {};                           // infos relevées dans l'annonce (veille) : charges, TF, lots, DPE, options
   // charges copro : le montant connu (saisie CRM > annonce) est TOTAL ; la part récupérable est refacturée au locataire
@@ -3581,7 +3590,7 @@ function simCaps(b){ const e=encOf(b); return e&&!e.pending?{nu:e.maxN,meuble:e.
 function simDefaults(b){ const P=params(), a=analyse(b,P), c=crmOf(b), C=simCaps(b), lc=+c.loyer>0?+c.loyer:0;
   const mode=c.loyerMode||(lc?(C&&lc===C.nu?'nu':C&&lc===C.meuble?'meuble':'libre'):(C?(P.loyerMode==='meuble'?'meuble':'nu'):'libre'));
   const p={...SIM_COMMON,prix:+c.objectif>0?+c.objectif:b.prix,hon:+(+a.honPct).toFixed(2),notaire:+(P.notaire*100).toFixed(2),travaux:Math.round(a.sus+a.travDpe),apport:0,
-    loyerMode:mode,loyer:lc||(C&&mode!=='libre'?C[mode]:Math.round(a.loyerMois)),vac:+(P.vac*100).toFixed(1),charges:Math.round(a.chTot!=null?a.chTot:a.chMois),
+    loyerMode:mode,loyer:C&&mode!=='libre'?C[mode]:(lc||Math.round(a.loyerMois)),vac:+(P.vac*100).toFixed(1),charges:Math.round(a.chTot!=null?a.chTot:a.chMois),
     recup:a.chTot>0?Math.round(100*(1-a.chNR/a.chTot)):0,tf:Math.round(a.tfMois*12)};
   const am=simApportMin(p); p.apport=am??Math.ceil((p.prix/(1+p.hon/100)*p.notaire/100+p.travaux)/1000)*1000; return p; }
 function simLoad(b){ const k=keyOf(b), s=SIMS[k]||crmOf(b).sim; if(!s) return simDefaults(b); const p={...simDefaults(b),...s}; delete p.t; return p; }
@@ -4046,6 +4055,23 @@ function crmTplHTML(){ return `<div class="tpl-btns">${CRM_TPLS.map(([k,l])=>`<b
       <span class="ct-act" onclick="crmTplMail()">✉️ Ouvrir dans Mail</span>
       <span class="ct-act" onclick="crmTplLog()">✅ Consigner comme envoyé</span>
     </div></div>`:''}`; }
+// ----- loyer HC du bien (24/10) : trois options — nu plafonné, meublé plafonné (encadrement à l'adresse : zone, pièces, époque), libre -----
+// sans choix : plafond nu (ou meublé selon les paramètres) appliqué automatiquement ; tout reste modifiable
+function crmLoyerMode(c){ return c.loyerMode||(+c.loyer>0?'libre':(params().loyerMode==='meuble'?'meuble':'nu')); }
+function crmLoyerSel(id,m){ const b=byId(id); if(!b) return; const c=crmOf(b);
+  if(m==='libre'){ crmSet(b,{loyerMode:'libre',loyer:String(+c.loyer>0?+c.loyer:Math.round(analyse(b,params()).loyerMois))}); }
+  else { const e=encOf(b); crmSet(b,{loyerMode:m,loyer:e&&!e.pending?String(m==='meuble'?e.maxM:e.maxN):c.loyer}); }
+  renderCRM(); }
+function crmLoyerLibre(id,v){ const b=byId(id); if(!b) return; v=String(v||'').replace(/[^\d]/g,''); crmSet(b,{loyerMode:v?'libre':null,loyer:v}); renderCRM(); }
+function crmLoyerHTML(b,a,c){ const e=encOf(b), ok=e&&!e.pending, m=crmLoyerMode(c), auto=!c.loyerMode&&!(+c.loyer>0), id=idj(b.id);
+  const lib=m==='libre'?Math.round(a.loyerMois):0, over=ok&&lib>e.maxM?lib-e.maxM:0;
+  const opt=(k,l,v)=>`<button class="loy-opt ${m===k?'on':''}" ${ok?'':'disabled'} onclick="crmLoyerSel(${id},'${k}')"><small>${l}</small><b>${ok?eur(v):'—'}</b></button>`;
+  return `<div class="crm-pub enc ${over?'warn':''}">⚖️ <b>Loyer hors charges</b>${auto?' <small>(auto : plafond '+(m==='meuble'?'meublé':'nu')+')</small>':''} · retenu <b>${eur(a.loyerMois)}</b>/mois
+    <div class="loy-opts">${opt('nu','Nu plafonné',ok&&e.maxN)}${opt('meuble','Meublé plafonné',ok&&e.maxM)}
+      <label class="loy-opt ${m==='libre'?'on':''}" onclick="if(event.target.tagName!=='INPUT'&&!this.classList.contains('on'))crmLoyerSel(${id},'libre')"><small>Libre</small>
+        <span><input type="number" inputmode="numeric" placeholder="${Math.round(a.loyerMois)}" value="${m==='libre'?esc(c.loyer):''}" onchange="crmLoyerLibre(${id},this.value)"> €</span></label></div>
+    <small>${ok?`${simPc(e.rN)} € (nu) / ${simPc(e.rM)} € (meublé) par m² × ${String(b.m).replace('.',',')} m² · ${encLbl(e)}`:e&&e.pending?'calcul du plafond…':"plafond inconnu : complète l'adresse du bien"}</small>
+    · <a href="javascript:void 0" onclick="simOpen(${id})">🎛️ Simuler ↗</a>${over?`<br>⚠️ Le loyer libre (${eur(lib)}) dépasse le plafond légal meublé de ${eur(over)}.`:''}</div>`; }
 // ----- hypothèses de cash-flow : prix demandé vs objectif de négo, ligne à ligne + leviers d'arbitrage -----
 function crmCFHTML(b,P,c){
   const obj=crmObjectif(b,analyse(b,P),c), A=analyse(b,P), O=analyse({...b,prix:obj},P);
@@ -4268,9 +4294,7 @@ function renderCRM(){
     <div class="crm-price">${eur(b.prix)}${a.sus?` <small>+ ${eur(a.sus)} en sus</small>`:''}</div>
     <div class="crm-meta">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''} · ${starHTML(a.stars)}</div>
     ${crmMarcheHTML(b,a)}
-    ${(()=>{ const e=encOf(b); if(!e||e.pending) return ''; const w=encWarn(b,e);
-      return `<div class="crm-pub enc ${w?'warn':''}">⚖️ Loyer encadré : <b>≈ ${eur(e.maxM)} HC en meublé</b> · <b>${eur(e.maxN)} en nu</b> <small>(${e.rM} / ${e.rN} €/m² · ${encLbl(e)})</small>
-        <br>Loyer retenu : <b>${eur(a.loyerMois)}</b> ${+c.loyer>0?(c.loyerMode?`(${SIM_MODE[c.loyerMode]})`:'(saisi)'):`(${a.loyerSrc}, hypothèse)`} · <a href="javascript:void 0" onclick="simOpen(${idj(b.id)})">🎛️ Simuler ↗</a>${w?`<br>⚠️ Le loyer saisi (${eur(w)}) dépasse le plafond légal de ${eur(w-e.maxM)}.`:''}</div>`; })()}
+    ${crmLoyerHTML(b,a,c)}
     ${crmDpeHTML(b,c)}
     ${crmT4HTML(b)}
     ${(b.ann||{}).alerte?`<div class="crm-pub alerte">⚠️ <b>Point d'attention</b> : ${esc([].concat(b.ann.alerte).join(' · '))}</div>`:''}
@@ -4333,7 +4357,7 @@ function renderCRM(){
       <div class="crm-fld" style="align-items:flex-start"><label>Options en sus du prix<br><small>cochées = comptées dans le coût</small></label><div style="flex:1">${crmOptsHTML(b,c,true)}</div></div>
       <div class="crm-fld"><label>Honoraires d'agence à la charge de l'acquéreur (%)</label><input type="text" inputmode="decimal" placeholder="${(b.ann||{}).hon?String(b.ann.hon).replace('.',',')+' % (annonce)':'0 si à la charge du vendeur'}" value="${esc(c.hon)}" onchange="crmField(${idj(b.id)},'hon',this.value)"><small style="color:var(--mut)">${a.honPct?`Net vendeur ${eur(Math.round(a.netVendeur))} : frais de notaire calculés dessus (${eur(Math.round(a.fraisNot))}).`:'Frais de notaire sur le prix affiché.'}</small></div>
       <div class="crm-fld"><label>Lien de l'annonce sur le site de l'agence</label><input type="url" placeholder="https://… (affiché sous l'adresse)" value="${esc(c.lienAgence)}" onchange="crmField(${idj(b.id)},'lienAgence',this.value)"></div>
-      <div class="crm-fld"><label>Loyer retenu, ou actuel si occupé (€/mois HC)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(a.loyerMois)} € (${a.loyerSrc})" value="${esc(c.loyer)}" onchange="crmSet(byId(${idj(b.id)}),{loyerMode:null});crmField(${idj(b.id)},'loyer',this.value)"></div>
+      <div class="crm-fld"><label>Loyer retenu, ou actuel si occupé (€/mois HC)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(a.loyerMois)} € (${a.loyerSrc})" value="${esc(c.loyer)}" onchange="crmLoyerLibre(${idj(b.id)},this.value)"></div>
       <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${idj(b.id)},'adresse',this.value)"></div>
       <div class="crm-fld"><label>DPE</label><input type="text" placeholder="${(b.ann||{}).dpe?`annonce : ${esc(b.ann.dpe)}`:'A → G'}" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
       <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${idj(b.id)},'travaux',this.value)"></div>
