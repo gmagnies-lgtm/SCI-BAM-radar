@@ -3600,7 +3600,7 @@ function simSave(){ if(!simB) return; SIMS[keyOf(simB)]=simP; try{ localStorage.
 function simRun(p){
   const net=p.prix/(1+(p.hon||0)/100), frais=net*p.notaire/100, cout=p.prix+frais+p.travaux, emprunt=Math.max(0,cout-p.apport);
   const N=p.duree*12, R=p.reneg>0&&p.reneg*12<N?p.reneg*12:0, mens0=(E,t,n)=>E>0&&n>0?(t>0?mensualite(E,t/1200,n):E/n):0;
-  let bal=emprunt, mens=mens0(emprunt,p.taux1,N), mens1=mens, mens2=null, end=N, interets=0, cca=p.apport, cum=0, row=null; const Y=[];
+  let bal=emprunt, mens=mens0(emprunt,p.taux1,N), mens1=mens, mens2=null, end=N, interets=0, cca=p.apport, cum=0, treso=0, row=null; const Y=[];
   for(let m=1;m<=300;m++){ const y=Math.ceil(m/12);
     if(R&&m===R+1){ if(p.renegMode==='fin'){ mens=mens0(bal,p.taux2,N-R); end=N; }
       else { const i=p.taux2/1200; end=R+(i>0?Math.ceil(-Math.log(1-bal*i/mens)/Math.log(1+i)):Math.ceil(bal/mens)); } mens2=mens; }
@@ -3609,11 +3609,11 @@ function simRun(p){
     const gL=Math.pow(1+p.gLoyer/100,y-1), gC=Math.pow(1+p.gCh/100,y-1), loyerNet=p.loyer*gL*(1-p.vac/100);
     const ch=p.charges*gC, chRecup=ch*(p.recup/100)*(1-p.vac/100), tfM=p.tf/12*gC, fraisM=p.frais/12*gC, gest=p.gestion?loyerNet*0.06:0;
     const dispo=loyerNet-(ch-chRecup)-tfM-fraisM-gest, cf=dispo-pay, effort=Math.max(0,-cf);
-    cca=cca*(1+p.cca/1200)+effort; cum+=effort; if(cf>0) cca-=Math.min(cf,cca);
+    cca=cca*(1+p.cca/1200)+effort; cum+=effort; if(cf>0) treso+=cf;   // 24/10 : le cash dégagé reste en trésorerie SCI (le compte courant n'est plus remboursé d'office)
     if(!row||row.y!==y){ row={y,dispo:0,pay:0,cf:0,effort:0,loyer:0,charges:0}; Y.push(row); }
     row.dispo+=dispo; row.pay+=pay; row.cf+=cf; row.effort+=effort; row.loyer+=loyerNet; row.charges+=ch-chRecup+tfM+fraisM+gest;
-    row.bal=bal; row.cca=cca; row.cum=cum; row.val=p.prix*Math.pow(1+p.gVal/100,y); }
-  Y.forEach(r=>{ ['dispo','pay','cf','effort'].forEach(x=>r[x+'M']=r[x]/12); r.net=r.val-r.bal; });
+    row.bal=bal; row.cca=cca; row.cum=cum; row.treso=treso; row.val=p.prix*Math.pow(1+p.gVal/100,y); }
+  Y.forEach(r=>{ ['dispo','pay','cf','effort'].forEach(x=>r[x+'M']=r[x]/12); r.net=r.val+r.treso-r.bal; });
   let int0=0; { let b=emprunt; const i=p.taux1/1200; for(let m=1;m<=N&&b>0.5;m++){ const it=b*i; b=b+it-Math.min(mens1,b+it); int0+=it; } }
   return {net,frais,cout,emprunt,mens1,mens2,end,interets,int0,Y}; }
 function simEffMax(p){ return Math.max(...simRun(p).Y.map(r=>r.effortM)); }
@@ -3651,7 +3651,7 @@ function simHTML(){ const L=simBiens();
       <div class="sim-chart" id="simC1"><div class="sim-tip"></div></div></div>
     <div class="sim-card"><h4>Ton effort mensuel moyen par année</h4><div class="sim-leg"><span><i class="box" style="background:var(--bad)"></i>Au-dessus du plafond</span><span><i class="box" style="background:var(--acc)"></i>Sous le plafond</span><span><i class="box" style="background:var(--good)"></i>La SCI dégage du cash</span></div>
       <div class="sim-chart" id="simC2"><div class="sim-tip"></div></div>
-      <div class="sim-note">Hors fiscalité de la SCI (IS ou IR), hors assurance emprunteur. Les apports mensuels sont comptés en compte courant d'associé : la SCI te les rembourse quand elle dégage du cash.</div></div>
+      <div class="sim-note">Hors fiscalité de la SCI (IS ou IR), hors assurance emprunteur. Les apports mensuels sont comptés en compte courant d'associé : quand la SCI dégage du cash, il s'accumule en trésorerie (colonne « Trésorerie SCI ») et peut servir à te rembourser.</div></div>
     <div class="sim-card"><details><summary>Tableau année par année</summary><div class="sim-tbl"><table id="simTbl"></table></div></details></div></section></div>`; }
 function simGo(i){ const b=simBiens()[i]; if(!b) return; simTab=keyOf(b); try{ localStorage.setItem('scibam_sim_tab',simTab); }catch(e){} renderCRM(); }
 function simOpen(id){ const b=byId(id); if(!b) return; simTab=keyOf(b); try{ localStorage.setItem('scibam_sim_tab',simTab); }catch(e){} crmView('sim'); }
@@ -3677,9 +3677,9 @@ function simUpdate(){ const p=simP, b=simB, s=simRun(p), Y=s.Y, P=params(), c=cr
     ['Équilibre',eqY>0?'an '+eqY:'> 25 ans',eqY>0?'pos':'neg',eqY>0?'le loyer couvre tout, sans toi':'jamais sur 25 ans'],
     ['Apport mini pour ≤ '+eur(p.capEffort),am==null?'impossible':simK(am),am!=null&&am>P.plafond?'neg':'',am==null?'même sans crédit':(Math.abs(am-p.apport)<1000?"c'est l'apport saisi":'tu as saisi '+simK(p.apport))],
     ['Emprunt',simK(s.emprunt),s.emprunt>p.capEmp?'neg':'',`coût total ${simK(s.cout)} (notaire ${simK(s.frais)})`],
-    ['Apports mensuels cumulés',simK(Y[loanY-1].cum),'',`jusqu'à la fin du prêt (an ${loanY}), en plus de l'apport`],
+    ['Tes apports mensuels cumulés',simK(Y[loanY-1].cum),'',`jusqu'à la fin du prêt (an ${loanY}), en plus de l'apport`],
     ['Intérêts payés',simK(s.interets),'',s.mens2?`${simK(s.int0-s.interets)} économisés par la renégo`:'sans renégociation'],
-    ['Valeur nette, an 15',simK(Y[14].net),'',`compte courant dû par la SCI : ${simK(Y[14].cca)}`]];
+    ['Trésorerie SCI, an 25',simK(Y[24].treso),Y[24].treso>0.5?'pos':'',`valeur nette an 25 : ${simK(Y[24].net)} · compte courant dû : ${simK(Y[24].cca)}`]];
   $('simKpis').innerHTML=K.map(([a,v,cl,d,h])=>`<div class="sim-kpi ${h?'hl':''}"><div class="k">${a}</div><div class="v ${cl}">${v}</div><div class="s">${d}</div></div>`).join('');
   const w=[]; if(s.emprunt>p.capEmp) w.push(`L'emprunt (${eur(s.emprunt)}) dépasse ta capacité d'emprunt de ${eur(p.capEmp)} : il faut au moins ${eur(s.cout-p.capEmp)} d'apport.`);
   if(am!=null&&am>P.plafond) w.push(`Pour rester sous ${eur(p.capEffort)}/mois, l'apport nécessaire dépasse ton plafond d'épargne de ${eur(P.plafond)}.`);
@@ -3693,8 +3693,8 @@ function simUpdate(){ const p=simP, b=simB, s=simRun(p), Y=s.Y, P=params(), c=cr
   const same=+c.objectif===Math.round(p.prix)&&+c.loyer===Math.round(p.loyer);
   $('simPushLbl').textContent=same?'✓ déjà dans le CRM':`objectif ${kEur(p.prix)} · loyer ${eur(p.loyer)} (${SIM_MODE[p.loyerMode]})`;
   simChart1(s,p); simChart2(s,p);
-  $('simTbl').innerHTML='<thead><tr><th>Année</th><th>Loyer net</th><th>Charges, TF, frais</th><th>Mensualité</th><th>Cash-flow /mois</th><th>Apports cumulés</th><th>Capital restant dû</th><th>Compte courant</th><th>Valeur nette</th></tr></thead><tbody>'+
-    Y.map(r=>`<tr class="${(r.y===p.reneg||r.y===eqY)?'mark':''}"><td>${r.y}</td><td>${eur(r.loyer/12)}</td><td>${eur(r.charges/12)}</td><td>${eur(r.payM)}</td><td class="${r.cfM<0?'neg':'pos'}">${simSg(r.cfM)}</td><td>${simK(r.cum)}</td><td>${simK(r.bal)}</td><td>${simK(r.cca)}</td><td>${simK(r.net)}</td></tr>`).join('')+'</tbody>'; }
+  $('simTbl').innerHTML='<thead><tr><th>Année</th><th>Loyer net</th><th>Charges, TF, frais</th><th>Mensualité</th><th>Cash-flow /mois</th><th>Tes apports de l’année</th><th>Trésorerie SCI</th><th>Capital restant dû</th><th>Compte courant</th><th>Valeur nette <small>(bien + tréso − crédit)</small></th></tr></thead><tbody>'+
+    Y.map(r=>`<tr class="${(r.y===p.reneg||r.y===eqY)?'mark':''}"><td>${r.y}</td><td>${eur(r.loyer/12)}</td><td>${eur(r.charges/12)}</td><td>${eur(r.payM)}</td><td class="${r.cfM<0?'neg':'pos'}">${simSg(r.cfM)}</td><td>${r.effort>0.5?simK(r.effort):'—'}</td><td class="${r.treso>0.5?'pos':''}">${simK(r.treso)}</td><td>${simK(r.bal)}</td><td>${simK(r.cca)}</td><td>${simK(r.net)}</td></tr>`).join('')+'</tbody>'; }
 
 // ---------- graphiques SVG ----------
 const SIM_NS='http://www.w3.org/2000/svg';
@@ -3735,7 +3735,7 @@ function simChart2(s,p){ const box=$('simC2'); box.querySelectorAll('svg').forEa
     if(clip&&!lbl){ lbl=true; simEl('text',{x:W-R,y:y(0)-8,'text-anchor':'end','font-size':11.5,'font-weight':700,fill:'var(--good)'},svg).textContent='+'+Math.round(-v).toLocaleString('fr-FR')+' €/mois après le prêt'; } });
   simEl('line',{x1:L,x2:W-R,y1:y(p.capEffort),y2:y(p.capEffort),stroke:'var(--acc)','stroke-width':2,'stroke-dasharray':'6 4'},svg);
   simEl('text',{x:W-R,y:y(p.capEffort)-6,'text-anchor':'end','font-size':11.5,'font-weight':700,fill:'var(--acc)'},svg).textContent='plafond '+eur(p.capEffort)+'/mois';
-  simHover(svg,box,n,L,W,R,i=>{ const r=Y[i]; return `<b>An ${r.y}</b><br>${r.cfM<0?'Effort':'Cash dégagé'} <b>${eur(Math.abs(r.cfM))}</b>/mois<br>Apports cumulés <b>${simK(r.cum)}</b>`; },i=>y(Math.max(0,-Y[i].cfM)),x); }
+  simHover(svg,box,n,L,W,R,i=>{ const r=Y[i]; return `<b>An ${r.y}</b><br>${r.cfM<0?'Effort':'Cash dégagé'} <b>${eur(Math.abs(r.cfM))}</b>/mois<br>Tes apports cumulés <b>${simK(r.cum)}</b><br>Trésorerie SCI <b>${simK(r.treso)}</b>`; },i=>y(Math.max(0,-Y[i].cfM)),x); }
 function simHover(svg,box,n,L,W,R,html,yAt,x){ const tip=box.querySelector('.sim-tip'), cw=(W-L-R)/n;
   const hl=simEl('rect',{x:0,y:0,width:cw,height:'100%',fill:'rgba(56,189,248,.1)',opacity:0},svg);
   const mv=e=>{ const rc=svg.getBoundingClientRect(), pt=e.touches?e.touches[0]:e, sx=(pt.clientX-rc.left)/rc.width*W, i=Math.max(0,Math.min(n-1,Math.floor((sx-L)/cw)));
