@@ -3559,12 +3559,12 @@ function crmT4NoteHTML(){ return `<div class="encnote"><h3>🏦 Taux à 4 % : ce
   <li><b>Message aux vendeurs</b> : le prix n'est pas une opinion, c'est ce que le loyer légal finance ; chaque +0,25 pt retire 3 000 à 4 500 € de capacité.</li></ul>
   <div class="encnote-f">Colonne « À 4 % » : emprunt max · apport nécessaire au prix affiché · part de la mensualité couverte par le loyer si tout est emprunté.
   <a href="${T4_DOC}" target="_blank" rel="noopener">📄 Note de synthèse taux 4 % ↗</a></div></div>`; }
-// ===== simulateur de cash-flow intégré au CRM (24/10, porté de l'artifact du 06/10) : un onglet par bien actif (hors kill) =====
+// ===== simulateur de cash-flow intégré au CRM (24/10, porté de l'artifact du 06/10 ; 20 ans par défaut) : un onglet par bien actif (hors kill) =====
 // prêt à 4 % renégocié à 3 % en année 5 ; réglages mémorisés par bien sur l'appareil ; « 📌 Entrer dans le CRM » écrit
 // objectif de négo + loyer retenu (+ mode nu/meublé et instantané des réglages dans crm.sim) → synchronisés
-const SIM_COMMON={taux1:4,duree:15,reneg:5,taux2:3,renegMode:'fin',capEmp:300000,gLoyer:2.5,gCh:2.2,frais:0,gestion:false,capEffort:800,cca:4,gVal:1};
+const SIM_COMMON={taux1:4,duree:20,reneg:5,taux2:3,renegMode:'fin',capEmp:300000,gLoyer:2.5,gCh:2.2,frais:0,gestion:false,capEffort:800,cca:4,gVal:1};
 const SIM_MODE={nu:'nu au plafond',meuble:'meublé au plafond',libre:'loyer libre'};
-const SIMKEY='scibam_sim_v1'; let SIMS=(()=>{ try{ return JSON.parse(localStorage.getItem(SIMKEY)||'{}'); }catch(e){ return {}; } })();
+const SIMKEY='scibam_sim_v2'; let SIMS=(()=>{ try{ return JSON.parse(localStorage.getItem(SIMKEY)||'{}'); }catch(e){ return {}; } })();
 let simTab=(()=>{ try{ return localStorage.getItem('scibam_sim_tab')||''; }catch(e){ return ''; } })(), simB=null, simP=null;
 const SIM_F=[
   ['Acquisition',[['prix','Prix négocié, honoraires inclus (€)',1000,'r'],['hon','Honoraires agence à ta charge (%)',0.01,0,'Inclus dans le prix ; 0 si à la charge du vendeur'],
@@ -3735,7 +3735,7 @@ function simHover(svg,box,n,L,W,R,html,yAt,x){ const tip=box.querySelector('.sim
   svg.addEventListener('mousemove',mv); svg.addEventListener('touchstart',mv,{passive:true}); svg.addEventListener('touchmove',mv,{passive:true});
   svg.addEventListener('mouseleave',()=>{ tip.style.opacity=0; hl.setAttribute('opacity',0); }); }
 function crmSimNoteHTML(){ return `<div class="encnote"><h3>🎛️ Simulateur de cash-flow : un onglet par bien actif</h3>
-  <ul><li><b>Hypothèses de départ</b> : prêt à 4 % hors assurance sur 15 ans, renégocié à 3 % en année 5 ; loyer au plafond encadré (nu par défaut, meublé au choix) ; plafond d'effort 800 €/mois.</li>
+  <ul><li><b>Hypothèses de départ</b> : prêt à 4 % hors assurance sur 20 ans (15 ans = option pour accélérer), renégocié à 3 % en année 5 ; loyer au plafond encadré (nu par défaut, meublé au choix) ; plafond d'effort 800 €/mois.</li>
   <li><b>Pré-rempli depuis la fiche</b> : objectif de négo, honoraires, charges, taxe foncière, travaux DPE et options cochées.</li>
   <li><b>📌 Entrer dans le CRM</b> : le prix simulé devient l'objectif de négo et le loyer devient le loyer retenu (nu ou meublé), partout dans l'app.</li></ul>
   <div class="encnote-f"><a href="javascript:void 0" onclick="crmView('sim')">🎛️ Ouvrir le simulateur</a></div></div>`; }
