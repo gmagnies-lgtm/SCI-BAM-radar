@@ -655,6 +655,48 @@
   .cmc-enc{margin-top:6px;font-size:12px;color:var(--mut)}.cmc-enc b{color:var(--txt)}.cmc-enc .bad,.cmp small.bad{color:var(--bad)}
   .crm-pub.enc{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.35);border-radius:10px;padding:7px 10px;margin-top:8px}
   .crm-pub.enc small{color:var(--mut)}.crm-pub.enc.warn{border-color:var(--bad);background:rgba(239,68,68,.08)}
+  /* simulateur de cash-flow (24/10) */
+  .sim-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:thin}
+  .sim-tabs button{flex:none;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .sim-tabs button.on{background:var(--acc);border-color:var(--acc);color:#0f172a}
+  .sim-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:10px}
+  .sim-head h2{margin:0;font-size:20px}.sim-sub{color:var(--mut);font-size:12.5px;margin-top:3px}.sim-sub b{color:var(--txt)}
+  .sim-pill{font-weight:800;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid}
+  .sim-pill.ok{color:var(--good);border-color:var(--good);background:rgba(34,197,94,.1)}.sim-pill.ko{color:var(--bad);border-color:var(--bad);background:rgba(239,68,68,.12)}
+  .sim-push{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+  .sim-push #simPushLbl{font-size:12px;color:var(--mut)}
+  .sim-go{background:var(--acc);color:#0f172a;border:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
+  .sim-sec{background:var(--bg2);color:var(--acc2);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .sim-layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:14px;align-items:start}
+  @media (max-width:900px){ .sim-layout{grid-template-columns:1fr} }
+  .sim-panel,.sim-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .sim-g+.sim-g{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .sim-g h4,.sim-card h4{margin:0 0 9px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+  .sim-f{display:grid;grid-template-columns:1fr 100px;gap:4px 10px;align-items:center;margin-bottom:9px}
+  .sim-f label{font-size:13px}.sim-f small{grid-column:1/-1;color:var(--mut);font-size:11.5px}.sim-f small span{opacity:.8}
+  .sim-f input[type=number],.sim-f select{width:100px;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:6px;font:600 13px ui-monospace,Menlo,monospace;text-align:right}
+  .sim-f select{grid-column:1/-1;width:100%;text-align:left;font-family:inherit}
+  .sim-f input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--acc);margin:0}
+  .sim-chk{display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:9px}
+  .sim-sum{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12.5px;background:var(--bg);border-radius:9px;padding:8px 10px;margin-bottom:10px;font-variant-numeric:tabular-nums}
+  .sim-sum b{text-align:right}.sim-sum .tot{border-top:1px solid var(--line);padding-top:4px}
+  .sim-main{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .sim-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  @media (max-width:640px){ .sim-kpis{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  .sim-kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+  .sim-kpi.hl{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+  .sim-kpi .k{color:var(--mut);font-size:11.5px}.sim-kpi .v{font:800 19px ui-monospace,Menlo,monospace;margin-top:2px;font-variant-numeric:tabular-nums}.sim-kpi .s{color:var(--mut);font-size:11px;margin-top:2px}
+  .sim-main .neg,.sim-panel .neg{color:var(--bad)}.sim-main .pos{color:var(--good)}
+  .sim-warn{background:rgba(239,68,68,.12);border:1px solid var(--bad);border-radius:10px;padding:8px 10px;font-size:12.5px}
+  .sim-leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mut);margin-bottom:6px}
+  .sim-leg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}.sim-leg i.box{width:10px;height:10px}
+  .sim-chart{position:relative}.sim-chart svg{display:block;width:100%;height:auto;overflow:visible}
+  .sim-tip{position:absolute;pointer-events:none;background:var(--txt);color:var(--bg);font-size:12px;padding:7px 9px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s;z-index:2}
+  .sim-note{color:var(--mut);font-size:12px;margin-top:8px}
+  .sim-card summary{cursor:pointer;font-weight:700;color:var(--acc2)}
+  .sim-tbl{overflow-x:auto;margin-top:10px}.sim-tbl table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+  .sim-tbl th,.sim-tbl td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}.sim-tbl th:first-child,.sim-tbl td:first-child{text-align:left}
+  .sim-tbl th{color:var(--mut);font-size:11.5px}.sim-tbl tr.mark td{background:rgba(56,189,248,.1)}
   .encnote{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:13px}
   .encnote h3{margin:0 0 8px;font-size:14px}.encnote ul{margin:0;padding-left:18px}.encnote li{margin:4px 0}
   .encnote-f{margin-top:8px;color:var(--mut);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 12px}.encnote a{color:var(--acc2)}
@@ -913,7 +955,7 @@
 <div class="crm" id="crm" aria-hidden="true">
   <div class="crm-top">
     <button class="crm-icbtn" onclick="closeCRM()">←<span class="crm-lbl"> Radar</span></button>
-    <div class="crm-views"><button id="crmVT" onclick="crmView('table')">📊 Comparatif</button><button id="crmVF" onclick="crmView('fiche')">🏠 Fiches<span class="crm-count" id="crmCount"></span></button></div>
+    <div class="crm-views"><button id="crmVT" onclick="crmView('table')">📊 Comparatif</button><button id="crmVF" onclick="crmView('fiche')">🏠 Fiches<span class="crm-count" id="crmCount"></span></button><button id="crmVS" onclick="crmView('sim')">🎛️<span class="crm-lbl"> Simulateur</span></button></div>
     <div class="crm-navs" id="crmNavs">
       <button class="crm-icbtn" onclick="crmNav(-1)" title="Bien précédent">◀</button>
       <button class="crm-icbtn" onclick="crmNav(1)" title="Bien suivant">▶</button>
@@ -3517,15 +3559,186 @@ function crmT4NoteHTML(){ return `<div class="encnote"><h3>🏦 Taux à 4 % : ce
   <li><b>Message aux vendeurs</b> : le prix n'est pas une opinion, c'est ce que le loyer légal finance ; chaque +0,25 pt retire 3 000 à 4 500 € de capacité.</li></ul>
   <div class="encnote-f">Colonne « À 4 % » : emprunt max · apport nécessaire au prix affiché · part de la mensualité couverte par le loyer si tout est emprunté.
   <a href="${T4_DOC}" target="_blank" rel="noopener">📄 Note de synthèse taux 4 % ↗</a></div></div>`; }
-// ===== simulateur cash-flow interactif (artifact Claude, 06/10) =====
-const SIM_DOC='https://claude.ai/artifact/1JWAeijZVoUEFboxUoK5Fi';
-function crmSimNoteHTML(){ return `<div class="encnote"><h3>🎛️ Simulateur de cash-flow : Montesquieu et 40 av. Jean-Jaurès</h3>
-  <ul><li><b>Deux onglets</b> : Montesquieu (325 000 € garage compris) et le T3 bis du 40 av. Jean-Jaurès (360 000 €, honoraires 4,24 % acquéreur, notaire sur le net vendeur).</li>
-  <li><b>Hypothèses Montesquieu</b> : 325 000 € garage compris, 15 000 € de travaux, prêt à 4 % sur 15 ans renégocié à 3 % en année 5, loyer encadré nu, plafond d'effort de 800 €/mois.</li>
-  <li><b>Ce qu'il montre</b> : la courbe d'équilibre (loyer disponible face à la mensualité), ton effort mensuel année par année, l'apport minimum pour rester sous le plafond, le compte courant d'associé à 4 %.</li>
-  <li><b>Résultat de départ</b> : apport ≈ 106 k€ pour un effort de 794 €/mois en année 1, 557 € après la renégociation, équilibre en année 16.</li></ul>
-  <div class="encnote-f">Tous les paramètres se règlent au curseur (prix, apport, taux, durée, loyer nu ou meublé, gestion déléguée…).
-  <a href="${SIM_DOC}" target="_blank" rel="noopener">🎛️ Ouvrir le simulateur ↗</a></div></div>`; }
+// ===== simulateur de cash-flow intégré au CRM (24/10, porté de l'artifact du 06/10) : un onglet par bien actif (hors kill) =====
+// prêt à 4 % renégocié à 3 % en année 5 ; réglages mémorisés par bien sur l'appareil ; « 📌 Entrer dans le CRM » écrit
+// objectif de négo + loyer retenu (+ mode nu/meublé et instantané des réglages dans crm.sim) → synchronisés
+const SIM_COMMON={taux1:4,duree:15,reneg:5,taux2:3,renegMode:'fin',capEmp:300000,gLoyer:2.5,gCh:2.2,frais:0,gestion:false,capEffort:800,cca:4,gVal:1};
+const SIM_MODE={nu:'nu au plafond',meuble:'meublé au plafond',libre:'loyer libre'};
+const SIMKEY='scibam_sim_v1'; let SIMS=(()=>{ try{ return JSON.parse(localStorage.getItem(SIMKEY)||'{}'); }catch(e){ return {}; } })();
+let simTab=(()=>{ try{ return localStorage.getItem('scibam_sim_tab')||''; }catch(e){ return ''; } })(), simB=null, simP=null;
+const SIM_F=[
+  ['Acquisition',[['prix','Prix négocié, honoraires inclus (€)',1000,'r'],['hon','Honoraires agence à ta charge (%)',0.01,0,'Inclus dans le prix ; 0 si à la charge du vendeur'],
+    ['notaire','Frais de notaire (%)',0.1,0,'<span id="simNot"></span>'],['travaux','Travaux et options (€)',1000,'r','Travaux DPE + options en sus cochées dans la fiche'],['apport','Ton apport (€)',1000,'r']]],
+  ['Crédit',[['taux1','Taux initial (%)',0.05,0,'Hors assurance'],['duree','Durée (ans)',1],['reneg',"Renégociation à l'année",1,0,'0 = pas de renégociation · sans frais'],['taux2','Nouveau taux (%)',0.05],
+    ['renegMode','Après renégociation','fin=Même date de fin, mensualité plus basse|mens=Même mensualité, prêt plus court'],['capEmp',"Capacité d'emprunt (€)",5000]]],
+  ['Loyer et charges',[['loyerMode','Loyer','nu=Plafond encadré, nu|meuble=Plafond encadré, meublé|libre=Libre',0,'<span id="simCap"></span>'],['loyer','Loyer mensuel HC (€)',10],['vac','Vacance (%)',0.5],
+    ['gLoyer','Revalorisation loyer (%/an)',0.1],['charges','Charges copro totales (€/mois)',5],['recup','Part refacturée au locataire (%)',5],['tf','Taxe foncière (€/an)',10],
+    ['gCh','Hausse charges et TF (%/an)',0.1],['frais','Frais SCI (€/an)',50,0,'Assurance PNO, comptable, banque…'],['gestion','Gestion locative déléguée (6 % des loyers)','chk']]],
+  ['Ton effort et la SCI',[['capEffort',"Plafond d'effort (€/mois)",50],['cca','Intérêts compte courant (%)',0.5,0,'Tes apports restent une créance sur la SCI, capitalisée à ce taux'],['gVal','Valorisation du bien (%/an)',0.1]]]];
+const simK=n=>(Math.round(n/100)/10).toLocaleString('fr-FR')+' k€', simSg=n=>(n>=0?'+':'−')+eur(Math.abs(n)), simPc=v=>String(v).replace('.',',');
+function simBiens(){ return crmList.filter(r=>!crmOf(r.b).kill).map(r=>r.b); }
+function simCaps(b){ const e=encOf(b); return e&&!e.pending?{nu:e.maxN,meuble:e.maxM,e}:null; }
+function simDefaults(b){ const P=params(), a=analyse(b,P), c=crmOf(b), C=simCaps(b), lc=+c.loyer>0?+c.loyer:0;
+  const mode=c.loyerMode||(lc?(C&&lc===C.nu?'nu':C&&lc===C.meuble?'meuble':'libre'):(C?(P.loyerMode==='meuble'?'meuble':'nu'):'libre'));
+  const p={...SIM_COMMON,prix:+c.objectif>0?+c.objectif:b.prix,hon:+(+a.honPct).toFixed(2),notaire:+(P.notaire*100).toFixed(2),travaux:Math.round(a.sus+a.travDpe),apport:0,
+    loyerMode:mode,loyer:lc||(C&&mode!=='libre'?C[mode]:Math.round(a.loyerMois)),vac:+(P.vac*100).toFixed(1),charges:Math.round(a.chTot!=null?a.chTot:a.chMois),
+    recup:a.chTot>0?Math.round(100*(1-a.chNR/a.chTot)):0,tf:Math.round(a.tfMois*12)};
+  const am=simApportMin(p); p.apport=am??Math.ceil((p.prix/(1+p.hon/100)*p.notaire/100+p.travaux)/1000)*1000; return p; }
+function simLoad(b){ const k=keyOf(b), s=SIMS[k]||crmOf(b).sim; if(!s) return simDefaults(b); const p={...simDefaults(b),...s}; delete p.t; return p; }
+function simSave(){ if(!simB) return; SIMS[keyOf(simB)]=simP; try{ localStorage.setItem(SIMKEY,JSON.stringify(SIMS)); }catch(e){} }
+
+// simulation mensuelle sur 25 ans (prêt, renégociation, loyers et charges indexés, compte courant d'associé)
+function simRun(p){
+  const net=p.prix/(1+(p.hon||0)/100), frais=net*p.notaire/100, cout=p.prix+frais+p.travaux, emprunt=Math.max(0,cout-p.apport);
+  const N=p.duree*12, R=p.reneg>0&&p.reneg*12<N?p.reneg*12:0, mens0=(E,t,n)=>E>0&&n>0?(t>0?mensualite(E,t/1200,n):E/n):0;
+  let bal=emprunt, mens=mens0(emprunt,p.taux1,N), mens1=mens, mens2=null, end=N, interets=0, cca=p.apport, cum=0, row=null; const Y=[];
+  for(let m=1;m<=300;m++){ const y=Math.ceil(m/12);
+    if(R&&m===R+1){ if(p.renegMode==='fin'){ mens=mens0(bal,p.taux2,N-R); end=N; }
+      else { const i=p.taux2/1200; end=R+(i>0?Math.ceil(-Math.log(1-bal*i/mens)/Math.log(1+i)):Math.ceil(bal/mens)); } mens2=mens; }
+    const rate=(R&&m>R?p.taux2:p.taux1)/1200; let pay=0, intM=0;
+    if(bal>0.5){ intM=bal*rate; pay=Math.min(mens,bal+intM); bal=bal+intM-pay; interets+=intM; }
+    const gL=Math.pow(1+p.gLoyer/100,y-1), gC=Math.pow(1+p.gCh/100,y-1), loyerNet=p.loyer*gL*(1-p.vac/100);
+    const ch=p.charges*gC, chRecup=ch*(p.recup/100)*(1-p.vac/100), tfM=p.tf/12*gC, fraisM=p.frais/12*gC, gest=p.gestion?loyerNet*0.06:0;
+    const dispo=loyerNet-(ch-chRecup)-tfM-fraisM-gest, cf=dispo-pay, effort=Math.max(0,-cf);
+    cca=cca*(1+p.cca/1200)+effort; cum+=effort; if(cf>0) cca-=Math.min(cf,cca);
+    if(!row||row.y!==y){ row={y,dispo:0,pay:0,cf:0,effort:0,loyer:0,charges:0}; Y.push(row); }
+    row.dispo+=dispo; row.pay+=pay; row.cf+=cf; row.effort+=effort; row.loyer+=loyerNet; row.charges+=ch-chRecup+tfM+fraisM+gest;
+    row.bal=bal; row.cca=cca; row.cum=cum; row.val=p.prix*Math.pow(1+p.gVal/100,y); }
+  Y.forEach(r=>{ ['dispo','pay','cf','effort'].forEach(x=>r[x+'M']=r[x]/12); r.net=r.val-r.bal; });
+  let int0=0; { let b=emprunt; const i=p.taux1/1200; for(let m=1;m<=N&&b>0.5;m++){ const it=b*i; b=b+it-Math.min(mens1,b+it); int0+=it; } }
+  return {net,frais,cout,emprunt,mens1,mens2,end,interets,int0,Y}; }
+function simEffMax(p){ return Math.max(...simRun(p).Y.map(r=>r.effortM)); }
+function simApportMin(p){ let lo=0, hi=p.prix/(1+(p.hon||0)/100)*p.notaire/100+p.prix+p.travaux;
+  if(simEffMax({...p,apport:hi})>p.capEffort) return null;
+  for(let i=0;i<40;i++){ const mid=(lo+hi)/2; if(simEffMax({...p,apport:mid})<=p.capEffort) hi=mid; else lo=mid; }
+  return Math.ceil(hi/1000)*1000; }
+
+// ---------- écran ----------
+function simFieldHTML([k,l,st,r,h]){ const v=simP[k];
+  if(st==='chk') return `<label class="sim-chk"><input type="checkbox" data-k="${k}" ${v?'checked':''} onchange="simIn(this)"> ${l}</label>`;
+  if(typeof st==='string') return `<div class="sim-f"><label>${l}</label><select data-k="${k}" onchange="simIn(this)">${st.split('|').map(o=>{ const [ov,ol]=o.split('=');
+    return `<option value="${ov}" ${v===ov?'selected':''}>${ol}</option>`; }).join('')}</select>${h?`<small>${h}</small>`:''}</div>`;
+  const R=r?simRange(k):null;
+  return `<div class="sim-f"><label>${l}</label><input type="number" inputmode="decimal" step="${st}" data-k="${k}" value="${v}" oninput="simIn(this)">
+    ${R?`<input type="range" min="${R[0]}" max="${R[1]}" step="${st}" data-k="${k}" value="${v}" oninput="simIn(this)">`:''}${h?`<small>${h}</small>`:''}</div>`; }
+function simRange(k){ const b=simB, P=params();
+  if(k==='prix') return [Math.floor(Math.min(b.prix,simP.prix)*0.7/5000)*5000,Math.ceil(Math.max(b.prix,simP.prix)/5000)*5000];
+  if(k==='travaux') return [0,Math.max(60000,simP.travaux)];
+  return [0,Math.max(P.plafond,simP.apport)]; }
+function simHTML(){ const L=simBiens();
+  if(!L.length) return `<div class="foot" style="padding:40px 10px">Aucun bien actif dans le CRM.</div>`;
+  simB=L.find(b=>keyOf(b)===simTab)||L[0]; simTab=keyOf(simB); simP=simLoad(simB);
+  const b=simB, c=crmOf(b);
+  return `<div class="sim-tabs" role="tablist">${L.map((x,i)=>`<button role="tab" aria-selected="${x===b}" class="${x===b?'on':''}" onclick="simGo(${i})">${esc(crmTitle(x,crmOf(x)))}</button>`).join('')}</div>
+  <div class="sim-head"><div><h2>${esc(crmTitle(b,c))}</h2><div class="sim-sub">${esc(b.q||'?')} · ${b.m} m² · ${b.p}p/${b.ch}ch${b.annee?' · '+b.annee:''} · affiché <b>${eur(b.prix)}</b>
+    · CRM : objectif <b id="simCrmObj">${+c.objectif>0?eur(+c.objectif):'auto'}</b>, loyer <b id="simCrmLoy">${+c.loyer>0?eur(+c.loyer)+(c.loyerMode?' ('+SIM_MODE[c.loyerMode]+')':''):'non saisi'}</b></div></div>
+    <span id="simStatus" class="sim-pill">—</span></div>
+  <div class="sim-push"><button class="sim-go" onclick="simToCRM()">📌 Entrer ce prix de négo et ce loyer dans le CRM</button><span id="simPushLbl"></span>
+    <button class="sim-sec" onclick="simApMin()">Apport mini pour ≤ plafond</button><button class="sim-sec" onclick="simReset()">↺ Hypothèses de départ</button>
+    <button class="sim-sec" onclick="crmOpenFiche(crmList.findIndex(r=>r.b===simB))">🏠 Fiche</button></div>
+  <div class="sim-layout"><aside class="sim-panel">${SIM_F.map(([g,F])=>`<div class="sim-g"><h4>${g}</h4>${g==='Acquisition'?'<div class="sim-sum" id="simSum"></div>':''}${F.map(simFieldHTML).join('')}</div>`).join('')}</aside>
+  <section class="sim-main"><div class="sim-kpis" id="simKpis"></div><div id="simWarn"></div>
+    <div class="sim-card"><h4>Courbe d'équilibre · €/mois</h4><div class="sim-leg"><span><i style="background:var(--acc2)"></i>Loyer disponible (après vacance, charges, TF, frais)</span><span><i style="background:#a78bfa"></i>Mensualité</span><span><i class="box" style="background:rgba(239,68,68,.22)"></i>Ce que tu complètes</span></div>
+      <div class="sim-chart" id="simC1"><div class="sim-tip"></div></div></div>
+    <div class="sim-card"><h4>Ton effort mensuel moyen par année</h4><div class="sim-leg"><span><i class="box" style="background:var(--bad)"></i>Au-dessus du plafond</span><span><i class="box" style="background:var(--acc)"></i>Sous le plafond</span><span><i class="box" style="background:var(--good)"></i>La SCI dégage du cash</span></div>
+      <div class="sim-chart" id="simC2"><div class="sim-tip"></div></div>
+      <div class="sim-note">Hors fiscalité de la SCI (IS ou IR), hors assurance emprunteur. Les apports mensuels sont comptés en compte courant d'associé : la SCI te les rembourse quand elle dégage du cash.</div></div>
+    <div class="sim-card"><details><summary>Tableau année par année</summary><div class="sim-tbl"><table id="simTbl"></table></div></details></div></section></div>`; }
+function simGo(i){ const b=simBiens()[i]; if(!b) return; simTab=keyOf(b); try{ localStorage.setItem('scibam_sim_tab',simTab); }catch(e){} renderCRM(); }
+function simOpen(id){ const b=byId(id); if(!b) return; simTab=keyOf(b); try{ localStorage.setItem('scibam_sim_tab',simTab); }catch(e){} crmView('sim'); }
+function simSetVal(k,v){ document.querySelectorAll(`#crmBody [data-k="${k}"]`).forEach(x=>{ if(x.type==='checkbox') x.checked=!!v; else x.value=v; }); }
+function simIn(el){ const k=el.dataset.k, v=el.type==='checkbox'?el.checked:el.tagName==='SELECT'?el.value:+el.value; simP[k]=v;
+  document.querySelectorAll(`#crmBody [data-k="${k}"]`).forEach(x=>{ if(x!==el&&x.type!=='checkbox') x.value=v; });
+  const C=simCaps(simB);
+  if(k==='loyerMode'&&v!=='libre'&&C){ simP.loyer=C[v]; simSetVal('loyer',C[v]); }
+  if(k==='loyer'){ const m=C&&v===C.nu?'nu':C&&v===C.meuble?'meuble':'libre'; simP.loyerMode=m; simSetVal('loyerMode',m); }
+  simSave(); simUpdate(); }
+function simApMin(){ const am=simApportMin(simP); if(am==null){ crmToast('Impossible de rester sous le plafond, même sans crédit',1); return; } simP.apport=am; simSetVal('apport',am); simSave(); simUpdate(); }
+function simReset(){ if(!simB) return; delete SIMS[keyOf(simB)]; try{ localStorage.setItem(SIMKEY,JSON.stringify(SIMS)); }catch(e){} simP=simDefaults(simB); simSave(); renderCRM(); }
+function simToCRM(){ const b=simB, p=simP; if(!b) return;
+  crmSet(b,{objectif:String(Math.round(p.prix)),loyer:String(Math.round(p.loyer)),loyerMode:p.loyerMode,sim:{...p,t:Date.now()}});
+  crmToast(`📌 CRM à jour : objectif ${kEur(p.prix)}, loyer ${eur(p.loyer)} (${SIM_MODE[p.loyerMode]})`);
+  $('simCrmObj').textContent=eur(p.prix); $('simCrmLoy').textContent=`${eur(p.loyer)} (${SIM_MODE[p.loyerMode]})`; simUpdate(); }
+function simUpdate(){ const p=simP, b=simB, s=simRun(p), Y=s.Y, P=params(), c=crmOf(b);
+  const effMax=Math.max(...Y.map(r=>r.effortM)), eff1=Y[0].effortM, effPost=p.reneg>0&&p.reneg<p.duree?Y[p.reneg].effortM:null;
+  const eqY=Y.findIndex(r=>r.cfM>=0)+1, loanY=Math.min(25,Math.ceil(s.end/12)), ok=effMax<=p.capEffort, am=simApportMin(p);
+  const st=$('simStatus'); st.className='sim-pill '+(ok?'ok':'ko'); st.textContent=ok?`Effort max ${eur(effMax)}/mois · sous ton plafond`:`Effort max ${eur(effMax)}/mois · plafond dépassé de ${eur(effMax-p.capEffort)}`;
+  const K=[['Ton effort, an 1',eur(eff1)+'/mois',eff1>p.capEffort?'neg':'',`mensualité ${eur(s.mens1)} à ${simPc(p.taux1)} %`,1],
+    ['Après renégociation',effPost==null?'—':eur(effPost)+'/mois','',s.mens2?`mensualité ${eur(s.mens2)} à ${simPc(p.taux2)} %`:'pas de renégociation'],
+    ['Équilibre',eqY>0?'an '+eqY:'> 25 ans',eqY>0?'pos':'neg',eqY>0?'le loyer couvre tout, sans toi':'jamais sur 25 ans'],
+    ['Apport mini pour ≤ '+eur(p.capEffort),am==null?'impossible':simK(am),am!=null&&am>P.plafond?'neg':'',am==null?'même sans crédit':(Math.abs(am-p.apport)<1000?"c'est l'apport saisi":'tu as saisi '+simK(p.apport))],
+    ['Emprunt',simK(s.emprunt),s.emprunt>p.capEmp?'neg':'',`coût total ${simK(s.cout)} (notaire ${simK(s.frais)})`],
+    ['Apports mensuels cumulés',simK(Y[loanY-1].cum),'',`jusqu'à la fin du prêt (an ${loanY}), en plus de l'apport`],
+    ['Intérêts payés',simK(s.interets),'',s.mens2?`${simK(s.int0-s.interets)} économisés par la renégo`:'sans renégociation'],
+    ['Valeur nette, an 15',simK(Y[14].net),'',`compte courant dû par la SCI : ${simK(Y[14].cca)}`]];
+  $('simKpis').innerHTML=K.map(([a,v,cl,d,h])=>`<div class="sim-kpi ${h?'hl':''}"><div class="k">${a}</div><div class="v ${cl}">${v}</div><div class="s">${d}</div></div>`).join('');
+  const w=[]; if(s.emprunt>p.capEmp) w.push(`L'emprunt (${eur(s.emprunt)}) dépasse ta capacité d'emprunt de ${eur(p.capEmp)} : il faut au moins ${eur(s.cout-p.capEmp)} d'apport.`);
+  if(am!=null&&am>P.plafond) w.push(`Pour rester sous ${eur(p.capEffort)}/mois, l'apport nécessaire dépasse ton plafond d'épargne de ${eur(P.plafond)}.`);
+  if(p.prix>b.prix) w.push(`Le prix simulé (${eur(p.prix)}) est au-dessus du prix affiché (${eur(b.prix)}).`);
+  $('simWarn').innerHTML=w.length?`<div class="sim-warn">${w.join('<br>')}</div>`:'';
+  const C=simCaps(b), e=C&&C.e;
+  $('simCap').innerHTML=C?`Plafond légal HC : <b>nu ${eur(C.nu)}</b> · <b>meublé ${eur(C.meuble)}</b> <span>(${simPc(e.rN)} / ${simPc(e.rM)} €/m² · ${encLbl(e)})</span>${p.loyer>C[p.loyerMode==='meuble'?'meuble':'nu']?`<br><b class="neg">⚠️ au-dessus du plafond ${p.loyerMode==='meuble'?'meublé':'nu'}</b>`:''}`
+    :'Plafond encadré inconnu (adresse à compléter dans la fiche)';
+  $('simNot').textContent=`= ${eur(s.frais)}${p.hon?` sur un net vendeur de ${eur(s.net)}`:''}`;
+  $('simSum').innerHTML=`<span>Prix${p.hon?' (honoraires inclus)':''}</span><b>${eur(p.prix)}</b><span>Négo vs affiché</span><b>${p.prix<b.prix?'−'+eur(b.prix-p.prix)+' (−'+pct(1-p.prix/b.prix)+')':'—'}</b><span>Frais de notaire</span><b>${eur(s.frais)}</b><span>Travaux et options</span><b>${eur(p.travaux)}</b><span class="tot">Total de l'opération</span><b class="tot">${eur(s.cout)}</b><span>dont ton apport</span><b>${eur(p.apport)}</b><span>À emprunter</span><b class="${s.emprunt>p.capEmp?'neg':''}">${eur(s.emprunt)}</b>`;
+  const same=+c.objectif===Math.round(p.prix)&&+c.loyer===Math.round(p.loyer);
+  $('simPushLbl').textContent=same?'✓ déjà dans le CRM':`objectif ${kEur(p.prix)} · loyer ${eur(p.loyer)} (${SIM_MODE[p.loyerMode]})`;
+  simChart1(s,p); simChart2(s,p);
+  $('simTbl').innerHTML='<thead><tr><th>Année</th><th>Loyer net</th><th>Charges, TF, frais</th><th>Mensualité</th><th>Cash-flow /mois</th><th>Apports cumulés</th><th>Capital restant dû</th><th>Compte courant</th><th>Valeur nette</th></tr></thead><tbody>'+
+    Y.map(r=>`<tr class="${(r.y===p.reneg||r.y===eqY)?'mark':''}"><td>${r.y}</td><td>${eur(r.loyer/12)}</td><td>${eur(r.charges/12)}</td><td>${eur(r.payM)}</td><td class="${r.cfM<0?'neg':'pos'}">${simSg(r.cfM)}</td><td>${simK(r.cum)}</td><td>${simK(r.bal)}</td><td>${simK(r.cca)}</td><td>${simK(r.net)}</td></tr>`).join('')+'</tbody>'; }
+
+// ---------- graphiques SVG ----------
+const SIM_NS='http://www.w3.org/2000/svg';
+function simEl(tag,at,par){ const e=document.createElementNS(SIM_NS,tag); for(const a in at) e.setAttribute(a,at[a]); if(par) par.appendChild(e); return e; }
+function simTicks(lo,hi,n){ const st0=(hi-lo||1)/n, mag=Math.pow(10,Math.floor(Math.log10(st0))), st=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=st0), o=[];
+  for(let v=Math.ceil(lo/st)*st;v<=hi+1e-9;v+=st) o.push(Math.round(v)); return o; }
+function simAxes(svg,lo,hi,y,L,W,R,H,x){ simTicks(lo,hi,5).forEach(v=>{ simEl('line',{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:'var(--line)'},svg);
+    simEl('text',{x:L-8,y:y(v)+4,'text-anchor':'end','font-size':11,fill:'var(--mut)'},svg).textContent=v.toLocaleString('fr-FR'); });
+  [1,5,10,15,20,25].forEach(t=>{ simEl('text',{x:x(t-1),y:H-10,'text-anchor':'middle','font-size':11,fill:'var(--mut)'},svg).textContent='An '+t; }); }
+function simChart1(s,p){ const box=$('simC1'); box.querySelectorAll('svg').forEach(x=>x.remove());
+  const W=760,H=300,L=56,R=16,T=14,B=30, Y=s.Y, n=Y.length, cw=(W-L-R)/n;
+  const hi=Math.max(...Y.map(r=>Math.max(r.dispoM,r.payM)))*1.08||1, lo=Math.min(0,...Y.map(r=>r.dispoM));
+  const x=i=>L+cw*(i+0.5), y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  const svg=simEl('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':"Courbe d'équilibre mensuelle sur 25 ans"}); box.insertBefore(svg,box.firstChild);
+  simAxes(svg,lo,hi,y,L,W,R,H,x);
+  let d=''; Y.forEach((r,i)=>{ if(r.payM>r.dispoM) d+=`M${L+cw*i} ${y(r.payM)}H${L+cw*(i+1)}V${y(r.dispoM)}H${L+cw*i}Z`; });
+  simEl('path',{d,fill:'rgba(239,68,68,.22)'},svg);
+  const mark=(yr,lbl)=>{ if(!yr||yr>25) return; const xv=L+cw*yr; simEl('line',{x1:xv,x2:xv,y1:T,y2:H-B,stroke:'var(--mut)','stroke-dasharray':'3 4'},svg);
+    simEl('text',{x:xv+5,y:T+11,'font-size':11,fill:'var(--mut)'},svg).textContent=lbl; };
+  if(p.reneg>0&&p.reneg<p.duree) mark(p.reneg,'renégo '+simPc(p.taux2)+' %'); mark(Math.ceil(s.end/12),'fin du prêt');
+  simEl('path',{d:Y.map((r,i)=>(i?'L':'M')+(L+cw*i)+' '+y(r.payM)+'H'+(L+cw*(i+1))).join(''),fill:'none',stroke:'#a78bfa','stroke-width':2.2},svg);
+  simEl('path',{d:'M'+Y.map((r,i)=>x(i)+' '+y(r.dispoM)).join('L'),fill:'none',stroke:'var(--acc2)','stroke-width':2.2},svg);
+  const eq=Y.findIndex(r=>r.cfM>=0);
+  if(eq>=0){ simEl('circle',{cx:x(eq),cy:y(Y[eq].dispoM),r:5,fill:'var(--good)',stroke:'var(--bg)','stroke-width':2},svg);
+    simEl('text',{x:Math.min(x(eq)+10,W-110),y:y(Y[eq].dispoM)+18,'font-size':12,'font-weight':700,fill:'var(--good)'},svg).textContent='équilibre, an '+(eq+1); }
+  simHover(svg,box,n,L,W,R,i=>{ const r=Y[i]; return `<b>An ${r.y}</b><br>Loyer disponible <b>${eur(r.dispoM)}</b><br>Mensualité <b>${eur(r.payM)}</b><br>${r.cfM<0?'Tu complètes':'La SCI dégage'} <b>${eur(Math.abs(r.cfM))}</b>/mois`; },
+    i=>y(Math.max(Y[i].dispoM,Y[i].payM)),x); }
+function simChart2(s,p){ const box=$('simC2'); box.querySelectorAll('svg').forEach(x=>x.remove());
+  const W=760,H=240,L=56,R=16,T=14,B=30, Y=s.Y, n=Y.length, cw=(W-L-R)/n, vals=Y.map(r=>-r.cfM);
+  const hi=Math.max(p.capEffort*1.15,...vals)*1.05||1, lo=Math.max(Math.min(0,...vals)*1.05,-hi*0.55);
+  const x=i=>L+cw*(i+0.5), y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo)), bw=cw*0.66;
+  const svg=simEl('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'Effort mensuel moyen par année'}); box.insertBefore(svg,box.firstChild);
+  simAxes(svg,lo,hi,y,L,W,R,H,x); simEl('line',{x1:L,x2:W-R,y1:y(0),y2:y(0),stroke:'var(--mut)'},svg);
+  let lbl=false;
+  Y.forEach((r,i)=>{ const v=-r.cfM, col=v<=0?'var(--good)':(v>p.capEffort?'var(--bad)':'var(--acc)'), clip=v<lo;
+    const h=clip?Math.abs(y(lo)-y(0)):Math.max(1,Math.abs(y(v)-y(0)));
+    simEl('rect',{x:x(i)-bw/2,y:v>=0?y(v):y(0),width:bw,height:h,rx:2,fill:col,opacity:clip?.55:.9},svg);
+    if(clip&&!lbl){ lbl=true; simEl('text',{x:W-R,y:y(0)-8,'text-anchor':'end','font-size':11.5,'font-weight':700,fill:'var(--good)'},svg).textContent='+'+Math.round(-v).toLocaleString('fr-FR')+' €/mois après le prêt'; } });
+  simEl('line',{x1:L,x2:W-R,y1:y(p.capEffort),y2:y(p.capEffort),stroke:'var(--acc)','stroke-width':2,'stroke-dasharray':'6 4'},svg);
+  simEl('text',{x:W-R,y:y(p.capEffort)-6,'text-anchor':'end','font-size':11.5,'font-weight':700,fill:'var(--acc)'},svg).textContent='plafond '+eur(p.capEffort)+'/mois';
+  simHover(svg,box,n,L,W,R,i=>{ const r=Y[i]; return `<b>An ${r.y}</b><br>${r.cfM<0?'Effort':'Cash dégagé'} <b>${eur(Math.abs(r.cfM))}</b>/mois<br>Apports cumulés <b>${simK(r.cum)}</b>`; },i=>y(Math.max(0,-Y[i].cfM)),x); }
+function simHover(svg,box,n,L,W,R,html,yAt,x){ const tip=box.querySelector('.sim-tip'), cw=(W-L-R)/n;
+  const hl=simEl('rect',{x:0,y:0,width:cw,height:'100%',fill:'rgba(56,189,248,.1)',opacity:0},svg);
+  const mv=e=>{ const rc=svg.getBoundingClientRect(), pt=e.touches?e.touches[0]:e, sx=(pt.clientX-rc.left)/rc.width*W, i=Math.max(0,Math.min(n-1,Math.floor((sx-L)/cw)));
+    hl.setAttribute('x',L+cw*i); hl.setAttribute('opacity',1); tip.innerHTML=html(i);
+    tip.style.left=Math.min(Math.max(x(i)/W*rc.width,70),rc.width-70)+'px'; tip.style.top=(yAt(i)/svg.viewBox.baseVal.height*rc.height)+'px'; tip.style.opacity=1; };
+  svg.addEventListener('mousemove',mv); svg.addEventListener('touchstart',mv,{passive:true}); svg.addEventListener('touchmove',mv,{passive:true});
+  svg.addEventListener('mouseleave',()=>{ tip.style.opacity=0; hl.setAttribute('opacity',0); }); }
+function crmSimNoteHTML(){ return `<div class="encnote"><h3>🎛️ Simulateur de cash-flow : un onglet par bien actif</h3>
+  <ul><li><b>Hypothèses de départ</b> : prêt à 4 % hors assurance sur 15 ans, renégocié à 3 % en année 5 ; loyer au plafond encadré (nu par défaut, meublé au choix) ; plafond d'effort 800 €/mois.</li>
+  <li><b>Pré-rempli depuis la fiche</b> : objectif de négo, honoraires, charges, taxe foncière, travaux DPE et options cochées.</li>
+  <li><b>📌 Entrer dans le CRM</b> : le prix simulé devient l'objectif de négo et le loyer devient le loyer retenu (nu ou meublé), partout dans l'app.</li></ul>
+  <div class="encnote-f"><a href="javascript:void 0" onclick="crmView('sim')">🎛️ Ouvrir le simulateur</a></div></div>`; }
 // ===== liens d'annonce : une rangée de boutons, un par annonce du même bien (04/10) =====
 function annLinks(b,c){ const L=[], seen=new Set(), add=(url,lbl,ag)=>{ if(!url) return; const k=String(url).replace(/[?#].*$/,'').replace(/\/$/,'');
     if(seen.has(k)) return; seen.add(k); L.push({url,lbl,ag}); };
@@ -4015,11 +4228,12 @@ function crmPlansHTML(c){ const L=c.plans||[]; if(!L.length) return '';
     <img src="${esc(p.src)}" alt="${esc(p.lbl||'Plan du bien')}" loading="lazy"><span>${esc(p.lbl||'Plan')}<small>${esc([p.from,p.t?dmy(p.t):''].filter(Boolean).join(' · '))}</small></span></a>`).join('')}</div></div>`; }
 function renderCRM(){
   crmList=crmList.filter(r=>inCRM(r.b));
-  const body=$('crmBody'), tbl=crmMode==='table'||!crmList.length;
-  $('crmVT').classList.toggle('on',tbl); $('crmVF').classList.toggle('on',!tbl);
-  $('crmNavs').style.visibility=tbl?'hidden':''; $('crmNavs').style.display=(tbl&&innerWidth<=520)?'none':''; body.classList.toggle('wide',tbl);
+  const body=$('crmBody'), sim=crmMode==='sim'&&crmList.length>0, tbl=!sim&&(crmMode==='table'||!crmList.length);
+  $('crmVT').classList.toggle('on',tbl); $('crmVF').classList.toggle('on',!tbl&&!sim); $('crmVS').classList.toggle('on',sim);
+  $('crmNavs').style.visibility=(tbl||sim)?'hidden':''; $('crmNavs').style.display=((tbl||sim)&&innerWidth<=520)?'none':''; body.classList.toggle('wide',tbl||sim);
   const nAct=crmList.filter(r=>!crmOf(r.b).kill).length, curK=!tbl&&crmList[crmIdx]&&crmOf(crmList[crmIdx].b).kill;   // compteur = fiches actives (hors kill)
   $('crmCount').textContent=crmList.length?(tbl?` ${nAct}`:(curK?' ☠️':` ${Math.min(crmIdx+1,nAct)}/${nAct}`)):'';
+  if(sim){ $('crmCount').textContent=''; body.innerHTML=simHTML(); if(simB) simUpdate(); return; }
   if(tbl){ body.innerHTML=crmTableHTML(); return; }
   if(crmIdx>=crmList.length) crmIdx=0;
   const P=params(), b=crmList[crmIdx].b, a=analyse(b,P), c=crmOf(b);
@@ -4055,7 +4269,8 @@ function renderCRM(){
     <div class="crm-meta">${b.q} · ${b.p}p/${b.ch}ch · ${b.m} m²${b.et?` · ét.${b.et}`:''}${b.annee?` · ${b.annee}`:''} · ${starHTML(a.stars)}</div>
     ${crmMarcheHTML(b,a)}
     ${(()=>{ const e=encOf(b); if(!e||e.pending) return ''; const w=encWarn(b,e);
-      return `<div class="crm-pub enc ${w?'warn':''}">⚖️ Loyer encadré : <b>≈ ${eur(e.maxM)} HC en meublé</b> · ${eur(e.maxN)} en nu <small>(${e.rM} €/m² · ${encLbl(e)})</small>${w?`<br>⚠️ Le loyer saisi (${eur(w)}) dépasse le plafond légal de ${eur(w-e.maxM)}.`:''}</div>`; })()}
+      return `<div class="crm-pub enc ${w?'warn':''}">⚖️ Loyer encadré : <b>≈ ${eur(e.maxM)} HC en meublé</b> · <b>${eur(e.maxN)} en nu</b> <small>(${e.rM} / ${e.rN} €/m² · ${encLbl(e)})</small>
+        <br>Loyer retenu : <b>${eur(a.loyerMois)}</b> ${+c.loyer>0?(c.loyerMode?`(${SIM_MODE[c.loyerMode]})`:'(saisi)'):`(${a.loyerSrc}, hypothèse)`} · <a href="javascript:void 0" onclick="simOpen(${idj(b.id)})">🎛️ Simuler ↗</a>${w?`<br>⚠️ Le loyer saisi (${eur(w)}) dépasse le plafond légal de ${eur(w-e.maxM)}.`:''}</div>`; })()}
     ${crmDpeHTML(b,c)}
     ${crmT4HTML(b)}
     ${(b.ann||{}).alerte?`<div class="crm-pub alerte">⚠️ <b>Point d'attention</b> : ${esc([].concat(b.ann.alerte).join(' · '))}</div>`:''}
@@ -4118,7 +4333,7 @@ function renderCRM(){
       <div class="crm-fld" style="align-items:flex-start"><label>Options en sus du prix<br><small>cochées = comptées dans le coût</small></label><div style="flex:1">${crmOptsHTML(b,c,true)}</div></div>
       <div class="crm-fld"><label>Honoraires d'agence à la charge de l'acquéreur (%)</label><input type="text" inputmode="decimal" placeholder="${(b.ann||{}).hon?String(b.ann.hon).replace('.',',')+' % (annonce)':'0 si à la charge du vendeur'}" value="${esc(c.hon)}" onchange="crmField(${idj(b.id)},'hon',this.value)"><small style="color:var(--mut)">${a.honPct?`Net vendeur ${eur(Math.round(a.netVendeur))} : frais de notaire calculés dessus (${eur(Math.round(a.fraisNot))}).`:'Frais de notaire sur le prix affiché.'}</small></div>
       <div class="crm-fld"><label>Lien de l'annonce sur le site de l'agence</label><input type="url" placeholder="https://… (affiché sous l'adresse)" value="${esc(c.lienAgence)}" onchange="crmField(${idj(b.id)},'lienAgence',this.value)"></div>
-      <div class="crm-fld"><label>Loyer actuel si occupé (€/mois)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(a.loyerMois)} € (${a.loyerSrc})" value="${esc(c.loyer)}" onchange="crmField(${idj(b.id)},'loyer',this.value)"></div>
+      <div class="crm-fld"><label>Loyer retenu, ou actuel si occupé (€/mois HC)</label><input type="number" inputmode="numeric" placeholder="hyp. ${Math.round(a.loyerMois)} € (${a.loyerSrc})" value="${esc(c.loyer)}" onchange="crmSet(byId(${idj(b.id)}),{loyerMode:null});crmField(${idj(b.id)},'loyer',this.value)"></div>
       <div class="crm-fld"><label>Adresse exacte</label><input type="text" placeholder="${esc(b.adresse||'n° et rue')}" value="${esc(c.adresse)}" onchange="crmField(${idj(b.id)},'adresse',this.value)"></div>
       <div class="crm-fld"><label>DPE</label><input type="text" placeholder="${(b.ann||{}).dpe?`annonce : ${esc(b.ann.dpe)}`:'A → G'}" value="${esc(c.dpe)}" onchange="crmField(${idj(b.id)},'dpe',this.value)"></div>
       <div class="crm-fld"><label>Travaux votés / à prévoir</label><input type="text" placeholder="ravalement, toiture…" value="${esc(c.travaux)}" onchange="crmField(${idj(b.id)},'travaux',this.value)"></div>
