@@ -4365,6 +4365,8 @@ function renderCRM(){
 
     <div class="crm-sec" id="crmCF" style="scroll-margin-top:70px"><h3>📉 Hypothèses de cash-flow</h3>${crmCFHTML(b,P,c)}</div>
 
+    ${c.dvf?`<div class="crm-sec"><h3>📈 Prix du marché (ventes chez les notaires, DVF)</h3><div class="dvf" style="margin-top:0;line-height:1.5">${esc(c.dvf).split('\n').map(l=>l.replace(/^([A-ZÉÈ ()0-9-]{6,}) :/,'<b>$1</b> :')).join('<br><br>')}</div></div>`:''}
+
     <div class="crm-sec"><h3>🎯 Objectif de négo</h3>
       <div class="crm-fld"><label>Mon objectif de prix (€)</label><input type="number" inputmode="numeric" placeholder="auto ${crmObjAuto(b,a)}" value="${esc(c.objectif)}" onchange="crmObjSet(${idj(b.id)},this.value)"></div>
       ${(()=>{ const o=crmObjectif(b,a,c), ao=analyse({...b,prix:o},P); return `<div class="crm-neg">Prix de départ <b>${eur(crmPrixDepart(b))}</b> → objectif <b>${eur(o)}</b>${o<b.prix?` (−${pct((b.prix-o)/b.prix)} vs prix actuel)`:''} · apport perso à l'équilibre <b>${eur(ao.apportEq)}</b>${+c.objectif>0?'':' · <i>objectif auto = prix d\'équilibre</i>'}</div>`; })()}
