@@ -3783,7 +3783,7 @@ function simHover(svg,box,n,L,W,R,html,yAt,x){ const tip=box.querySelector('.sim
   svg.addEventListener('mousemove',mv); svg.addEventListener('touchstart',mv,{passive:true}); svg.addEventListener('touchmove',mv,{passive:true});
   svg.addEventListener('mouseleave',()=>{ tip.style.opacity=0; hl.setAttribute('opacity',0); }); }
 function crmCmpNoteHTML(){ return `<div class="encnote"><h3>⚖️ Comparatif des finalistes (à partager avec Julie)</h3>
-  <ul><li>Brunard 1er, Brunard 2e, Montesquieu et Sisley comparés à apport égal (120 k€, prêt à 4 % tout compris sur 20 ans).</li>
+  <ul><li>Brunard 1er, Montesquieu et Sisley (Albert Thomas) comparés à apport égal (120 k€, prêt à 4 % tout compris sur 20 ans).</li>
   <li>Prix et budget travaux réglables par bien ; coût du projet et détail de l'effort mensuel poste par poste.</li></ul>
   <div class="encnote-f"><a href="${CMP_DOC}" target="_blank" rel="noopener">📊 Ouvrir le comparatif ↗</a></div></div>`; }
 function crmSimNoteHTML(){ return `<div class="encnote"><h3>🎛️ Simulateur de cash-flow : un onglet par bien actif</h3>
