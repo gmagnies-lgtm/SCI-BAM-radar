@@ -650,6 +650,11 @@
   .mv button{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:0 6px;font-size:10px;line-height:16px;cursor:pointer}
   .mv button:disabled{opacity:.25;cursor:default}
   .rdvs{color:var(--acc)!important;font-weight:700}
+  tr.killsep.shsep td{border-top:2px solid #d4a017!important;color:#b8860b;background:rgba(255,200,0,.10)!important}
+  div.killsep.shsep{border-top-color:#d4a017;color:#b8860b;margin-top:0}
+  table.cmp tr.killsep.othsep td{border-top:1px solid rgba(148,163,184,.35)!important;color:var(--txt)!important;opacity:.55;background:transparent!important}
+  div.killsep.othsep{border-top:1px solid rgba(148,163,184,.35);color:var(--txt);opacity:.55}
+  .shst{border:0;background:none;cursor:pointer;font-size:15px;padding:0 4px 0 0;opacity:.45}.shst.on{opacity:1}
   /* comparatif mobile : cartes */
   .cmc-list{display:flex;flex-direction:column;gap:8px}
   .cmc-enc{margin-top:6px;font-size:12px;color:var(--mut)}.cmc-enc b{color:var(--txt)}.cmc-enc .bad,.cmp small.bad{color:var(--bad)}
@@ -3482,6 +3487,11 @@ function crmTitle(b,c){ return crmName(b,c)||`${b.q||'?'} · ${b.m} m²`; }
 function crmRename(id){ const b=byId(id); if(!b) return;
   const v=prompt('Nom de cet appartement (vide = nom par défaut)', crmName(b)); if(v===null) return;
   crmSet(b,{nom:v.trim()}); crmRefresh(); }
+// ----- shortlist ⭐ (03/11) : les finalistes restent tout en haut du comparatif ; défaut = Brunard 1er, Albert Thomas, Montesquieu -----
+const CRM_SHORT_DEF=new Set(['3293526891','3288308804','sl275110939']);
+function crmShort(b,c){ c=c||crmOf(b); return c.short!=null?!!+c.short:CRM_SHORT_DEF.has(String(b.id)); }
+function crmShortSet(id){ const b=byId(id); if(!b) return; const on=!crmShort(b);
+  crmSet(b,{short:on?Date.now():0}); crmRefresh(); crmToast(on?'⭐ Ajouté à la shortlist':'Retiré de la shortlist'); }
 function crmKill(id,on){ const b=byId(id); if(!b) return;
   crmSet(b,{kill:on?Date.now():null}); crmRefresh(); crmToast(on?'☠️ Kill : descendu sous la ligne rouge':'↩︎ Réintégré dans le suivi'); }
 // recalcule l'ordre en gardant la fiche ouverte
@@ -3503,10 +3513,11 @@ function crmSorter(k,P){ const stI=c=>CRM_STEPS.findIndex(([s])=>s===c.step);
   return ()=>0; }
 // les biens « kill » restent en bas, sous la ligne rouge ; le reste suit le classement choisi
 function crmBiens(){ const P=params(), S=crmSorter(crmSortK,P);
-  return allListings().filter(inCRM).map(b=>{ const c=crmOf(b); return {b,c,t:crmLastAct(c),k:c.kill?1:0}; })
+  return allListings().filter(inCRM).map(b=>{ const c=crmOf(b); return {b,c,t:crmLastAct(c),k:c.kill?2:(crmShort(b,c)?0:1)}; })
     .sort((x,y)=>(x.k-y.k)||S(x,y)||(y.t-x.t)); }
 // « Mon ordre » : monter / descendre un bien (l'ordre affiché devient l'ordre enregistré)
-function crmMove(id,d){ const L=crmList.filter(r=>!crmOf(r.b).kill), i=L.findIndex(r=>String(r.b.id)===String(id)), j=i+d;
+function crmMove(id,d){ const sh=r=>crmShort(r.b), me=crmList.find(r=>String(r.b.id)===String(id)); if(!me) return;
+  const L=crmList.filter(r=>!crmOf(r.b).kill&&sh(r)===sh(me)), i=L.findIndex(r=>String(r.b.id)===String(id)), j=i+d;
   if(i<0||j<0||j>=L.length) return; [L[i],L[j]]=[L[j],L[i]];
   L.forEach((r,n)=>{ if(crmOf(r.b).ord!==n) crmSet(r.b,{ord:n}); }); crmRefresh(); }
 // migration (une fois par appareil) : les biens déjà travaillés dans l'ancien CRM y restent
@@ -3841,9 +3852,12 @@ function crmMktCell(b,a){ const e=a.ecartMarche; return `<span class="num">${kEu
 function crmTableHTML(){ const P=params();
   if(!crmList.length) return `<div class="foot" style="padding:40px 10px">Le CRM est vide.<br>Dans l'onglet ⭐ Favoris, touche « 🤝 Go to CRM » sur un bien pour l'ajouter ici.</div>`;
   const nLive=crmList.filter(r=>!crmOf(r.b).kill).length, nKill=crmList.length-nLive, mob=crmMobile();
+  const nShort=crmList.filter(r=>!crmOf(r.b).kill&&crmShort(r.b)).length;
+  const hsep=(cls,t)=>mob?`<div class="killsep ${cls}">${t}</div>`:`<tr class="killsep ${cls}"><td colspan="12">${t}</td></tr>`;
   const sep=`${mob?'<div class="killsep">':'<tr class="killsep"><td colspan="12">'}☠️ Kill · ${nKill} bien${nKill>1?'s':''} écarté${nKill>1?'s':''}${mob?'</div>':'</td></tr>'}`;
   const items=crmList.map(({b},i)=>{ const d=crmRowData(b,i,P);
-    const title=`<b>${esc(crmTitle(b,d.c))}</b><button class="ren" onclick="event.stopPropagation();crmRename(${d.id})" title="Renommer">✏️</button>`;
+    const sh=!d.kill&&crmShort(b,d.c);
+    const title=`<button class="shst ${sh?'on':''}" onclick="event.stopPropagation();crmShortSet(${d.id})" title="${sh?'Retirer de la shortlist':'Ajouter à la shortlist'}">${sh?'⭐':'☆'}</button><b>${esc(crmTitle(b,d.c))}</b><button class="ren" onclick="event.stopPropagation();crmRename(${d.id})" title="Renommer">✏️</button>`;
     const sub=`${d.nom?esc(b.q||'?')+' · '+b.m+' m² · ':''}${b.p}p/${b.ch}ch${b.m?' · '+Math.round(b.prix/b.m).toLocaleString('fr-FR')+' €/m²':''}${isGone(b)?' · 🔗✖ retirée':''}`;
     const step=`<span class="stepb ${d.stL?'on':''}">${d.stL||'— à contacter'}</span>${crmRdvAt(d.c)?`<small class="rdvs">📅 ${crmRdvLbl(d.c)}</small>`:''}${d.rel?`<span class="relb">⚠️ relance (${Math.round((Date.now()-d.rel)/864e5)} j)</span>`:''}`;
     const nego=`${d.negoPct>0?`−${pct(d.negoPct)} · −${kEur(b.prix-d.obj)}`:'au prix'}${d.auto?' · auto':''}`;
@@ -3876,9 +3890,11 @@ function crmTableHTML(){ const P=params();
       <td>${crmKillHTML(d)}</td>
       <td onclick="event.stopPropagation()"><button class="rmx" title="Retirer du CRM" onclick="crmRemove(${d.id})">✕</button></td>
     </tr>`;
-    return (d.kill&&i===nLive?sep:'')+html; }).join('');
+    const pre=(nShort&&i===0?hsep('shsep',`⭐ Shortlist · ${nShort} bien${nShort>1?'s':''} retenu${nShort>1?'s':''}`):'')
+      +(nShort&&i===nShort&&i<nLive?hsep('othsep','Autres biens suivis'):'');
+    return pre+(d.kill&&i===nLive?sep:'')+html; }).join('');
   const lbl=(CRM_SORTS.find(([k])=>k===crmSortK)||CRM_SORTS[0])[1].replace(/^\S+\s/,'').toLowerCase();
-  const hint=`<div class="cmp-hint">Classé par ${lbl}${crmSortK==='ord'?' (▲▼ pour déplacer)':''}. ✏️ pour renommer, ☠️ Kill pour descendre un bien sous la ligne rouge. Apport perso = apport pour un cash-flow à l'équilibre au prix objectif. ${mob?'Touche une carte':'Touche une ligne'} pour ouvrir la fiche.</div>`;
+  const hint=`<div class="cmp-hint">Classé par ${lbl}${crmSortK==='ord'?' (▲▼ pour déplacer)':''}. ⭐ pour mettre un bien en shortlist (toujours en haut), ✏️ pour renommer, ☠️ Kill pour descendre un bien sous la ligne rouge. Apport perso = apport pour un cash-flow à l'équilibre au prix objectif. ${mob?'Touche une carte':'Touche une ligne'} pour ouvrir la fiche.</div>`;
   if(mob) return crmSortbarHTML()+`<div class="cmc-list">${items}</div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML()+crmSimNoteHTML()+crmCmpNoteHTML();
   return crmSortbarHTML()+`<div class="cmp-scroll"><table class="cmp"><thead><tr><th>Bien</th><th>Prix de départ</th><th>Marché<small>€/m² quartier × m²</small></th><th>Objectif négo</th><th>Apport perso</th><th>Loyer encadré</th><th>DPE</th><th>À 4 %<small>emprunt max</small></th><th>Étape</th><th>Dernière action</th><th>Kill</th><th></th></tr></thead>
     <tbody>${items}</tbody></table></div>`+hint+crmEncNoteHTML()+crmDpeNoteHTML()+crmT4NoteHTML()+crmSimNoteHTML()+crmCmpNoteHTML(); }
