@@ -3808,7 +3808,8 @@ function encZoneAt(lon,lat){ const X=(lon-4.7)*1e4, Y=(lat-45.7)*1e4;
   for(const p of ENC.P){ let c=false; for(let i=1,j=p.length-2;i<p.length;j=i,i+=2){ const xi=p[i],yi=p[i+1],xj=p[j],yj=p[j+1];
     if((yi>Y)!==(yj>Y)&&X<(xj-xi)*(Y-yi)/(yj-yi)+xi) c=!c; } if(c) return p[0]; } return null; }
 const GEOKEY='scibam_geo_v1'; let GEO=(()=>{ try{ return JSON.parse(localStorage.getItem(GEOKEY)||'{}'); }catch(e){ return {}; } })(); const _geoAsk={};
-function encAddr(b){ const c=crmOf(b); let a=String(c.adresse||b.adresse||'').replace(/\([^)]*\)/g,'').replace(/place Saint-Louis,?/i,'').trim();
+function encAddr(b){ const c=crmOf(b); let a=String(c.adresse||b.adresse||'').split(/\s+[·•|—]\s+/)[0]   // 03/11 : les notes après « · » (étage, lot, porte…) faussaient la géolocalisation
+    .replace(/\([^)]*\)/g,'').replace(/place Saint-Louis,?/i,'').replace(/\s{2,}/g,' ').replace(/\s+,/g,',').trim();
   if(a) return {q:/lyon|6900|villeurbanne/i.test(a)?a:a+', Lyon', approx:!/^\d/.test(a)};
   return b.q?{q:b.q+', Lyon',approx:true}:null; }
 function encGeocode(q){ if(_geoAsk[q]) return; _geoAsk[q]=1;
