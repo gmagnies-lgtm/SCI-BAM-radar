@@ -3433,8 +3433,8 @@ function openDetail(id){
       <button class="sh-x" onclick="closeDetail()">✕</button>
     </div>
     <span class="sh-verdict ${a.vClass}">${a.verdict}</span>
-    ${(+crmOf(b).loyer>0)
-      ? `<div class="sh-loyer real">💶 Loyer réel saisi (CRM) : <b>${eur(+crmOf(b).loyer)}/mois</b> · ${(+crmOf(b).loyer/b.m).toFixed(1).replace('.',',')} €/m² — c'est lui qui alimente la simulation.</div>`
+    ${(+crmOf(b).loyer>0||/^(nu|meuble)$/.test(crmOf(b).loyerMode||''))
+      ? `<div class="sh-loyer real">💶 Loyer retenu (CRM${/^(nu|meuble)$/.test(crmOf(b).loyerMode||'')?', '+SIM_MODE[crmOf(b).loyerMode]:''}) : <b>${eur(a.loyerMois)}/mois</b> · ${(a.loyerMois/b.m).toFixed(1).replace('.',',')} €/m² — c'est lui qui alimente la simulation.</div>`
       : `<div class="sh-loyer" id="shLoyer">
       <div class="shl-top"><span>Loyer retenu pour ce bien</span><b id="shlVal">${a.loyerM2eff.toFixed(1).replace('.',',')} €/m²</b></div>
       <input id="shlRange" type="range" min="13" max="18" step="0.5" value="${a.loyerM2eff}" oninput="loyerLive(${idj(b.id)},this.value)" onchange="loyerCommit(${idj(b.id)},this.value)">
@@ -3628,7 +3628,9 @@ function simDefaults(b){ const P=params(), a=analyse(b,P), c=crmOf(b), C=simCaps
     loyerMode:mode,loyer:C&&mode!=='libre'?C[mode]:(lc||Math.round(a.loyerMois)),vac:+(P.vac*100).toFixed(1),charges:Math.round(a.chTot!=null?a.chTot:a.chMois),
     recup:a.chTot>0?Math.round(100*(1-a.chNR/a.chTot)):0,tf:Math.round(a.tfMois*12)};
   const am=simApportMin(p); p.apport=am??Math.ceil((p.prix/(1+p.hon/100)*p.notaire/100+p.travaux)/1000)*1000; return p; }
-function simLoad(b){ const k=keyOf(b), s=SIMS[k]||crmOf(b).sim; if(!s) return simDefaults(b); const p={...simDefaults(b),...s}; delete p.t; return p; }
+function simLoad(b){ const k=keyOf(b), s=SIMS[k]||crmOf(b).sim; if(!s) return simDefaults(b); const p={...simDefaults(b),...s}; delete p.t; simCapFix(p,b); return p; }
+// 03/11 : en mode « nu / meublé plafonné », le loyer = plafond légal à l'adresse, jamais un montant sauvegardé périmé
+function simCapFix(p,b){ const C=simCaps(b); if(C&&(p.loyerMode==='nu'||p.loyerMode==='meuble')&&C[p.loyerMode]&&p.loyer!==C[p.loyerMode]){ p.loyer=C[p.loyerMode]; return true; } return false; }
 function simSave(){ if(!simB) return; SIMS[keyOf(simB)]=simP; try{ localStorage.setItem(SIMKEY,JSON.stringify(SIMS)); }catch(e){} }
 
 // simulation mensuelle sur 25 ans (prêt, renégociation, loyers et charges indexés, compte courant d'associé)
@@ -3695,6 +3697,7 @@ function simIn(el){ const k=el.dataset.k, v=el.type==='checkbox'?el.checked:el.t
   document.querySelectorAll(`#crmBody [data-k="${k}"]`).forEach(x=>{ if(x!==el&&x.type!=='checkbox') x.value=v; });
   const C=simCaps(simB);
   if(k==='loyerMode'&&v!=='libre'&&C){ simP.loyer=C[v]; simSetVal('loyer',C[v]); }
+  if(k==='loyerMode'&&v!=='libre'&&!C) crmToast('Plafond pas encore calculé (adresse en cours de géolocalisation)',1);
   if(k==='loyer'){ const m=C&&v===C.nu?'nu':C&&v===C.meuble?'meuble':'libre'; simP.loyerMode=m; simSetVal('loyerMode',m); }
   simSave(); simUpdate(); }
 function simApMin(){ const am=simApportMin(simP); if(am==null){ crmToast('Impossible de rester sous le plafond, même sans crédit',1); return; } simP.apport=am; simSetVal('apport',am); simSave(); simUpdate(); }
@@ -3703,7 +3706,8 @@ function simToCRM(){ const b=simB, p=simP; if(!b) return;
   crmSet(b,{objectif:String(Math.round(p.prix)),loyer:String(Math.round(p.loyer)),loyerMode:p.loyerMode,sim:{...p,t:Date.now()}});
   crmToast(`📌 CRM à jour : objectif ${kEur(p.prix)}, loyer ${eur(p.loyer)} (${SIM_MODE[p.loyerMode]})`);
   $('simCrmObj').textContent=eur(p.prix); $('simCrmLoy').textContent=`${eur(p.loyer)} (${SIM_MODE[p.loyerMode]})`; simUpdate(); }
-function simUpdate(){ const p=simP, b=simB, s=simRun(p), Y=s.Y, P=params(), c=crmOf(b);
+function simUpdate(){ if(simB&&simCapFix(simP,simB)){ simSetVal('loyer',simP.loyer); simSave(); }
+  const p=simP, b=simB, s=simRun(p), Y=s.Y, P=params(), c=crmOf(b);
   const effMax=Math.max(...Y.map(r=>r.effortM)), eff1=Y[0].effortM, effPost=p.reneg>0&&p.reneg<p.duree?Y[p.reneg].effortM:null;
   const eqY=Y.findIndex(r=>r.cfM>=0)+1, loanY=Math.min(25,Math.ceil(s.end/12)), ok=effMax<=p.capEffort, am=simApportMin(p);
   const st=$('simStatus'); st.className='sim-pill '+(ok?'ok':'ko'); st.textContent=ok?`Effort max ${eur(effMax)}/mois · sous ton plafond`:`Effort max ${eur(effMax)}/mois · plafond dépassé de ${eur(effMax-p.capEffort)}`;
